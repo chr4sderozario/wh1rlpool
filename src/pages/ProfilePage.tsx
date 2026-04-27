@@ -5,7 +5,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/context/AuthContext';
 import { Button } from '@/src/components/ui/Button';
-import { ArrowLeft, User, Phone, MapPin, Globe, CheckCircle, Smartphone } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Phone, MapPin, Globe, CheckCircle, Smartphone, Mail } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
 
 export const ProfilePage = () => {
@@ -17,6 +17,7 @@ export const ProfilePage = () => {
 
   const [formData, setFormData] = useState({
     displayName: '',
+    email: '',
     phone: '',
     whatsapp: '',
     address: '',
@@ -41,8 +42,12 @@ export const ProfilePage = () => {
           if (docSnap.exists()) {
             setFormData(prev => ({ ...prev, ...docSnap.data() }));
           } else {
-             // Set default display name if first time
-             setFormData(prev => ({ ...prev, displayName: user.displayName || '' }));
+             // Set defaults if first time
+             setFormData(prev => ({ 
+               ...prev, 
+               displayName: user.displayName || '',
+               email: user.email || '' 
+             }));
           }
         } catch (error) {
           console.error("Error fetching profile:", error);
@@ -102,7 +107,7 @@ export const ProfilePage = () => {
         <form onSubmit={handleSubmit} className="space-y-8 glass p-8 md:p-12 rounded-[2rem]">
           {/* Identity */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <InputGroup label="Full Name" icon={<User className="w-4 h-4" />}>
+            <InputGroup label="Full Name" icon={<UserIcon className="w-4 h-4" />}>
                <input 
                  type="text" 
                  value={formData.displayName}
@@ -112,6 +117,19 @@ export const ProfilePage = () => {
                  required
                />
             </InputGroup>
+            <InputGroup label="Email Identity" icon={<Mail className="w-4 h-4" />}>
+               <input 
+                 type="email" 
+                 value={formData.email}
+                 onChange={(e) => setFormData({...formData, email: e.target.value})}
+                 className="input-field opacity-60" 
+                 placeholder="john@example.com" 
+                 disabled
+               />
+            </InputGroup>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <InputGroup label="WhatsApp Number" icon={<Smartphone className="w-4 h-4" />}>
                <input 
                  type="tel" 
@@ -133,7 +151,7 @@ export const ProfilePage = () => {
                  placeholder="1234567890" 
                />
             </InputGroup>
-            <InputGroup label="Gender" icon={<User className="w-4 h-4" />}>
+            <InputGroup label="Gender" icon={<UserIcon className="w-4 h-4" />}>
                <select 
                  value={formData.gender}
                  onChange={(e) => setFormData({...formData, gender: e.target.value})}

@@ -7,13 +7,14 @@
       "properties": {
         "name": { "type": "string", "description": "Name of the item" },
         "description": { "type": "string", "description": "Product details" },
-        "price": { "type": "number", "description": "Price in USD" },
+        "price": { "type": "number", "description": "Selling price" },
+        "costPrice": { "type": "number", "description": "Cost to brand" },
         "stock": { "type": "integer", "description": "Available inventory" },
         "imageUrl": { "type": "string", "description": "URL to the product image" },
         "category": { "type": "string", "enum": ["Jersey", "Pants", "Embroidery", "OnSale", "Accessories"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["name", "price", "stock", "category"]
+      "required": ["name", "price", "costPrice", "stock", "category"]
     },
     "Order": {
       "title": "Order",
@@ -42,6 +43,7 @@
         "country": { "type": "string" },
         "gender": { "type": "string", "enum": ["Male", "Female", "Unisex", "Other"] },
         "size": { "type": "string", "enum": ["XS", "S", "M", "L", "XL", "XXL"] },
+        "email": { "type": "string" },
         "role": { "type": "string", "enum": ["admin", "user"] },
         "createdAt": { "type": "string", "format": "date-time" }
       }
