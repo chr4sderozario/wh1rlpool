@@ -2,18 +2,18 @@
   "entities": {
     "Product": {
       "title": "Product",
-      "description": "A football jersey product",
+      "description": "A luxury apparel item",
       "type": "object",
       "properties": {
-        "name": { "type": "string", "description": "Name of the jersey" },
+        "name": { "type": "string", "description": "Name of the item" },
         "description": { "type": "string", "description": "Product details" },
         "price": { "type": "number", "description": "Price in USD" },
         "stock": { "type": "integer", "description": "Available inventory" },
         "imageUrl": { "type": "string", "description": "URL to the product image" },
-        "category": { "type": "string", "description": "Collection category" },
+        "category": { "type": "string", "enum": ["Jersey", "Pants", "Embroidery", "OnSale", "Accessories"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["name", "price", "stock"]
+      "required": ["name", "price", "stock", "category"]
     },
     "Order": {
       "title": "Order",
@@ -30,10 +30,18 @@
     },
     "UserProfile": {
       "title": "UserProfile",
-      "description": "Public user profile information",
+      "description": "Detailed user profile for WH1RLPOOL",
       "type": "object",
       "properties": {
         "displayName": { "type": "string" },
+        "phone": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "state": { "type": "string" },
+        "country": { "type": "string" },
+        "gender": { "type": "string", "enum": ["Male", "Female", "Unisex", "Other"] },
+        "size": { "type": "string", "enum": ["XS", "S", "M", "L", "XL", "XXL"] },
         "role": { "type": "string", "enum": ["admin", "user"] },
         "createdAt": { "type": "string", "format": "date-time" }
       }

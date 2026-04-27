@@ -44,14 +44,15 @@ export const AdminDashboard = () => {
     const name = prompt("Product Name:");
     const price = Number(prompt("Price:"));
     const stock = Number(prompt("Stock:"));
+    const category = prompt("Category (Jersey, Pants, Embroidery, OnSale, Accessories):", "Jersey");
     
-    if (name && !isNaN(price) && !isNaN(stock)) {
+    if (name && !isNaN(price) && !isNaN(stock) && category) {
       try {
         await addDoc(collection(db, 'products'), {
           name,
           price,
           stock: Math.floor(stock),
-          category: 'Default',
+          category: category,
           createdAt: serverTimestamp(),
         });
       } catch (error) {

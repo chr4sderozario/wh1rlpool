@@ -7,6 +7,8 @@ import { LandingPage } from '@/src/pages/LandingPage';
 import { LoginPage } from '@/src/pages/LoginPage';
 import { AdminDashboard } from '@/src/pages/AdminDashboard';
 import { StorePage } from '@/src/pages/StorePage';
+import { ProfilePage } from '@/src/pages/ProfilePage';
+import { SupportPage } from '@/src/pages/SupportPage';
 import { AuthProvider } from '@/src/context/AuthContext';
 
 export default function App() {
@@ -33,6 +35,8 @@ export default function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/store" element={<StorePage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/support" element={<SupportPage />} />
               </Routes>
             </div>
           )}

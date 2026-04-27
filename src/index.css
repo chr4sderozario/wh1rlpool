@@ -9,6 +9,17 @@
   --color-brand-red: #8B0000;
   --color-brand-grey: #121212;
   --color-brand-silver: #C0C0C0;
+
+  --radius-liquid: 2rem;
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  }
+  .liquid-shadow {
+    filter: drop-shadow(0 0 20px rgba(139, 0, 0, 0.2));
+  }
 }
 
 @layer base {
@@ -16,6 +27,17 @@
     @apply bg-black text-white font-sans antialiased;
     overflow-x: hidden;
   }
+}
+
+.liquid-shape {
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  animation: liquid-morph 8s ease-in-out infinite;
+}
+
+@keyframes liquid-morph {
+  0% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+  100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
 }
 
 .gothic-glow {

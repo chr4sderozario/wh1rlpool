@@ -41,41 +41,30 @@ service cloud.firestore {
     // --- Validation Blueprints ---
 
     function isValidProduct(data) {
-      return data.keys().hasAll(['name', 'price', 'stock']) &&
-             data.keys().size() >= 3 && data.keys().size() <= 7 &&
-             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+      return data.keys().hasAll(['name', 'price', 'stock', 'category']) &&
+             data.keys().size() >= 4 && data.keys().size() <= 9 &&
+             data.name is string && data.name.size() > 0 &&
              data.price is number && data.price >= 0 &&
              data.stock is int && data.stock >= 0 &&
-             (!('description' in data) || (data.description is string && data.description.size() <= 1000)) &&
-             (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 500)) &&
-             (!('category' in data) || (data.category is string && data.category.size() <= 50)) &&
+             data.category in ['Jersey', 'Pants', 'Embroidery', 'OnSale', 'Accessories'] &&
+             (!('description' in data) || data.description is string) &&
+             (!('imageUrl' in data) || data.imageUrl is string) &&
              (!('createdAt' in data) || data.createdAt is timestamp);
     }
 
-    function isValidOrder(data) {
-      return data.keys().hasAll(['userId', 'items', 'total', 'status']) &&
-             data.keys().size() >= 4 && data.keys().size() <= 6 &&
-             data.userId == request.auth.uid &&
-             data.items is list && data.items.size() > 0 && data.items.size() <= 50 &&
-             data.items[0] is map && // Basic type check for list content
-             data.total is number && data.total >= 0 &&
-             data.status in ['pending', 'shipped', 'delivered', 'cancelled'] &&
-             (!('createdAt' in data) || data.createdAt == request.time);
-    }
-
     function isValidUserProfile(data) {
-      return data.keys().hasAll(['displayName', 'role', 'createdAt']) &&
-             data.keys().size() == 3 &&
-             data.displayName is string && data.displayName.size() <= 50 &&
-             data.role in ['admin', 'user'] &&
-             data.createdAt is timestamp;
-    }
-
-    function isValidUserPrivateInfo(data) {
-      return data.keys().hasAll(['email']) &&
-             data.keys().size() >= 1 && data.keys().size() <= 5 &&
-             data.email is string && data.email.size() <= 100 &&
-             (!('address' in data) || (data.address is string && data.address.size() <= 200));
+      return data.keys().size() <= 15 &&
+             (!('displayName' in data) || data.displayName is string) &&
+             (!('phone' in data) || data.phone is string) &&
+             (!('whatsapp' in data) || data.whatsapp is string) &&
+             (!('address' in data) || data.address is string) &&
+             (!('city' in data) || data.city is string) &&
+             (!('state' in data) || data.state is string) &&
+             (!('country' in data) || data.country is string) &&
+             (!('gender' in data) || data.gender in ['Male', 'Female', 'Unisex', 'Other']) &&
+             (!('size' in data) || data.size in ['XS', 'S', 'M', 'L', 'XL', 'XXL']) &&
+             (!('role' in data) || data.role in ['admin', 'user']) &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
     }
 
     // --- Collection Rules ---
@@ -84,10 +73,7 @@ service cloud.firestore {
       allow read: if true; 
       allow create: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
       allow update: if isAdmin() && isValidProduct(incoming()) && (
-        // Action: Full Edit
-        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'price', 'description', 'imageUrl', 'category', 'stock']) ||
-        // Action: Stock Sync
-        incoming().diff(existing()).affectedKeys().hasOnly(['stock'])
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'price', 'description', 'imageUrl', 'category', 'stock'])
       );
       allow delete: if isAdmin();
     }
@@ -105,16 +91,13 @@ service cloud.firestore {
 
     match /users/{userId} {
       match /public/profile {
-        // Blanket read blocked. List queries must be specific.
         allow get: if isSignedIn();
-        allow list: if isSignedIn() && resource.data.role == 'user'; // Basic restriction
+        allow list: if isSignedIn() && resource.data.role == 'user';
         
-        allow create: if isOwner(userId) && isValidUserProfile(incoming()) && incoming().role == 'user' && incoming().createdAt == request.time;
+        allow create: if isOwner(userId) && isValidUserProfile(incoming());
         allow update: if isOwner(userId) && 
-                      incoming().diff(existing()).affectedKeys().hasOnly(['displayName']) &&
                       isValidUserProfile(incoming()) &&
-                      incoming().role == existing().role && // Immutable role
-                      incoming().createdAt == existing().createdAt; // Immutable creation time
+                      (!incoming().diff(existing()).affectedKeys().hasAny(['role', 'createdAt']));
         allow delete: if false;
       }
 
