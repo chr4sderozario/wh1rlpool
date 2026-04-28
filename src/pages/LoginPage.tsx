@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, ChevronLeft, Chrome } from 'lucide-react';
 import { auth, signInWithGoogle } from '@/src/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { GothicBackground } from '@/src/components/layout/GothicBackground';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -76,6 +77,7 @@ export const LoginPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative">
+      <GothicBackground />
       <button 
         onClick={() => navigate('/')}
         className="absolute top-8 left-8 text-white/40 hover:text-white flex items-center gap-2 transition-colors uppercase text-xs tracking-widest"

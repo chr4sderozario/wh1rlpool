@@ -18,7 +18,8 @@ service cloud.firestore {
     function isAdmin() {
       return isEmailVerified() && (
         request.auth.token.email == 'sohanbiswas@chr4s.com' ||
-        request.auth.token.email == 'johnrozario@chr4s.com'
+        request.auth.token.email == 'johnrozario@chr4s.com' ||
+        request.auth.token.email == 'johnchristianorozario@gmail.com'
       );
     }
 

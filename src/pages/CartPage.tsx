@@ -42,10 +42,6 @@ export const CartPage = () => {
   const { user, profile } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online' | 'balance'>('online');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [address, setAddress] = useState(profile?.address || '');
 
   useEffect(() => {
     if (!user) {
@@ -76,65 +72,32 @@ export const CartPage = () => {
   };
 
   const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const shippingFee = paymentMethod === 'cod' ? 100 : 0;
-  const total = subtotal + shippingFee;
+  const total = subtotal; // Shipping calculated in checkout
 
-  const handleCheckout = async () => {
-    if (!user) return navigate('/login');
-    if (!address) return alert("Please set a delivery coordinates.");
-    if (paymentMethod === 'online' && !phoneNumber) return alert("Terminal ID (Phone) required.");
-    if (paymentMethod === 'balance' && (profile?.balance || 0) < total) return alert("Insufficient Void Balance.");
-
-    setIsProcessing(true);
-    try {
-      // Create Order
-      const orderRef = await addDoc(collection(db, 'orders'), {
-        userId: user.uid,
-        userName: profile?.displayName || user.email,
-        items: items.map(({ id, ...rest }) => rest),
-        total,
-        paymentMethod,
-        status: 'pending',
-        shippingAddress: { address },
-        phoneNumber: paymentMethod === 'online' ? phoneNumber : '',
-        createdAt: serverTimestamp()
-      });
-
-      // If balance, subtract from profile
-      if (paymentMethod === 'balance') {
-        const profileRef = doc(db, 'users', user.uid, 'public', 'profile');
-        await updateDoc(profileRef, {
-          balance: (profile?.balance || 0) - total
-        });
-      }
-
-      // Clear Cart
-      for (const item of items) {
-        await deleteDoc(doc(db, 'users', user.uid, 'cart', item.id));
-      }
-
-      navigate(`/orders`);
-      alert(paymentMethod === 'online' ? "Payment request will be sent soon." : "Order Synchronized.");
-    } catch (err) {
-      console.error(err);
-      alert("Transmission Failed.");
-    } finally {
-      setIsProcessing(false);
-    }
+  const proceedToCheckout = () => {
+     navigate('/checkout', { state: { cartItems: items, total } });
   };
 
-  if (loading) return null;
+  if (loading) return (
+     <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-16 h-16 border-t-2 border-brand-red rounded-full animate-spin" />
+     </div>
+  );
 
   if (!user) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center space-y-12 pb-32">
-        <div className="w-32 h-32 rounded-full border border-white/5 flex items-center justify-center animate-pulse">
-          <ShoppingBag className="w-12 h-12 text-white/20" />
-        </div>
-        <div className="text-center space-y-6">
-          <h1 className="text-4xl md:text-7xl font-display font-black tracking-tighter uppercase italic">Access Denied</h1>
-          <p className="text-white/40 uppercase tracking-widest text-[10px] font-bold">Log in to sync your archive.</p>
-          <Button onClick={() => navigate('/login')} className="bg-white text-black hover:bg-brand-red hover:text-white px-12 h-16 rounded-full font-black">LOGIN TERMINAL</Button>
+        <motion.div 
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="w-40 h-40 rounded-[3rem] border border-white/5 flex items-center justify-center bg-white/[0.02]"
+        >
+          <ShoppingBag className="w-16 h-16 text-white/10" />
+        </motion.div>
+        <div className="text-center space-y-6 max-w-sm">
+          <h1 className="text-4xl md:text-6xl font-display font-black tracking-tighter uppercase italic">ARCHIVE LOCKED</h1>
+          <p className="text-white/30 uppercase tracking-[0.4em] text-[10px] font-black leading-relaxed">Authentication required to sync your artifacts across the void.</p>
+          <Button onClick={() => navigate('/login')} className="w-full h-16 rounded-full font-black scale-110">INITIALIZE LOGIN</Button>
         </div>
       </div>
     );
@@ -142,167 +105,161 @@ export const CartPage = () => {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-black px-6 md:px-12 pt-40 pb-32">
-        <div className="max-w-[1400px] mx-auto flex flex-col items-center justify-center text-center space-y-12">
-          <h1 className="text-6xl md:text-9xl font-display font-black tracking-tighter uppercase italic py-2 opacity-10">EMPTY VOID</h1>
-          <p className="text-white/40 text-xl font-serif italic">Your archive contains no active transmissions.</p>
-          <Button onClick={() => navigate('/shop')} className="h-20 px-12 rounded-full text-lg font-black group">
-            <span className="flex items-center gap-4">EXPLORE THE ARCHIVE <ArrowRight className="group-hover:translate-x-2 transition-transform" /></span>
-          </Button>
+      <div className="min-h-screen bg-black px-6 md:px-12 flex flex-col items-center justify-center text-center space-y-12">
+        <motion.h1 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 0.05, y: 0 }}
+          className="text-8xl md:text-[15rem] font-display font-black tracking-tighter uppercase italic leading-none absolute pointer-events-none"
+        >
+           EMPTY<br/>VOID
+        </motion.h1>
+        <div className="relative z-10 space-y-8">
+           <p className="text-xl md:text-3xl font-serif italic text-white/40">The archive is currently quiet.</p>
+           <Button onClick={() => navigate('/shop')} className="h-20 px-12 rounded-full text-lg font-black group overflow-hidden relative">
+             <span className="relative z-10 flex items-center gap-4">SCAN MARKETPLACE <ArrowRight className="group-hover:translate-x-2 transition-transform" /></span>
+             <div className="absolute inset-0 bg-brand-red translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+           </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white pt-40 pb-32 px-6 md:px-12">
-      <div className="max-w-[1400px] mx-auto">
-        <div className="flex flex-col lg:flex-row gap-24">
+    <div className="min-h-screen bg-black text-white pt-40 pb-32 px-6 md:px-24">
+      <div className="max-w-[1800px] mx-auto">
+        <div className="flex flex-col xl:flex-row gap-32">
           
-          {/* Left: Cart Items */}
-          <div className="flex-1 space-y-12">
-            <header className="space-y-4">
-              <h1 className="text-5xl md:text-7xl font-display font-black tracking-tighter uppercase italic">YOUR ARCHIVE</h1>
-              <p className="text-white/20 uppercase tracking-[0.4em] text-[10px] font-black">{items.length} Artifacts Prepared</p>
+          {/* Main List */}
+          <div className="flex-1 space-y-16">
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-white/5 pb-12">
+              <div>
+                <h1 className="text-6xl md:text-8xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-6">THE ARCHIVE</h1>
+                <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/20 italic">ARTIFACT EXTRACTION QUEUE: {items.length} UNITS</p>
+              </div>
+              <button 
+                onClick={() => navigate('/shop')}
+                className="text-[10px] font-black uppercase tracking-widest text-brand-red hover:underline decoration-2 underline-offset-8"
+              >
+                CONTINUE ACQUISITION
+              </button>
             </header>
 
-            <div className="space-y-8">
-              {items.map((item) => (
-                <motion.div 
-                  key={item.id}
-                  layout
-                  className="flex flex-col sm:flex-row gap-8 pb-8 border-b border-white/5 relative group"
-                >
-                  <div className="w-32 h-40 rounded-3xl overflow-hidden bg-white/5 border border-white/5 group-hover:border-brand-red/30 transition-all duration-500">
-                    <img src={item.imageUrl} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
-                  </div>
-                  
-                  <div className="flex-1 space-y-4 py-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-xl font-display font-bold uppercase tracking-tight">{item.name}</h3>
-                        <p className="text-[10px] text-white/40 uppercase tracking-widest font-black mt-1">Size: {item.size}</p>
-                      </div>
-                      <button 
-                        onClick={() => removeItem(item.id)}
-                        className="text-white/20 hover:text-brand-red transition-colors"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+            <div className="grid grid-cols-1 gap-12">
+              <AnimatePresence mode="popLayout">
+                {items.map((item) => (
+                  <motion.div 
+                    key={item.id}
+                    layout
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="flex flex-col md:flex-row gap-12 p-8 rounded-[3rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all group"
+                  >
+                    <div className="w-full md:w-48 aspect-[3/4] rounded-[2rem] overflow-hidden bg-black shrink-0 shadow-2xl relative">
+                       <img 
+                         src={item.imageUrl} 
+                         className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" 
+                         referrerPolicy="no-referrer"
+                       />
+                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
+                    
+                    <div className="flex-1 flex flex-col justify-between py-4">
+                       <div className="space-y-4">
+                          <div className="flex justify-between items-start">
+                             <div className="space-y-1">
+                                <h3 className="text-2xl md:text-4xl font-display font-black uppercase italic tracking-tight">{item.name}</h3>
+                                <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-white/20">
+                                   <span>Artifact ID: {item.productId.slice(-8)}</span>
+                                   <span className="w-1 h-1 bg-white/10 rounded-full" />
+                                   <span className="text-brand-red">Size: {item.size}</span>
+                                </div>
+                             </div>
+                             <button 
+                               onClick={() => removeItem(item.id)}
+                               className="p-4 rounded-2xl bg-white/5 text-white/20 hover:bg-brand-red/10 hover:text-brand-red transition-all"
+                             >
+                                <Trash2 className="w-6 h-6" />
+                             </button>
+                          </div>
+                       </div>
 
-                    <div className="flex items-center justify-between pt-4">
-                      <div className="flex items-center gap-6 bg-white/5 px-6 py-2 rounded-2xl border border-white/5">
-                        <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="text-white/40 hover:text-white transition-colors"><Minus className="w-4 h-4" /></button>
-                        <span className="text-lg font-black w-6 text-center">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="text-white/40 hover:text-white transition-colors"><Plus className="w-4 h-4" /></button>
-                      </div>
-                      <p className="text-xl font-black tracking-tighter">₹ {(item.price * item.quantity).toString()}</p>
+                       <div className="flex flex-wrap items-center justify-between gap-8 mt-12 bg-black/40 p-6 rounded-3xl border border-white/5">
+                          <div className="flex items-center gap-8">
+                             <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Quantity</p>
+                             <div className="flex items-center gap-6">
+                                <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all">
+                                   <Minus className="w-4 h-4" />
+                                </button>
+                                <span className="text-2xl font-display font-black italic tabular-nums w-8 text-center">{item.quantity}</span>
+                                <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all">
+                                   <Plus className="w-4 h-4" />
+                                </button>
+                             </div>
+                          </div>
+                          <div className="text-right">
+                             <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Sub-Total</p>
+                             <p className="text-3xl font-display font-black italic tracking-tighter text-brand-red">₹ {item.price * item.quantity}</p>
+                          </div>
+                       </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           </div>
 
-          {/* Right: Checkout Sidebar */}
-          <aside className="w-full lg:w-[450px] space-y-12">
-            <div className="p-12 rounded-[3.5rem] bg-[#0A0A0A] border border-white/5 space-y-12 sticky top-32">
-              <h2 className="text-3xl font-display font-black tracking-tighter uppercase italic">TRANSMISSION SUMMARY</h2>
-
-              {/* Delivery Address */}
-              <div className="space-y-6">
-                 <h4 className="text-[10px] uppercase font-black tracking-widest text-white/40">Coordinates</h4>
-                 <textarea 
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Enter full shipping coordinates..."
-                  className="w-full bg-black/40 border border-white/10 rounded-2xl p-6 text-sm font-serif italic text-white/60 focus:outline-none focus:border-brand-red transition-all min-h-[120px]"
-                 />
-              </div>
-
-              {/* Payment Methods */}
-              <div className="space-y-8">
-                 <h4 className="text-[10px] uppercase font-black tracking-widest text-white/40">Encryption Method</h4>
-                 <div className="grid grid-cols-1 gap-4">
-                    <PaymentMethod 
-                      id="online" 
-                      label="Online Payment" 
-                      desc="Card/UPI Protocol" 
-                      icon={<CreditCard />} 
-                      active={paymentMethod === 'online'} 
-                      onClick={() => setPaymentMethod('online')} 
-                    />
-                    <PaymentMethod 
-                      id="balance" 
-                      label="Void Balance" 
-                      desc={`Bal: ₹${profile?.balance?.toFixed(2) || '0.00'}`} 
-                      icon={<Wallet />} 
-                      active={paymentMethod === 'balance'} 
-                      onClick={() => setPaymentMethod('balance')} 
-                    />
-                    <PaymentMethod 
-                      id="cod" 
-                      label="COD Artifacts" 
-                      desc="+₹100 Courier Tax" 
-                      icon={<Truck />} 
-                      active={paymentMethod === 'cod'} 
-                      onClick={() => setPaymentMethod('cod')} 
-                    />
-                 </div>
-
-                 {paymentMethod === 'online' && (
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="space-y-4"
-                    >
-                       <div className="relative">
-                          <Phone className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
-                          <input 
-                            type="tel"
-                            placeholder="Terminal Phone Number"
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-14 pr-6 text-xs uppercase font-bold tracking-widest focus:outline-none focus:border-brand-red"
-                          />
-                       </div>
-                       <p className="text-[8px] uppercase tracking-widest text-white/20 text-center">Payment request syncs after order.</p>
-                    </motion.div>
-                 )}
-              </div>
-
-              {/* Totals */}
-              <div className="space-y-4 pt-8 border-t border-white/5">
-                <div className="flex justify-between text-white/40 text-[10px] uppercase font-black tracking-widest">
-                  <span>Sub-Archive Value</span>
-                  <span>₹ {subtotal}</span>
+          {/* Checkout Summary */}
+          <aside className="w-full xl:w-[500px] shrink-0">
+             <div className="sticky top-40 bg-[#080808] border border-white/5 rounded-[4rem] p-12 md:p-16 space-y-12">
+                <h2 className="text-4xl font-display font-black uppercase italic tracking-tighter">SUMMARY</h2>
+                
+                <div className="space-y-6">
+                   <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white/40">
+                      <span>Artifact Value</span>
+                      <span className="text-white">₹ {subtotal}</span>
+                   </div>
+                   <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white/40">
+                      <span>Logistics Tax</span>
+                      <span className="text-green-500">OPTIMIZED</span>
+                   </div>
+                   <div className="h-[1px] bg-white/5 my-4" />
+                   <div className="flex justify-between items-end">
+                      <div>
+                         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-red mb-1">TOTAL ACQUISITION</p>
+                         <p className="text-5xl font-display font-black italic tracking-tighter tabular-nums">₹ {total}</p>
+                      </div>
+                   </div>
                 </div>
-                <div className="flex justify-between text-white/40 text-[10px] uppercase font-black tracking-widest">
-                  <span>Courier Tax</span>
-                  <span>₹ {shippingFee}</span>
-                </div>
-                <div className="flex justify-between text-2xl font-black tracking-tighter pt-4">
-                  <span className="uppercase italic font-display">TOTAL</span>
-                  <span className="text-brand-red gothic-glow">₹ {total}</span>
-                </div>
-              </div>
 
-              <Button 
-                onClick={handleCheckout}
-                disabled={isProcessing}
-                className="w-full h-20 text-lg rounded-full bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-extrabold group"
-              >
-                <span className="flex items-center justify-center gap-4">
-                  {isProcessing ? 'SYNCHRONIZING...' : 'INITIALIZE ORDER'} 
-                  {!isProcessing && <ArrowRight className="group-hover:translate-x-2 transition-transform" />}
-                </span>
-              </Button>
+                <div className="space-y-6 pt-8">
+                   <Button 
+                     onClick={proceedToCheckout}
+                     className="w-full h-24 text-xl rounded-[2.5rem] bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-black group relative overflow-hidden"
+                   >
+                      <div className="relative z-10 flex items-center justify-center gap-4">
+                         PROCEED TO EXTRACTION
+                         <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+                      </div>
+                      <div className="absolute inset-0 bg-brand-red translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                   </Button>
+                   <p className="text-center text-[9px] font-black uppercase tracking-[0.3em] text-white/10 px-8">
+                      Secure payment request will be generated at the next step of the protocol.
+                   </p>
+                </div>
 
-              <div className="flex items-center justify-center gap-4 pt-6 text-[8px] uppercase tracking-[0.4em] text-white/10">
-                 <ShieldCheck className="w-3 h-3" /> Encrypted Transmission Protocol v2.0
-              </div>
-            </div>
+                {/* Tactical Features */}
+                <div className="pt-12 grid grid-cols-2 gap-4">
+                   <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-3">
+                      <Truck className="w-5 h-5 text-brand-red" />
+                      <p className="text-[8px] font-black uppercase tracking-widest text-white/40">Stealth Shipment</p>
+                   </div>
+                   <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-3">
+                      <Wallet className="w-5 h-5 text-brand-red" />
+                      <p className="text-[8px] font-black uppercase tracking-widest text-white/40">Multi-Chain Pay</p>
+                   </div>
+                </div>
+             </div>
           </aside>
         </div>
       </div>

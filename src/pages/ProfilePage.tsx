@@ -148,6 +148,23 @@ export const ProfilePage = () => {
                <div>
                   <p className="text-5xl font-display font-black tracking-tighter italic">₹ {profile?.balance?.toFixed(2) || '0.00'}</p>
                </div>
+               
+               {/* Void Level / Loyalty Badge */}
+               <div className="pt-4 border-t border-white/5 space-y-4">
+                  <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-[0.4em] text-white/40">
+                    <span>Void Level</span>
+                    <span className="text-brand-red">Stage {Math.floor((profile?.balance || 0) / 1000) + 1}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, ((profile?.balance || 0) % 1000) / 10)}%` }}
+                      className="h-full bg-gradient-to-r from-brand-red to-orange-500"
+                    />
+                  </div>
+                  <p className="text-[7px] uppercase tracking-widest text-white/20 italic font-black text-center">Inoculate more credits to ascend the hierarchy</p>
+               </div>
+
                <Button 
                 onClick={() => setIsBalanceModalOpen(true)}
                 className="w-full rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white transition-all font-black py-4"

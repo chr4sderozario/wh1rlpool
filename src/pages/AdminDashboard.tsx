@@ -91,6 +91,9 @@ export const AdminDashboard = () => {
     stock: '',
     category: 'Official Jerseys',
     description: '',
+    gender: 'unisex',
+    club: '',
+    country: '',
     image: null as File | null,
     imagePreview: '',
     isFeatured: false
@@ -222,9 +225,12 @@ export const AdminDashboard = () => {
         name: newProduct.name,
         price: Number(newProduct.price),
         costPrice: Number(newProduct.costPrice),
-        stock: Number(newProduct.stock),
+        stock: Math.floor(Number(newProduct.stock)),
         category: newProduct.category,
         description: newProduct.description,
+        gender: newProduct.gender,
+        club: newProduct.club,
+        country: newProduct.country,
         isFeatured: newProduct.isFeatured,
         imageUrl,
       };
@@ -239,7 +245,168 @@ export const AdminDashboard = () => {
       }
       setIsModalOpen(false);
       resetProductForm();
-    } catch (err) { alert("Deployment Failed."); } finally { setUploading(false); }
+    } catch (err) { 
+      console.error(err);
+      alert("Deployment Failed. Check permissions or data format."); 
+    } finally { setUploading(false); }
+  };
+
+  const seedSystemProducts = async () => {
+    if (!confirm("Populate vault with 2024/25 elite artifacts?")) return;
+    setLoading(true);
+    try {
+      const eliteArtifacts = [
+        {
+          name: "REAL MADRID 24/25 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 50,
+          category: "Official Jerseys",
+          description: "La Casa Blanca. 2024/25 Edition. Pure elegance.",
+          imageUrl: "https://shop.realmadrid.com/cdn/shop/files/RMCFMS0120-01_1.jpg?v=1717411681",
+          gender: "men",
+          club: "RMA",
+          isFeatured: true
+        },
+        {
+          name: "MAN CITY 24/25 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 45,
+          category: "Official Jerseys",
+          description: "Manchester's finest. The 0161 area code inspiration.",
+          imageUrl: "https://images.footballfanatics.com/manchester-city/manchester-city-puma-home-shirt-2024-25_ss5_p-201016847+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          gender: "men",
+          club: "MCI",
+          isFeatured: true
+        },
+        {
+          name: "FC BARCELONA 24/25 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 35,
+          category: "Official Jerseys",
+          description: "Blaugrana 125th Anniversary Edition.",
+          imageUrl: "https://images.footballfanatics.com/fc-barcelona/fc-barcelona-nike-home-stadium-shirt-2024-25_ss5_p-200786938+pv-1+v-142f36d37651474e8929e0689b0b4b2a.jpg?_hv=2&w=1200",
+          gender: "men",
+          club: "FCB",
+          isFeatured: true
+        },
+        {
+          name: "ARGENTINA 3-STAR HOME 2024",
+          price: 449,
+          costPrice: 200,
+          stock: 60,
+          category: "National Team Jerseys",
+          description: "Champions of the World. The golden badge edition.",
+          imageUrl: "https://images.footballfanatics.com/argentina/argentina-adidas-home-authentic-shirt-2024_ss5_p-200388939+u-43e86f874c72473887013898869c9b6b+v-dd692e76f62a420993070cd86b29d10e.jpg?_hv=2&w=1200",
+          gender: "men",
+          country: "ARG",
+          isFeatured: true
+        },
+        {
+          name: "INTER MIAMI 2024 HOME (MESSI)",
+          price: 449,
+          costPrice: 200,
+          stock: 40,
+          category: "Official Jerseys",
+          description: "The pink heat of Miami. #10 MESSI.",
+          imageUrl: "https://images.footballfanatics.com/inter-miami-cf/inter-miami-cf-adidas-home-shirt-24_ss5_p-200388915+u-6p87it1ic0clyjghrck1+v-1f6cc97ac26e47959b85c249bc8f654b.jpg?_hv=2&w=1200",
+          gender: "men",
+          club: "MIA",
+          isFeatured: true
+        },
+        {
+          name: "BRAZIL 2024 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 30,
+          category: "National Team Jerseys",
+          description: "Seleção. Rich texture inspired by Brazilian nature.",
+          imageUrl: "https://images.footballfanatics.com/brazil-national-team/brazil-nike-home-stadium-shirt-2024_ss5_p-200705663+u-83605c31751a4f009e5306509a25032a+v-7431e780860447be88d3f4415842880c.jpg?_hv=2&w=1200",
+          gender: "men",
+          country: "BRA",
+          isFeatured: true
+        },
+        {
+          name: "PORTUGAL 2024 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 25,
+          category: "National Team Jerseys",
+          description: "Navegadores. Celebrating the national flag.",
+          imageUrl: "https://images.footballfanatics.com/portugal-national-team/portugal-nike-home-stadium-shirt-2024_ss5_p-201014167+pv-1+v-8e7c1c045b674b0f9485c2f0d61e9381.jpg?_hv=2&w=1200",
+          gender: "men",
+          country: "POR",
+          isFeatured: true
+        },
+        {
+          name: "ARSENAL 24/25 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 20,
+          category: "Official Jerseys",
+          description: "The Gunners' core. Simple, bold, iconic.",
+          imageUrl: "https://images.footballfanatics.com/arsenal/arsenal-adidas-home-shirt-2024-25_ss5_p-201016847+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          gender: "men",
+          club: "ARS",
+          isFeatured: true
+        },
+        {
+          name: "MAN UNITED 24/25 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 35,
+          category: "Official Jerseys",
+          description: "The Red Devils. Gradient red detailing.",
+          imageUrl: "https://images.footballfanatics.com/manchester-united/manchester-united-adidas-home-shirt-2024-25_ss5_p-201016847+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          gender: "men",
+          club: "MUN",
+          isFeatured: true
+        },
+        {
+          name: "LIVERPOOL 24/25 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 40,
+          category: "Official Jerseys",
+          description: "You'll Never Walk Alone. Modern twist on retro style.",
+          imageUrl: "https://images.footballfanatics.com/liverpool/liverpool-nike-home-stadium-shirt-2024-25_ss5_p-201016847+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          gender: "men",
+          club: "LIV",
+          isFeatured: true
+        }
+      ];
+
+      for (const artifact of eliteArtifacts) {
+        await addDoc(collection(db, 'products'), {
+          ...artifact,
+          createdAt: serverTimestamp()
+        });
+      }
+      alert("VAULT POPULATED SUCCESSFULLY.");
+    } catch (err) {
+      console.error(err);
+      alert("Infection Failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateAllPrices = async () => {
+    if (!confirm("Synchronize ALL artifacts to ₹449 extraction rate?")) return;
+    setLoading(true);
+    try {
+      const q = query(collection(db, 'products'));
+      const snap = await getDocs(q);
+      const promises = snap.docs.map(docSnap => updateDoc(doc(db, 'products', docSnap.id), { price: 449 }));
+      await Promise.all(promises);
+      alert("GLOBAL PRICE RE-SYNC COMPLETE.");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const resetProductForm = () => {
@@ -250,6 +417,9 @@ export const AdminDashboard = () => {
       stock: '',
       category: 'Official Jerseys',
       description: '',
+      gender: 'unisex',
+      club: '',
+      country: '',
       image: null,
       imagePreview: '',
       isFeatured: false
@@ -258,14 +428,17 @@ export const AdminDashboard = () => {
     setIsEditMode(false);
   };
 
-  const openEditModal = (p: Product) => {
+  const openEditModal = (p: any) => {
     setNewProduct({
       name: p.name,
       price: p.price.toString(),
-      costPrice: p.costPrice.toString(),
+      costPrice: p.costPrice?.toString() || '0',
       stock: p.stock.toString(),
       category: p.category,
       description: p.description || '',
+      gender: p.gender || 'unisex',
+      club: p.club || '',
+      country: p.country || '',
       image: null,
       imagePreview: p.imageUrl || '',
       isFeatured: p.isFeatured || false
@@ -369,6 +542,20 @@ export const AdminDashboard = () => {
         </nav>
 
         <div className="pt-8 border-t border-white/5 space-y-6">
+           <div className="p-6 rounded-[2rem] bg-white/5 border border-white/5 space-y-4">
+              <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest">
+                 <span className="text-white/20">VOID INTEGRITY</span>
+                 <span className="text-brand-red animate-pulse">99.8%</span>
+              </div>
+              <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                 <motion.div 
+                   animate={{ width: ['99%', '99.8%', '99.5%'] }}
+                   transition={{ duration: 5, repeat: Infinity }}
+                   className="h-full bg-brand-red shadow-[0_0_10px_#E20613]" 
+                 />
+              </div>
+           </div>
+           
            <div className="p-6 rounded-[2rem] bg-white/5 border border-white/5">
               <p className="text-[8px] font-black uppercase tracking-widest text-white/20 mb-2">SYSTEM LOAD</p>
               <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
@@ -468,6 +655,10 @@ export const AdminDashboard = () => {
                     <div>
                         <motion.div initial={{ x: -20 }} animate={{ x: 0 }} className="inline-block px-4 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black tracking-[0.4em] text-white/40 mb-6 uppercase">VAULT MANAGEMENT</motion.div>
                         <h2 className="text-7xl font-display font-black tracking-tighter uppercase italic leading-[0.9]">The<br />Vault</h2>
+                        <div className="flex gap-4 mt-8">
+                           <button onClick={seedSystemProducts} className="px-6 py-2 bg-brand-red/10 border border-brand-red/20 rounded-xl text-[8px] font-black uppercase tracking-widest text-brand-red hover:bg-brand-red hover:text-white transition-all">SYSTEM SEED</button>
+                           <button onClick={updateAllPrices} className="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 transition-all">FIX PRICES (₹449)</button>
+                        </div>
                     </div>
                     <Button 
                       onClick={() => { resetProductForm(); setIsModalOpen(true); }} 
@@ -752,14 +943,38 @@ export const AdminDashboard = () => {
                         <input type="number" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} className="admin-input" placeholder="INITIAL STOCK" />
                         <select value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="admin-input uppercase font-black text-[10px]">
                            {[
-                              'Official Jerseys', 'Retro Jerseys', 'Embroidery Jerseys', 'High Quality Jerseys', 
-                              'Sale Jerseys', 'Limited Edition Jerseys', 'Player Edition Jerseys', 
-                              'Club Jerseys', 'National Team Jerseys', 'Custom Name Jerseys', 
-                              'Training Kits', 'Shorts', 'Socks'
+                              'Official Jerseys', 
+                              'Retro Jerseys', 
+                              'Embroidery Jerseys', 
+                              'High Quality Jerseys', 
+                              'Sale Jerseys', 
+                              'Limited Edition Jerseys', 
+                              'Player Edition Jerseys', 
+                              'Club Jerseys', 
+                              'National Team Jerseys', 
+                              'Custom Name Jerseys', 
+                              'Training Kits', 
+                              'Shorts', 
+                              'Socks'
                            ].map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                         <textarea value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="admin-input min-h-[100px]" placeholder="DESCRIPTION" />
                         
+                        <div className="grid grid-cols-1 gap-4">
+                           <div className="space-y-2">
+                              <label className="text-[8px] font-black uppercase tracking-widest text-white/20">TARGET SECTOR</label>
+                              <select value={newProduct.gender} onChange={e => setNewProduct({...newProduct, gender: e.target.value})} className="admin-input uppercase font-black text-[10px]">
+                                 <option value="unisex">UNISEX / NEUTRAL</option>
+                                 <option value="men">SECTOR M (MEN)</option>
+                                 <option value="women">SECTOR W (WOMEN)</option>
+                              </select>
+                           </div>
+                           <div className="grid grid-cols-2 gap-4">
+                              <input value={newProduct.club} onChange={e => setNewProduct({...newProduct, club: e.target.value})} className="admin-input" placeholder="CLUB CODE" />
+                              <input value={newProduct.country} onChange={e => setNewProduct({...newProduct, country: e.target.value})} className="admin-input" placeholder="COUNTRY CODE" />
+                           </div>
+                        </div>
+
                         <div className="flex items-center gap-4">
                           <input 
                             type="checkbox" 

@@ -14,6 +14,7 @@ import { CartPage } from '@/src/pages/CartPage';
 import { ProductDetailPage } from '@/src/pages/ProductDetailPage';
 import { WishlistPage } from '@/src/pages/WishlistPage';
 import { OrdersPage } from '@/src/pages/OrdersPage';
+import { CheckoutPage } from '@/src/pages/CheckoutPage';
 import { AuthProvider } from '@/src/context/AuthContext';
 
 export default function App() {
@@ -41,6 +42,7 @@ export default function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/shop" element={<StorePage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
                 <Route path="/men" element={<StorePage gender="men" />} />
                 <Route path="/women" element={<StorePage gender="women" />} />
                 <Route path="/sale" element={<StorePage onSale={true} />} />

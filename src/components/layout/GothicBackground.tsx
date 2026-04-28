@@ -17,42 +17,68 @@ export const GothicBackground = () => {
 
   return (
     <div className="fixed inset-0 z-[-1] overflow-hidden bg-black">
+      {/* Liquid Glass Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          animate={{
+            scale: [1, 1.2, 1],
+            rotate: [0, 45, 0],
+          }}
+          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+          className="absolute -top-1/2 -left-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(40,40,40,0.15)_0%,transparent_70%)]"
+        />
+      </div>
+
       {/* Smoke Effects */}
-      <div className="absolute inset-0 opacity-20">
+      <div className="absolute inset-0 opacity-30">
+        <motion.div
+          animate={{
+            x: [0, 100, -100, 0],
+            opacity: [0.1, 0.3, 0.1],
+          }}
+          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"
+        />
         <motion.div
           animate={{
             x: [0, 50, -50, 0],
             y: [0, 30, -30, 0],
-            scale: [1, 1.2, 1],
+            scale: [1, 1.3, 1],
           }}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute top-[-20%] left-[-20%] w-[140%] h-[140%] bg-[radial-gradient(circle_at_center,rgba(40,40,40,0.5)_0%,transparent_70%)]"
+          className="absolute top-[-20%] left-[-20%] w-[140%] h-[140%] bg-[radial-gradient(circle_at_center,rgba(50,50,50,0.4)_0%,transparent_70%)] blur-[100px]"
         />
-        <motion.div
+      </div>
+
+      {/* Red Accents & Liquid Glow */}
+      <div className="absolute inset-0 overflow-hidden">
+        <motion.div 
           animate={{
-            x: [0, -40, 40, 0],
-            y: [0, -50, 50, 0],
-            scale: [1.1, 0.9, 1.1],
+            scale: [1, 1.1, 1],
+            opacity: [0.05, 0.1, 0.05],
           }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-[radial-gradient(circle_at_center,rgba(20,20,20,0.4)_0%,transparent_60%)]"
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[10%] -left-[10%] w-[60%] h-[60%] bg-brand-red/10 blur-[180px] rounded-full" 
+        />
+        <motion.div 
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.03, 0.08, 0.03],
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 5 }}
+          className="absolute -bottom-[10%] -right-[10%] w-[70%] h-[70%] bg-brand-red/5 blur-[200px] rounded-full" 
         />
       </div>
 
-      {/* Red Accents */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-[20%] left-[10%] w-[40%] h-[40%] bg-brand-red/20 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[20%] right-[10%] w-[40%] h-[40%] bg-brand-red/10 blur-[150px] rounded-full" />
-      </div>
-
-      {/* Particles */}
+      {/* Floating Particles */}
       {particles.map((p) => (
         <motion.div
           key={p.id}
           initial={{ x: `${p.x}%`, y: `${p.y}%`, opacity: 0 }}
           animate={{
-            y: [`${p.y}%`, `${p.y - 20}%`],
-            opacity: [0, 0.5, 0],
+            y: [`${p.y}%`, `${p.y - 30}%`],
+            opacity: [0, 0.4, 0],
+            rotate: [0, 360],
           }}
           transition={{
             duration: p.duration,
@@ -63,12 +89,21 @@ export const GothicBackground = () => {
             width: p.size,
             height: p.size,
           }}
-          className="absolute bg-white/20 rounded-full"
+          className="absolute bg-white/10 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.1)]"
         />
       ))}
 
+      {/* Scanning Bar Effect */}
+      <motion.div
+        animate={{
+          top: ['-10%', '110%'],
+        }}
+        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+        className="absolute left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-brand-red/20 to-transparent opacity-30 z-10"
+      />
+
       {/* Vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.9)_100%)]" />
     </div>
   );
 };

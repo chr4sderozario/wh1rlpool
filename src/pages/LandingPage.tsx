@@ -1,394 +1,284 @@
-import { motion, useScroll, useTransform } from 'motion/react';
+import { motion } from 'motion/react';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/src/components/ui/Button';
-import { 
-  ArrowRight, 
-  ShoppingBag, 
-  Zap, 
-  Star, 
-  TrendingUp, 
-  ShieldCheck, 
-  Globe,
-  Plus
-} from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import React, { useState, useRef, useEffect } from 'react';
-import { collection, query, where, limit, onSnapshot, orderBy } from 'firebase/firestore';
+import { ArrowRight, ShoppingBag, Zap, Shield, Globe, Cpu } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { collection, query, limit, onSnapshot, where } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  imageUrl?: string;
-  category: string;
-  isFeatured?: boolean;
-  isTrending?: boolean;
-}
 
 export const LandingPage = () => {
   const navigate = useNavigate();
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const containerRef = useRef(null);
-  const { scrollYProgress } = useScroll({ target: containerRef });
-  
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, 500]);
-  const heroScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.8]);
+  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [newArrivals, setNewArrivals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'products'),
-      orderBy('createdAt', 'desc'),
-      limit(8)
-    );
-    const unsub = onSnapshot(q, (snap) => {
-      setFeaturedProducts(snap.docs.map(d => ({ id: d.id, ...d.data() } as Product)));
+    // Fetch Featured Products for Flash Deals
+    const qFeatured = query(collection(db, 'products'), where('isFeatured', '==', true), limit(2));
+    const unsubFeatured = onSnapshot(qFeatured, (snap) => {
+      setFeaturedProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
-    return unsub;
+
+    // Fetch New Arrivals
+    const qNew = query(collection(db, 'products'), limit(4));
+    const unsubNew = onSnapshot(qNew, (snap) => {
+      setNewArrivals(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLoading(false);
+    });
+
+    return () => {
+      unsubFeatured();
+      unsubNew();
+    };
   }, []);
 
+  // Auto-seed if empty (only for basic layout items)
+  useEffect(() => {
+    if (!loading && featuredProducts.length === 0 && newArrivals.length === 0) {
+      // Small trigger to help user identify they should Seed in Admin
+      console.log("Archive empty. Use System Seed in Admin to populate.");
+    }
+  }, [loading, featuredProducts, newArrivals]);
+
+  const displayFlashDeals = featuredProducts.length > 0 ? featuredProducts : [
+    {
+      id: 'argentina-retro',
+      name: 'Argentina 1994 Retro',
+      price: 449,
+      discount: 25,
+      imageUrl: 'https://images.footballfanatics.com/argentina-national-team/argentina-adidas-og-1994-away-jersey-blue_ss5_p-200938531+pv-1+v-69c3a3c2672740939f0464c8d50c196f.jpg'
+    },
+    {
+      id: 'real-madrid-2425',
+      name: 'Real Madrid Elite 24/25',
+      price: 449,
+      discount: 15,
+      imageUrl: 'https://shop.realmadrid.com/cdn/shop/files/RMCFMS0120-01_1.jpg'
+    }
+  ];
+
+  const displayNewArrivals = newArrivals.length > 0 ? newArrivals : [
+    {
+       id: 'italy-ren',
+       name: 'Italy Renaissance',
+       price: 449,
+       imageUrl: 'https://images.footballfanatics.com/italy-national-team/italy-adidas-home-authentic-shirt-2024_ss5_p-200388939+u-43e86f874c72473887013898869c9b6b+v-dd692e76f62a420993070cd86b29d10e.jpg'
+    },
+    {
+       id: 'japan-ops',
+       name: 'Japan Special Ops',
+       price: 449,
+       imageUrl: 'https://images.footballfanatics.com/japan-national-team/japan-adidas-home-shirt-2024_ss5_p-200786938+pv-1+v-142f36d37651474e8929e0689b0b4b2a.jpg'
+    },
+    {
+       id: 'brazil-noir',
+       name: 'Brazil Samba Noir',
+       price: 449,
+       imageUrl: 'https://images.footballfanatics.com/brazil-national-team/brazil-nike-home-stadium-shirt-2024_ss5_p-200705663+u-83605c31751a4f009e5306509a25032a+v-7431e780860447be88d3f4415842880c.jpg'
+    },
+    {
+       id: 'bayern-stealth',
+       name: 'Bayern Munich Stealth',
+       price: 449,
+       imageUrl: 'https://images.footballfanatics.com/fc-bayern-munich/fc-bayern-munich-adidas-home-shirt-2024-25_ss5_p-14447477+u-vbtm0086386x80x073f+v-f472f7ed50064560946777329486c0e8.jpg'
+    }
+  ];
+
   return (
-    <div ref={containerRef} className="relative bg-black min-h-[100dvh] overflow-x-hidden selection:bg-brand-red selection:text-white">
-      {/* Liquid Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div 
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0],
-            x: [0, 100, 0],
-            y: [0, -50, 0],
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-brand-red/20 blur-[120px] rounded-full mix-blend-screen opacity-50"
-        />
-        <motion.div 
-          animate={{
-            scale: [1.2, 1, 1.2],
-            rotate: [0, -120, 0],
-            x: [0, -150, 0],
-            y: [0, 80, 0],
-          }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute -bottom-[20%] -right-[10%] w-[70%] h-[70%] bg-blue-600/10 blur-[150px] rounded-full mix-blend-screen opacity-30"
-        />
+    <div className="min-h-screen bg-black text-white relative overflow-hidden">
+      {/* Background Cinematic Atmosphere */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-brand-red/10 blur-[150px] rounded-full animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-brand-red/5 blur-[120px] rounded-full" />
       </div>
 
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
-        <motion.div 
-          style={{ y: heroY, scale: heroScale }}
-          className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"
-        >
-          {/* Subtle Grid Pattern */}
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
-          
-          {/* Floating Silhouettes */}
-          {[0, 1, 2].map((i) => (
+      <div className="max-w-7xl mx-auto px-6 relative z-10 pt-32 pb-24">
+        {/* Cinematic Hero */}
+        <section className="mb-32">
             <motion.div
-              key={i}
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ 
-                opacity: [0.05, 0.15, 0.05], 
-                y: [0, -100, 0],
-                rotate: [ -10, 10, -10]
-              }}
-              transition={{ 
-                duration: 10 + i * 5, 
-                repeat: Infinity, 
-                ease: "easeInOut"
-              }}
-              className="absolute w-[800px] h-[800px] bg-white/5 blur-[120px] rounded-full"
-              style={{ 
-                left: `${10 + i * 30}%`, 
-                top: `${10 + i * 15}%`,
-              }}
-            />
-          ))}
-        </motion.div>
-
-        {/* Hero Content */}
-        <div className="relative z-10 text-center px-6 max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 60, filter: "blur(10px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-            className="space-y-12"
-          >
-            <div className="flex flex-col items-center gap-6">
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.8 }}
-                className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-4"
-              >
-                <div className="w-1.5 h-1.5 rounded-full bg-brand-red animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">System Online // v4.0.2</span>
-              </motion.div>
-              
-              <h1 className="text-[15vw] md:text-[14rem] font-display font-black leading-[0.75] tracking-tighter uppercase italic perspective-1000">
-                <motion.span 
-                  initial={{ rotateX: 90, opacity: 0 }}
-                  animate={{ rotateX: 0, opacity: 1 }}
-                  transition={{ delay: 0.4, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                  className="block text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40"
-                >
-                  WH1RL
-                </motion.span>
-                <motion.span 
-                  initial={{ rotateX: 90, opacity: 0 }}
-                  animate={{ rotateX: 0, opacity: 1 }}
-                  transition={{ delay: 0.5, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                  className="block"
-                >
-                  POOL
-                </motion.span>
-              </h1>
-            </div>
-
-            <motion.p 
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               transition={{ delay: 1, duration: 1.5 }}
-               className="max-w-xl mx-auto text-lg md:text-xl font-medium text-white/40 leading-relaxed font-serif italic"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+              className="relative aspect-[21/9] w-full overflow-hidden rounded-[3rem] border border-white/5 bg-white/[0.02]"
             >
-              "The convergence of archival heritage and technical evolution. Materialize your identity through the global vault."
-            </motion.p>
+               <img 
+                 src="https://images.footballfanatics.com/argentina/argentina-adidas-training-jersey-navy_ss5_p-200786938+pv-1+v-142f36d37651474e8929e0689b0b4b2a.jpg?_hv=2&w=1200"
+                 className="absolute inset-0 w-full h-full object-cover grayscale opacity-40 hover:grayscale-0 hover:scale-105 transition-all duration-[3s]"
+                 alt="Hero"
+               />
+               <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent flex flex-col justify-center p-20">
+                  <motion.div
+                    initial={{ opacity: 0, x: -30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5, duration: 0.8 }}
+                  >
+                     <span className="text-brand-red font-black tracking-[0.8em] text-[10px] uppercase mb-6 block drop-shadow-glow">SYSTEM//ARCHIVE v2.0</span>
+                     <h1 className="text-8xl md:text-9xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-8">WH1RL<br/>POOL</h1>
+                     <div className="flex flex-wrap gap-8 items-center">
+                        <Button 
+                          onClick={() => navigate('/shop')}
+                          className="h-14 px-10 rounded-xl bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-display font-black italic uppercase tracking-[0.2em] text-xs"
+                        >
+                          EXTRACT ARCHIVE
+                        </Button>
+                        <div className="hidden md:block">
+                           <p className="text-[8px] font-black uppercase tracking-[0.5em] text-white/20 mb-1 italic">SYSTEM STATUS</p>
+                           <p className="text-sm font-display font-black tracking-widest italic text-brand-red animate-pulse">OPERATIONAL</p>
+                        </div>
+                     </div>
+                  </motion.div>
+               </div>
+            </motion.div>
+        </section>
 
-            <div className="flex flex-col items-center gap-12 pt-8">
-              <Button 
-                onClick={() => navigate('/shop')}
-                className="w-full sm:w-80 h-24 text-xl rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-black group px-12 relative overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                <span className="flex items-center justify-center gap-4 relative z-10">
-                  ENTER VOID <ArrowRight className="group-hover:translate-x-3 transition-transform duration-500" />
-                </span>
-              </Button>
-              
-              <div className="flex flex-col items-center gap-6">
-                <motion.button 
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate('/login')}
-                  className="text-[11px] uppercase tracking-[0.5em] font-black text-white/40 hover:text-white transition-all border-b border-white/10 pb-2"
-                >
-                  ENTER AS ADMIN
-                </motion.button>
-                <button 
-                  onClick={() => navigate('/login')}
-                  className="text-[8px] uppercase tracking-[0.3em] font-bold text-white/20 hover:text-white transition-all"
-                >
-                  Terminal Access // Port 8080
-                </button>
+        {/* Dynamic Flash Extraction */}
+        <section className="mb-32">
+           <div className="flex justify-between items-end mb-12">
+              <div>
+                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-red mb-2 italic">LIMITED TIME EXTRACTION</p>
+                 <h2 className="text-4xl md:text-6xl font-display font-black tracking-tighter uppercase italic">FLASH DEALS</h2>
               </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-
-      {/* Featured Collections Feed */}
-      <section className="py-32 px-6 md:px-12 max-w-[1600px] mx-auto space-y-32">
-        
-        {/* Banner Section */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          className="relative h-[600px] rounded-[4rem] overflow-hidden group"
-        >
-          <div className="absolute inset-0 bg-white/5 group-hover:bg-brand-red/10 transition-colors duration-1000" />
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-12 space-y-8">
-            <span className="text-[10px] uppercase tracking-[0.6em] text-brand-red font-black">Limited Extraction</span>
-            <h2 className="text-6xl md:text-9xl font-display font-black tracking-tighter uppercase italic gothic-glow">RETRO GOTHIC</h2>
-            <Button 
-              onClick={() => navigate('/shop')}
-              className="rounded-full px-12 py-6 bg-white text-black hover:bg-brand-red hover:text-white transition-all font-bold"
-            >
-              EXPLORE COLLECTION
-            </Button>
-          </div>
-          {/* Animated lines */}
-          <div className="absolute inset-0 border border-white/5 rounded-[4rem] pointer-events-none" />
-        </motion.div>
-
-        {/* Product Sections */}
-        <div className="space-y-32">
-          <SectionHeader title="Featured Artifacts" subtitle="The absolute peak of jersey design." icon={<Star className="w-5 h-5 text-brand-red" />} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-16">
-            {featuredProducts.slice(0, 4).map((product, idx) => (
-              <ProductCard key={product.id} product={product} delay={idx * 0.1} />
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <PromoCard 
-              label="Flash Sale" 
-              title="EXTRACTION 50%" 
-              desc="Limited time discount on selected artifacts." 
-              image="https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&q=80&w=1000"
-              onClick={() => navigate('/sale')}
-            />
-            <PromoCard 
-              label="New Arrivals" 
-              title="DROP 02/26" 
-              desc="The latest transmissions from the vault." 
-              image="https://images.unsplash.com/photo-1511886929837-354d827aae26?auto=format&fit=crop&q=80&w=1000"
-              onClick={() => navigate('/shop')}
-            />
-          </div>
-
-          <SectionHeader title="Trending Now" subtitle="Most extracted items this week." icon={<TrendingUp className="w-5 h-5 text-brand-red" />} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-16">
-            {featuredProducts.slice(4, 8).map((product, idx) => (
-              <ProductCard key={product.id} product={product} delay={idx * 0.1} />
-            ))}
-          </div>
-        </div>
-
-        {/* Trust Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 py-24 border-y border-white/5">
-           <TrustItem icon={<ShieldCheck />} title="SECURE PROTOCOL" desc="Encrypted transactions only." />
-           <TrustItem icon={<Globe />} title="GLOBAL DEPLOYMENT" desc="Artifacts shipped worldwide." />
-           <TrustItem icon={<Zap />} title="INSTANT SYNC" desc="Real-time order tracking." />
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-[#050505] border-t border-white/5 pt-32 pb-12 px-6 md:px-12">
-        <div className="max-w-[1400px] mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 mb-32">
-            <div className="space-y-8">
-              <h1 className="text-4xl font-display font-black tracking-tighter gothic-glow">WH1RLPOOL</h1>
-              <p className="text-white/40 font-serif italic max-w-md leading-relaxed">
-                A sanctuary for football aesthetics and gothic expression. We don't just sell jerseys, we curate artifacts of the beautiful game.
-              </p>
-              <div className="flex gap-8">
-                 <a href="#" className="text-white/20 hover:text-brand-red transition-colors uppercase text-[10px] font-bold tracking-widest">Instagram</a>
-                 <a href="#" className="text-white/20 hover:text-brand-red transition-colors uppercase text-[10px] font-bold tracking-widest">Twitter</a>
-                 <a href="#" className="text-white/20 hover:text-brand-red transition-colors uppercase text-[10px] font-bold tracking-widest">Discord</a>
+              <div className="flex gap-4">
+                 <div className="w-12 h-1 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div 
+                      className="h-full bg-brand-red"
+                      animate={{ width: ['0%', '100%'] }}
+                      transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
+                    />
+                 </div>
               </div>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-12">
-               <div>
-                  <h4 className="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold mb-6">Archive</h4>
-                  <ul className="space-y-4 text-xs font-bold uppercase tracking-widest text-white/20">
-                     <li><button onClick={() => navigate('/shop')} className="hover:text-white transition-colors">All Jerseys</button></li>
-                     <li><button onClick={() => navigate('/men')} className="hover:text-white transition-colors">Men's Edit</button></li>
-                     <li><button onClick={() => navigate('/women')} className="hover:text-white transition-colors">Women's Edit</button></li>
-                  </ul>
-               </div>
-               <div>
-                  <h4 className="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold mb-6">Terminal</h4>
-                  <ul className="space-y-4 text-xs font-bold uppercase tracking-widest text-white/20">
-                     <li><button onClick={() => navigate('/profile')} className="hover:text-white transition-colors">My Profile</button></li>
-                     <li><button onClick={() => navigate('/orders')} className="hover:text-white transition-colors">Orders</button></li>
-                     <li><button onClick={() => navigate('/support')} className="hover:text-white transition-colors">Support</button></li>
-                  </ul>
-               </div>
-               <div className="col-span-2 md:col-span-1">
-                  <h4 className="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold mb-6">Manifesto</h4>
-                  <p className="text-[8px] uppercase tracking-[0.3em] text-white/10 leading-loose">
-                    WH1RLPOOL IS A DIGITAL EXPERIMENT IN SPORTING LUXURY. VOID OPERATED SINCE 2026.
-                  </p>
-               </div>
-            </div>
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              {displayFlashDeals.map((deal, i) => (
+                <motion.div 
+                  key={deal.id}
+                  whileHover={{ y: -10 }}
+                  className="group cursor-pointer"
+                  onClick={() => navigate(`/product/${deal.id}`)}
+                >
+                  <div className="absolute top-8 right-8 z-20">
+                     <span className="bg-brand-red text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-tighter shadow-2xl">-{deal.discount}% OFF</span>
+                  </div>
+                  <div className="aspect-square mb-8 overflow-hidden rounded-[2.5rem] bg-[#0A0A0A] border border-white/5 relative group-hover:border-brand-red/30 transition-colors duration-700">
+                    <img 
+                      src={deal.imageUrl} 
+                      className="w-full h-full object-cover grayscale opacity-30 group-hover:grayscale-0 group-hover:scale-105 group-hover:opacity-100 transition-all duration-1000" 
+                      alt=""
+                    />
+                 </div>
+                  <h3 className="text-2xl font-display font-black tracking-tight uppercase italic mb-2 group-hover:text-brand-red transition-colors">{deal.name}</h3>
+                  <div className="flex items-center gap-4">
+                     <span className="text-3xl font-display font-black italic text-white">₹{deal.price}</span>
+                     <span className="text-sm line-through text-white/30 font-black italic">₹{(deal.price / (1 - deal.discount/100)).toFixed(2)}</span>
+                  </div>
+                </motion.div>
+              ))}
+           </div>
+        </section>
+
+        {/* Categorical Bento Grid (The Registry) */}
+        <section className="mb-32">
+           <h2 className="text-4xl md:text-5xl font-display font-black tracking-tighter uppercase italic mb-12">THE REGISTRY</h2>
+           <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-2 h-[800px] gap-6">
+              <div className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer" onClick={() => navigate('/shop?category=National Team Jerseys')}>
+                 <img src="https://images.footballfanatics.com/argentina/argentina-adidas-training-jersey-navy_ss5_p-200786938+pv-3+v-142f36d37651474e8929e0689b0b4b2a.jpg?_hv=2&w=1200" className="absolute inset-0 w-full h-full object-cover grayscale opacity-10 group-hover:scale-105 group-hover:opacity-30 transition-all duration-1000" alt="" />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent to-transparent flex flex-col justify-end p-16">
+                    <span className="text-[8px] font-black text-brand-red tracking-[0.6em] uppercase mb-4 italic">SECTOR 01</span>
+                    <h3 className="text-7xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-0 group-hover:translate-x-4 transition-transform duration-1000">NATIONAL<br />ELITE</h3>
+                 </div>
+              </div>
+              <div className="md:col-span-2 relative group overflow-hidden rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer" onClick={() => navigate('/shop?category=Retro Jerseys')}>
+                 <img src="https://images.footballfanatics.com/argentina/argentina-adidas-training-jersey-navy_ss5_p-200786938+pv-2+v-142f36d37651474e8929e0689b0b4b2a.jpg?_hv=2&w=1200" className="absolute inset-0 w-full h-full object-cover grayscale opacity-5 group-hover:scale-105 group-hover:opacity-20 transition-all duration-1000" alt="" />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent to-transparent flex flex-col justify-end p-12">
+                    <span className="text-[8px] font-black text-white/20 tracking-[0.6em] uppercase mb-4 italic">SECTOR 05</span>
+                    <h3 className="text-4xl font-display font-black tracking-tighter uppercase italic leading-none group-hover:text-brand-red transition-colors duration-500">RETRO GOTHIC</h3>
+                 </div>
+              </div>
+              <div className="relative group overflow-hidden rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer" onClick={() => navigate('/shop?category=Limited Edition Jerseys')}>
+                 <div className="absolute inset-0 bg-gradient-to-br from-brand-red/5 to-transparent p-10 flex flex-col justify-end transition-all duration-700 group-hover:bg-brand-red/10">
+                    <h3 className="text-2xl font-display font-black tracking-tighter uppercase italic group-hover:text-brand-red transition-all">LIMITED<br/>UNITS</h3>
+                 </div>
+              </div>
+              <div className="relative group overflow-hidden rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer" onClick={() => navigate('/shop?category=Training Kits')}>
+                 <div className="absolute inset-0 bg-gradient-to-bl from-white/5 to-transparent p-10 flex flex-col justify-end group-hover:bg-white/10 transition-all duration-700">
+                    <h3 className="text-2xl font-display font-black tracking-tighter uppercase italic group-hover:text-white/60 transition-all">PROTOCOL<br/>KITS</h3>
+                 </div>
+              </div>
+           </div>
+        </section>
+
+        {/* New Arrivals Product Grid (Amazon Dense Layout) */}
+        <section>
+          <div className="flex justify-between items-end mb-12">
+             <h2 className="text-4xl md:text-5xl font-display font-black tracking-tighter uppercase italic">NEW TRANSMISSIONS</h2>
+             <Link to="/shop" className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 hover:text-brand-red transition-all">VIEW FULL REGISTRY →</Link>
           </div>
-          <div className="flex flex-col md:flex-row justify-between items-center pt-12 border-t border-white/5 opacity-20 transition-opacity hover:opacity-100">
-             <span className="text-[8px] uppercase tracking-[0.5em] font-black">© 2026 WH1RLPOOL STUDIO / ALL RIGHTS RESERVED</span>
-             <div className="flex gap-8 mt-6 md:mt-0">
-                <span className="text-[8px] uppercase tracking-[0.5em]">T&C</span>
-                <span className="text-[8px] uppercase tracking-[0.5em]">PRIVACY</span>
-             </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+             {displayNewArrivals.map((product, i) => (
+               <motion.div
+                 key={product.id}
+                 initial={{ opacity: 0, y: 20 }}
+                 whileInView={{ opacity: 1, y: 0 }}
+                 transition={{ delay: i * 0.1 }}
+                 className="group cursor-pointer"
+                 onClick={() => navigate(`/product/${product.id}`)}
+               >
+                 <div className="aspect-[3/4] overflow-hidden rounded-3xl bg-[#0A0A0A] border border-white/5 mb-4 relative">
+                    <img 
+                      src={product.imageUrl} 
+                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000 opacity-60 group-hover:opacity-100" 
+                      alt=""
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                 </div>
+                 <div className="flex justify-between items-start">
+                    <div>
+                       <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">ARCHIVE UNIT</p>
+                       <h4 className="font-display font-black italic uppercase text-lg group-hover:text-brand-red transition-colors whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]">{product.name}</h4>
+                    </div>
+                    <span className="font-display font-black italic text-xl">₹{product.price}</span>
+                 </div>
+               </motion.div>
+             ))}
           </div>
-        </div>
-      </footer>
+        </section>
+
+        {/* Trust Indicators */}
+        <section className="mt-40 pt-40 border-t border-white/5">
+           <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
+              <div className="space-y-4">
+                 <Shield className="w-8 h-8 text-brand-red" />
+                 <h4 className="font-display font-black uppercase italic tracking-wider">VERIFIED ORIGIN</h4>
+                 <p className="text-xs text-white/40 font-medium leading-relaxed">Each transmission is authenticated through dual-layer protocol verification.</p>
+              </div>
+              <div className="space-y-4">
+                 <Globe className="w-8 h-8 text-brand-red" />
+                 <h4 className="font-display font-black uppercase italic tracking-wider">GLOBAL UPLINK</h4>
+                 <p className="text-xs text-white/40 font-medium leading-relaxed">Syncing with logistics sectors in over 190 restricted zones worldwide.</p>
+              </div>
+              <div className="space-y-4">
+                 <Zap className="w-8 h-8 text-brand-red" />
+                 <h4 className="font-display font-black uppercase italic tracking-wider">INSTANT DEPLOY</h4>
+                 <p className="text-xs text-white/40 font-medium leading-relaxed">Priority extraction and deployment within 24 standard cycle hours.</p>
+              </div>
+              <div className="space-y-4">
+                 <Cpu className="w-8 h-8 text-brand-red" />
+                 <h4 className="font-display font-black uppercase italic tracking-wider">AI ENHANCED</h4>
+                 <p className="text-xs text-white/40 font-medium leading-relaxed">Automated quality indexing ensures only elite artifacts enter the grid.</p>
+              </div>
+           </div>
+        </section>
+
+        {/* Footer Meta */}
+        <footer className="mt-40 text-center">
+           <div className="mb-8">
+              <h1 className="text-[12rem] font-display font-black tracking-tighter uppercase italic leading-none opacity-[0.02] select-none">WH1RLPOOL</h1>
+           </div>
+           <p className="text-[8px] font-black uppercase tracking-[0.8em] text-white/10">ESTABLISHED 2024 // ALL RITES RESERVED</p>
+        </footer>
+      </div>
     </div>
   );
-};
-
-const SectionHeader = ({ title, subtitle, icon }: { title: string; subtitle: string; icon: any }) => (
-  <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-12 border-b border-white/10">
-    <div className="space-y-2">
-       <div className="flex items-center gap-3">
-          {icon}
-          <h2 className="text-4xl md:text-6xl font-display font-black tracking-tighter uppercase italic">{title}</h2>
-       </div>
-       <p className="text-white/40 text-sm font-serif italic">{subtitle}</p>
-    </div>
-  </div>
-);
-
-const ProductCard = ({ product, delay }: { product: Product, delay: number, key?: any }) => {
-  const navigate = useNavigate();
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay }}
-      className="group"
-      onClick={() => navigate(`/product/${product.id}`)}
-    >
-      <div className="relative aspect-[3/4] rounded-[2rem] overflow-hidden mb-6 cursor-pointer">
-        <div className="absolute inset-0 bg-white/5 group-hover:bg-brand-red/10 transition-colors duration-700" />
-        {product.imageUrl ? (
-          <img 
-            src={product.imageUrl} 
-            alt={product.name}
-            className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-1000"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <ShoppingBag className="w-12 h-12 text-white/5" />
-          </div>
-        )}
-        
-        {/* Hover Action */}
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col items-center justify-center p-8 text-center space-y-4">
-           <span className="text-[10px] uppercase tracking-[0.4em] font-black text-brand-red italic">Inspect Artifact</span>
-           <div className="w-12 h-[1px] bg-white/20" />
-           <p className="text-xl font-display font-bold uppercase tracking-tight line-clamp-2">{product.name}</p>
-        </div>
-
-        {/* Quick Labels */}
-        <div className="absolute top-6 left-6 flex flex-col gap-2">
-           {product.isFeatured && <span className="bg-white text-black text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-xl">Rare</span>}
-           {parseFloat(product.price.toString()) > 0 && <span className="bg-brand-red text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-xl">${product.price}</span>}
-        </div>
-      </div>
-      <div className="space-y-1">
-        <h3 className="text-sm font-bold uppercase tracking-tight group-hover:text-brand-red transition-colors truncate">{product.name}</h3>
-        <p className="text-[10px] uppercase tracking-widest text-white/20 font-black">{product.category}</p>
-      </div>
-    </motion.div>
-  );
-};
-
-const PromoCard = ({ label, title, desc, image, onClick }: { label: string; title: string, desc: string, image: string, onClick: () => void }) => (
-  <motion.div 
-    whileHover={{ y: -10 }}
-    onClick={onClick}
-    className="relative h-[400px] rounded-[3rem] overflow-hidden group cursor-pointer"
-  >
-    <img src={image} className="absolute inset-0 w-full h-full object-cover grayscale opacity-40 group-hover:opacity-60 group-hover:scale-105 transition-all duration-1000" />
-    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-    <div className="absolute inset-0 p-12 flex flex-col justify-end items-start space-y-4">
-      <span className="text-[10px] uppercase tracking-[0.4em] text-brand-red font-black">{label}</span>
-      <h3 className="text-5xl font-display font-black tracking-tighter uppercase italic">{title}</h3>
-      <p className="text-white/40 text-xs italic font-serif max-w-[200px]">{desc}</p>
-    </div>
-  </motion.div>
-);
-
-const TrustItem = ({ icon, title, desc }: { icon: any; title: string; desc: string }) => (
-  <div className="flex flex-col items-center text-center space-y-6 group cursor-default">
-    <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/20 group-hover:text-brand-red group-hover:bg-brand-red/10 transition-all duration-500">
-      {icon}
-    </div>
-    <div className="space-y-1">
-      <h4 className="text-[10px] uppercase tracking-[0.3em] font-black">{title}</h4>
-      <p className="text-[10px] text-white/20 uppercase tracking-widest">{desc}</p>
-    </div>
-  </div>
-);
+}
