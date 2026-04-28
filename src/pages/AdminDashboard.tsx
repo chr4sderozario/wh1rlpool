@@ -3,7 +3,7 @@ import {
   Package, Plus, Trash2, Edit3, Settings, LogOut, Loader2, 
   Users, ShoppingBag, BarChart3, ChevronRight, User as UserIcon,
   CreditCard, TrendingUp, DollarSign, Activity, Database, X, Upload, Image as ImageIcon,
-  CheckCircle, ShieldAlert, Wallet, AlertTriangle
+  CheckCircle, ShieldAlert, Wallet, AlertTriangle, Phone, MapPin
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -74,9 +74,13 @@ export const AdminDashboard = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [requests, setRequests] = useState<BalanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
+  const [adminPassInput, setAdminPassInput] = useState('');
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -152,11 +156,18 @@ export const AdminDashboard = () => {
     return { totalRevenue, totalProfit, chartData };
   }, [orders, products]);
 
+  const handleAdminUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminPassInput === 'adminwhirlpool1002919402') {
+      setIsAdminUnlocked(true);
+    } else {
+      alert("UNAUTHORIZED ACCESS DETECTED.");
+    }
+  };
+
   const handleApproveRequest = async (req: BalanceRequest) => {
     try {
-      // 1. Update Request
       await updateDoc(doc(db, 'balance_requests', req.id), { status: 'approved' });
-      // 2. Add to User Balance
       const profileRef = doc(db, 'users', req.userId, 'public', 'profile');
       await updateDoc(profileRef, { balance: increment(req.amount) });
       alert("CREDITS INJECTED.");
@@ -172,28 +183,101 @@ export const AdminDashboard = () => {
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploading(true);
-    let imageUrl = '';
+    let imageUrl = newProduct.imagePreview;
     try {
       if (newProduct.image) {
         const storageRef = ref(storage, `products/${Date.now()}_${newProduct.image.name}`);
         const snapshot = await uploadBytes(storageRef, newProduct.image);
         imageUrl = await getDownloadURL(snapshot.ref);
       }
-      await addDoc(collection(db, 'products'), {
-        ...newProduct,
+
+      const productData = {
+        name: newProduct.name,
         price: Number(newProduct.price),
         costPrice: Number(newProduct.costPrice),
         stock: Number(newProduct.stock),
+        category: newProduct.category,
+        description: newProduct.description,
+        isFeatured: newProduct.isFeatured,
         imageUrl,
-        image: null,
-        imagePreview: null,
-        createdAt: serverTimestamp(),
-      });
+      };
+
+      if (isEditMode && editingId) {
+        await updateDoc(doc(db, 'products', editingId), productData);
+      } else {
+        await addDoc(collection(db, 'products'), {
+          ...productData,
+          createdAt: serverTimestamp(),
+        });
+      }
       setIsModalOpen(false);
+      resetProductForm();
     } catch (err) { alert("Deployment Failed."); } finally { setUploading(false); }
   };
 
+  const resetProductForm = () => {
+    setNewProduct({
+      name: '',
+      price: '',
+      costPrice: '',
+      stock: '',
+      category: 'Official Jerseys',
+      description: '',
+      image: null,
+      imagePreview: '',
+      isFeatured: false
+    });
+    setEditingId(null);
+    setIsEditMode(false);
+  };
+
+  const openEditModal = (p: Product) => {
+    setNewProduct({
+      name: p.name,
+      price: p.price.toString(),
+      costPrice: p.costPrice.toString(),
+      stock: p.stock.toString(),
+      category: p.category,
+      description: p.description || '',
+      image: null,
+      imagePreview: p.imageUrl || '',
+      isFeatured: p.isFeatured || false
+    });
+    setEditingId(p.id);
+    setIsEditMode(true);
+    setIsModalOpen(true);
+  };
+
   if (authLoading || loading) return null;
+
+  if (!isAdminUnlocked) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-6">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md p-12 rounded-[3.5rem] bg-[#0A0A0A] border border-white/10 space-y-12 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-red/10 blur-3xl -z-10" />
+          <div className="text-center space-y-4">
+             <div className="w-16 h-16 rounded-full bg-brand-red/10 flex items-center justify-center mx-auto mb-6">
+                <ShieldAlert className="text-brand-red w-8 h-8" />
+             </div>
+             <h3 className="text-3xl font-display font-black tracking-tighter uppercase italic">ADMIN AUTH</h3>
+             <p className="text-[10px] uppercase tracking-widest text-white/20">Authorization key required for {user?.email}</p>
+          </div>
+
+          <form onSubmit={handleAdminUnlock} className="space-y-6">
+             <input 
+              type="password" 
+              value={adminPassInput}
+              onChange={e => setAdminPassInput(e.target.value)}
+              placeholder="ENTER ACCESS KEY"
+              className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 px-8 text-center text-sm font-black tracking-[0.5em] focus:outline-none focus:border-brand-red transition-all"
+             />
+             <Button type="submit" className="w-full h-16 rounded-2xl bg-brand-red text-white hover:bg-white hover:text-black transition-all font-black uppercase tracking-widest">VALIDATE IDENTITY</Button>
+          </form>
+          <button onClick={() => navigate('/')} className="w-full text-[8px] uppercase tracking-widest text-white/10 hover:text-white transition-colors">Abort Access</button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex">
@@ -277,7 +361,7 @@ export const AdminDashboard = () => {
                        <h2 className="text-6xl font-display font-black tracking-tighter uppercase italic">The Vault</h2>
                        <p className="text-white/40 font-serif italic text-lg">Curating the current collection of artifact SKUs.</p>
                     </div>
-                    <Button onClick={() => setIsModalOpen(true)} className="rounded-full bg-white text-black hover:bg-brand-red hover:text-white px-12 h-16 font-black text-xs space-x-4">
+                    <Button onClick={() => { resetProductForm(); setIsModalOpen(true); }} className="rounded-full bg-white text-black hover:bg-brand-red hover:text-white px-12 h-16 font-black text-xs space-x-4">
                        <Plus className="w-4 h-4" /> <span>MATERIALIZE ARTIFACT</span>
                     </Button>
                  </header>
@@ -316,7 +400,7 @@ export const AdminDashboard = () => {
                                 </td>
                                 <td className="p-8 text-right">
                                    <div className="flex justify-end gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <button className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-all"><Edit3 className="w-4 h-4 text-white/40" /></button>
+                                      <button onClick={() => openEditModal(p)} className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-all"><Edit3 className="w-4 h-4 text-white/40" /></button>
                                       <button onClick={async () => { if(confirm("Destroy artifact?")) await deleteDoc(doc(db, 'products', p.id)) }} className="p-3 bg-white/5 hover:bg-brand-red/10 hover:text-brand-red rounded-full transition-all"><Trash2 className="w-4 h-4" /></button>
                                    </div>
                                 </td>
@@ -425,20 +509,31 @@ export const AdminDashboard = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-8">
                      {users.map(u => (
-                        <div key={u.id} className="p-10 rounded-[3rem] bg-white/5 border border-white/5 group hover:border-white/20 transition-all">
-                           <div className="flex justify-between items-start mb-8">
+                        <div key={u.id} className="p-10 rounded-[3rem] bg-white/5 border border-white/5 group hover:border-white/20 transition-all space-y-8">
+                           <div className="flex justify-between items-start">
                               <div className="flex items-center gap-4">
                                  <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-xs font-black">
                                     {u.displayName?.[0] || 'U'}
                                  </div>
-                                 <div>
-                                    <p className="text-xl font-display font-black tracking-tighter uppercase italic leading-none">{u.displayName}</p>
-                                    <p className="text-[10px] text-white/20 uppercase tracking-widest font-bold mt-2">{u.email}</p>
+                                 <div className="max-w-[150px]">
+                                    <p className="text-xl font-display font-black tracking-tighter uppercase italic leading-tight truncate">{u.displayName}</p>
+                                    <p className="text-[10px] text-white/20 uppercase tracking-widest font-bold mt-2 truncate">{u.email}</p>
                                  </div>
                               </div>
                               <div className="text-right">
                                  <p className="text-[10px] text-brand-red uppercase font-black tracking-widest mb-1">Balance</p>
                                  <p className="text-2xl font-display font-black tracking-tighter italic">₹ {u.balance?.toFixed(0)}</p>
+                              </div>
+                           </div>
+
+                           <div className="space-y-4 pt-4 border-t border-white/5 opacity-60 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-3">
+                                 <Phone className="w-3 h-3 text-white/20" />
+                                 <span className="text-[10px] font-bold uppercase tracking-widest">{u.phone || 'NO TERMINAL ID'}</span>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                 <MapPin className="w-3 h-3 text-white/20 mt-1" />
+                                 <span className="text-[10px] font-medium leading-relaxed opacity-60 line-clamp-2">{u.address || 'COORDINATES MISSING'}</span>
                               </div>
                            </div>
                            
@@ -452,8 +547,15 @@ export const AdminDashboard = () => {
                               >
                                  QUICK CREDIT
                               </Button>
-                              <Button variant="outline" className="px-6 h-12 rounded-xl border-white/5 text-white/20 hover:text-white transition-all">
-                                 <Settings className="w-4 h-4" />
+                              <Button 
+                                variant="outline" 
+                                onClick={() => {
+                                  const bal = prompt("Set Absolute Balance?");
+                                  if(bal) updateDoc(doc(db, 'users', u.id, 'public', 'profile'), { balance: parseFloat(bal) });
+                                }}
+                                className="px-6 h-12 rounded-xl border-white/5 text-white/20 hover:text-white transition-all"
+                              >
+                                 <Wallet className="w-4 h-4" />
                               </Button>
                            </div>
                         </div>
@@ -468,12 +570,12 @@ export const AdminDashboard = () => {
 
       {/* Artifact Materialization Modal */}
       <AnimatePresence>
-         {isModalOpen && (
+          {isModalOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/95 backdrop-blur-3xl">
-               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative w-full max-w-2xl bg-[#0A0A0A] border border-white/10 p-12 rounded-[4rem] space-y-12">
+               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative w-full max-w-2xl bg-[#0A0A0A] border border-white/10 p-12 rounded-[4rem] space-y-12 h-[80vh] overflow-y-auto">
                   <header className="flex justify-between items-center">
-                     <h3 className="text-4xl font-display font-black tracking-tighter uppercase italic">MATERIALIZE ARTIFACT</h3>
-                     <button onClick={() => setIsModalOpen(false)} className="text-white/20 hover:text-white"><X className="w-8 h-8" /></button>
+                     <h3 className="text-4xl font-display font-black tracking-tighter uppercase italic">{isEditMode ? 'REALIGN ARTIFACT' : 'MATERIALIZE ARTIFACT'}</h3>
+                     <button onClick={() => { setIsModalOpen(false); resetProductForm(); }} className="text-white/20 hover:text-white"><X className="w-8 h-8" /></button>
                   </header>
 
                   <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -510,8 +612,21 @@ export const AdminDashboard = () => {
                               'Training Kits', 'Shorts', 'Socks'
                            ].map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
+                        <textarea value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="admin-input min-h-[100px]" placeholder="DESCRIPTION" />
+                        
+                        <div className="flex items-center gap-4">
+                          <input 
+                            type="checkbox" 
+                            id="isFeatured" 
+                            checked={newProduct.isFeatured} 
+                            onChange={e => setNewProduct({...newProduct, isFeatured: e.target.checked})}
+                            className="accent-brand-red w-4 h-4"
+                          />
+                          <label htmlFor="isFeatured" className="text-[10px] uppercase font-black tracking-widest text-white/40">Featured Artifact</label>
+                        </div>
+
                         <Button type="submit" disabled={uploading} className="w-full h-16 rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white font-black text-xs uppercase tracking-widest">
-                           {uploading ? 'TRANSMITTING...' : 'COMMIT TO VAULT'}
+                           {uploading ? 'TRANSMITTING...' : isEditMode ? 'UPDATE RECORD' : 'COMMIT TO VAULT'}
                         </Button>
                      </div>
                   </form>

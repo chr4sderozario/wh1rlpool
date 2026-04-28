@@ -32,7 +32,11 @@ export const LoginPage = () => {
       }
     } catch (err: any) {
       console.error(err);
-      setError("Identification failed. Please ensure Email/Password auth is enabled in your Firebase console or use the placeholder login logic.");
+      if (err.code === 'auth/operation-not-allowed') {
+        setError("AUTHENTICATION BLOCKED: Please enable Email/Password and Google sign-in methods in your Firebase Console (Authentication > Sign-in method).");
+      } else {
+        setError("Identification failed. Please ensure your credentials are correct or authentication is enabled.");
+      }
       
       // Fallback for demo/placeholder if Firebase auth fails (to show the flow)
       const adminEmails = ['sohanbiswas@chr4s.com', 'johnrozario@chr4s.com'];
@@ -56,8 +60,13 @@ export const LoginPage = () => {
       } else {
         navigate('/store');
       }
-    } catch (err) {
-      setError("Google Authentication failed.");
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === 'auth/operation-not-allowed') {
+        setError("GOOGLE BLOCKED: Enable Google provider in Firebase Console (Authentication > Sign-in method).");
+      } else {
+        setError("Google Authentication failed.");
+      }
     }
   };
 
