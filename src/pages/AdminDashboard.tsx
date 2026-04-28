@@ -314,79 +314,141 @@ export const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex">
-      {/* Sidebar Navigation */}
-      <aside className="w-80 border-r border-white/5 flex flex-col p-10 space-y-12 bg-black">
-        <div>
-          <h1 className="text-3xl font-display font-black tracking-tighter gothic-glow">WH1RLPOOL</h1>
-          <span className="text-[10px] uppercase tracking-[0.6em] text-brand-red font-black">Admin Command Center</span>
-        </div>
+    <div className="min-h-screen bg-[#050505] text-white flex selection:bg-brand-red selection:text-white">
+      {/* Liquid Sidebar */}
+      <motion.aside 
+        initial={{ x: -100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ type: "spring", damping: 25, stiffness: 120 }}
+        className="w-80 border-r border-white/5 bg-black flex flex-col p-10 sticky top-0 h-screen z-50 overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 w-[1px] h-full bg-gradient-to-b from-transparent via-white/5 to-transparent" />
+        <div className="absolute -top-24 -left-24 w-64 h-64 bg-brand-red/10 blur-[80px] rounded-full pointer-events-none" />
+        
+        <header className="mb-16 relative">
+          <Link to="/" className="flex items-center gap-4 mb-4 group">
+             <div className="w-10 h-10 rounded-2xl bg-brand-red flex items-center justify-center text-white font-black italic shadow-lg shadow-brand-red/20 group-hover:scale-110 transition-transform">A</div>
+             <div>
+                <h1 className="text-xl font-display font-black tracking-tighter uppercase italic leading-none gothic-glow">Void Control</h1>
+                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20 mt-1">Terminal Status: Online</p>
+             </div>
+          </Link>
+        </header>
 
-        <nav className="flex-1 space-y-4">
-          <NavItem icon={<BarChart3 />} label="Analytics" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
-          <NavItem icon={<Package />} label="Inventory" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} />
-          <NavItem icon={<ShoppingBag />} label="Orders" active={activeTab === 'orders'} onClick={() => setActiveTab('orders')} />
-          <NavItem icon={<Wallet />} label="Requests" active={activeTab === 'requests'} onClick={() => setActiveTab('requests')} count={requests.filter(r => r.status === 'pending').length} />
-          <NavItem icon={<Users />} label="Accounts" active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
+        <nav className="space-y-4 flex-1">
+          {[
+            { id: 'analytics', label: 'ANALYTICS', icon: BarChart3 },
+            { id: 'inventory', label: 'VAULT INVENTORY', icon: Database },
+            { id: 'orders', label: 'TRANSMISSIONS', icon: ShoppingBag },
+            { id: 'requests', label: 'BALANCE INJECTS', icon: Wallet, count: requests.filter(r => r.status === 'pending').length },
+            { id: 'users', label: 'SUBJECTS', icon: Users },
+          ].map(item => (
+            <motion.button
+              key={item.id}
+              whileHover={{ x: 8 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setActiveTab(item.id as any)}
+              className={`w-full flex items-center justify-between p-6 rounded-[2rem] transition-all group relative overflow-hidden ${
+                activeTab === item.id 
+                  ? 'bg-white text-black shadow-2xl shadow-white/10' 
+                  : 'text-white/40 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-6 relative z-10">
+                <item.icon className={`w-5 h-5 transition-transform duration-500 ${activeTab === item.id ? 'text-black' : 'text-white/40 group-hover:scale-110 group-hover:text-white'}`} />
+                <span className="text-[10px] font-black uppercase tracking-widest">{item.label}</span>
+              </div>
+              
+              {item.count ? (
+                <span className="bg-brand-red text-white text-[8px] font-black px-2 py-1 rounded-full relative z-10">{item.count}</span>
+              ) : activeTab === item.id && (
+                <motion.div layoutId="sidebar-active" className="absolute left-0 w-1.5 h-8 bg-brand-red rounded-full" />
+              )}
+            </motion.button>
+          ))}
         </nav>
 
-        <div className="pt-8 border-t border-white/5">
+        <div className="pt-8 border-t border-white/5 space-y-6">
+           <div className="p-6 rounded-[2rem] bg-white/5 border border-white/5">
+              <p className="text-[8px] font-black uppercase tracking-widest text-white/20 mb-2">SYSTEM LOAD</p>
+              <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                 <motion.div 
+                   animate={{ width: ['20%', '60%', '45%'] }}
+                   transition={{ duration: 10, repeat: Infinity }}
+                   className="h-full bg-brand-red" 
+                 />
+              </div>
+           </div>
+           
            <button 
              onClick={() => {
                localStorage.removeItem('admin_session');
                navigate('/');
              }} 
-             className="flex items-center gap-4 text-white/20 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest group"
+             className="w-full flex items-center gap-4 p-6 rounded-[2rem] text-white/20 hover:text-white hover:bg-white/5 transition-all text-[10px] font-black tracking-widest group"
            >
-              <LogOut className="w-4 h-4 group-hover:-translate-x-2 transition-transform" /> Exit Terminal
+              <LogOut className="w-5 h-5 group-hover:-translate-x-2 transition-transform" /> 
+              <span>EXIT TERMINAL</span>
            </button>
         </div>
-      </aside>
+      </motion.aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-16">
-        <div className="max-w-[1400px] mx-auto space-y-16">
+      {/* Main Content Area */}
+      <main className="flex-1 min-h-screen overflow-y-auto relative p-12 md:p-20">
+        {/* Background Atmosphere */}
+        <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-brand-red/5 blur-[180px] -z-10 animate-pulse pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[50%] h-[50%] bg-blue-600/5 blur-[180px] -z-10 pointer-events-none" />
+
+        <div className="max-w-[1500px] mx-auto">
           
           <AnimatePresence mode="wait">
             {activeTab === 'analytics' && (
-              <motion.section key="analytics" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-12">
+              <motion.section 
+                key="analytics" 
+                initial={{ opacity: 0, scale: 0.98, y: 20 }} 
+                animate={{ opacity: 1, scale: 1, y: 0 }} 
+                exit={{ opacity: 0, scale: 1.02, y: -20 }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="space-y-16"
+              >
                 <header>
-                   <h2 className="text-6xl font-display font-black tracking-tighter uppercase italic">System Yield</h2>
-                   <p className="text-white/40 font-serif italic text-lg">Performance metrics from the void.</p>
+                   <motion.div initial={{ x: -20 }} animate={{ x: 0 }} className="inline-block px-4 py-1 bg-brand-red/10 border border-brand-red/20 rounded-full text-[9px] font-black tracking-[0.4em] text-brand-red mb-6 uppercase">LIVE ANALYTICS</motion.div>
+                   <h2 className="text-7xl font-display font-black tracking-tighter uppercase italic leading-[0.9] text-transparent bg-clip-text bg-gradient-to-br from-white to-white/40">Terminal<br />Yield</h2>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                   <StatCard label="Total Revenue" value={`₹${stats.totalRevenue}`} trend="+12.5%" />
-                   <StatCard label="Net Extraction" value={`₹${stats.totalProfit.toFixed(0)}`} trend="+8.2%" color="text-brand-red" />
-                   <StatCard label="Active Souls" value={users.length.toString()} trend="+3" />
-                   <StatCard label="Live Orders" value={orders.filter(o => o.status === 'pending').length.toString()} icon={<AlertTriangle className="text-orange-500" />} />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                   <StatCard label="GROSS REVENUE" value={`₹${stats.totalRevenue.toLocaleString()}`} trend="+12.5%" icon={<DollarSign />} />
+                   <StatCard label="NET PROFIT" value={`₹${stats.totalProfit.toLocaleString()}`} trend="+8.2%" color="text-brand-red" icon={<TrendingUp />} />
+                   <StatCard label="SUBJECT REGISTRY" value={users.length.toString()} trend="+3" icon={<Users />} />
+                   <StatCard label="SYNC ORDERS" value={orders.filter(o => o.status === 'pending').length.toString()} icon={<Activity className="text-orange-500" />} />
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8">
-                   <ChartBox title="Transmission Volume (Orders)">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                   <ChartBox title="FLUX TRANSMISSION">
                       <ResponsiveContainer width="100%" height={300}>
                          <AreaChart data={stats.chartData}>
                             <defs>
                                <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#8b0000" stopOpacity={0.3}/>
-                                  <stop offset="95%" stopColor="#8b0000" stopOpacity={0}/>
+                                  <stop offset="5%" stopColor="#E20613" stopOpacity={0.3}/>
+                                  <stop offset="95%" stopColor="#E20613" stopOpacity={0}/>
                                </linearGradient>
                             </defs>
-                            <XAxis dataKey="name" stroke="#ffffff20" fontSize={10} />
-                            <YAxis stroke="#ffffff20" fontSize={10} />
-                            <Tooltip contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #ffffff10' }} />
-                            <Area type="monotone" dataKey="revenue" stroke="#8b0000" fillOpacity={1} fill="url(#colorRev)" />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                            <XAxis dataKey="name" stroke="#ffffff20" fontSize={10} axisLine={false} tickLine={false} />
+                            <YAxis stroke="#ffffff20" fontSize={10} axisLine={false} tickLine={false} />
+                            <Tooltip contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #ffffff10', borderRadius: '16px' }} />
+                            <Area type="monotone" dataKey="revenue" stroke="#E20613" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
                          </AreaChart>
                       </ResponsiveContainer>
                    </ChartBox>
-                   <ChartBox title="Entity Growth (Users)">
+                   <ChartBox title="GROWTH CORRELATION">
                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={stats.chartData}>
-                           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" />
-                           <XAxis dataKey="name" stroke="#ffffff20" fontSize={10} />
-                           <YAxis stroke="#ffffff20" fontSize={10} />
-                           <Tooltip contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #ffffff10' }} />
-                           <Bar dataKey="profit" fill="#ffffff" radius={[4, 4, 0, 0]} />
+                        <BarChart data={stats.chartData} margin={{ top: 20 }}>
+                           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff03" vertical={false} />
+                           <XAxis dataKey="name" stroke="#ffffff10" fontSize={10} axisLine={false} tickLine={false} />
+                           <YAxis stroke="#ffffff10" fontSize={10} axisLine={false} tickLine={false} />
+                           <Tooltip contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #ffffff05', borderRadius: '16px' }} />
+                           <Bar dataKey="profit" fill="#ffffff" radius={[12, 12, 0, 0]} barSize={24} />
                         </BarChart>
                      </ResponsiveContainer>
                    </ChartBox>
@@ -395,56 +457,100 @@ export const AdminDashboard = () => {
             )}
 
             {activeTab === 'inventory' && (
-              <motion.section key="inv" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12">
-                 <header className="flex justify-between items-end">
-                    <div className="space-y-4">
-                       <h2 className="text-6xl font-display font-black tracking-tighter uppercase italic">The Vault</h2>
-                       <p className="text-white/40 font-serif italic text-lg">Curating the current collection of artifact SKUs.</p>
+              <motion.section 
+                key="inventory" 
+                initial={{ opacity: 0, x: 20 }} 
+                animate={{ opacity: 1, x: 0 }} 
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-16"
+              >
+                 <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-12">
+                    <div>
+                        <motion.div initial={{ x: -20 }} animate={{ x: 0 }} className="inline-block px-4 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black tracking-[0.4em] text-white/40 mb-6 uppercase">VAULT MANAGEMENT</motion.div>
+                        <h2 className="text-7xl font-display font-black tracking-tighter uppercase italic leading-[0.9]">The<br />Vault</h2>
                     </div>
-                    <Button onClick={() => { resetProductForm(); setIsModalOpen(true); }} className="rounded-full bg-white text-black hover:bg-brand-red hover:text-white px-12 h-16 font-black text-xs space-x-4">
-                       <Plus className="w-4 h-4" /> <span>MATERIALIZE ARTIFACT</span>
+                    <Button 
+                      onClick={() => { resetProductForm(); setIsModalOpen(true); }} 
+                      className="rounded-[2.5rem] bg-white text-black hover:bg-brand-red hover:text-white px-12 h-24 font-black text-xs space-x-6 group transition-all relative overflow-hidden"
+                    >
+                       <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" /> 
+                       <span className="tracking-[0.4em] uppercase">MATERIALIZE ARTIFACT</span>
                     </Button>
                  </header>
 
-                 <div className="bg-black/40 border border-white/5 rounded-[3rem] overflow-hidden">
+                 <div className="bg-white/[0.02] border border-white/5 rounded-[4rem] overflow-hidden backdrop-blur-3xl shadow-2xl">
                     <table className="w-full text-left">
-                       <thead className="bg-white/5">
-                          <tr className="text-[10px] uppercase font-black tracking-widest text-white/40">
-                             <th className="p-8">Artifact SKU</th>
-                             <th className="p-8 text-center">Category</th>
-                             <th className="p-8 text-center">Price</th>
-                             <th className="p-8 text-center">Stock</th>
-                             <th className="p-8 text-right">Ops</th>
+                       <thead className="border-b border-white/5">
+                          <tr className="text-[9px] uppercase font-black tracking-[0.5em] text-white/20">
+                             <th className="p-10">Artifact Identity</th>
+                             <th className="p-10 text-center">Category Flux</th>
+                             <th className="p-10 text-center">Extraction unit</th>
+                             <th className="p-10 text-center">Vault Load</th>
+                             <th className="p-10 text-right pr-16">Operations</th>
                           </tr>
                        </thead>
                        <tbody className="divide-y divide-white/5">
-                          {products.map(p => (
-                             <tr key={p.id} className="group hover:bg-white/[0.02] transition-colors">
-                                <td className="p-8">
-                                   <div className="flex items-center gap-6">
-                                      <div className="w-12 h-16 rounded-xl bg-white/5 overflow-hidden grayscale group-hover:grayscale-0 transition-all">
-                                         {p.imageUrl && <img src={p.imageUrl} className="w-full h-full object-cover" />}
+                          {products.map((p, i) => (
+                             <motion.tr 
+                               key={p.id}
+                               initial={{ opacity: 0, y: 10 }}
+                               animate={{ opacity: 1, y: 0 }}
+                               transition={{ delay: i * 0.05 }}
+                               className="group hover:bg-white/[0.03] transition-colors"
+                             >
+                                <td className="p-10">
+                                   <div className="flex items-center gap-8">
+                                      <div className="w-20 h-24 rounded-3xl bg-white/5 border border-white/10 overflow-hidden relative group-hover:scale-105 transition-transform duration-700">
+                                         {p.imageUrl ? (
+                                           <img src={p.imageUrl} className="w-full h-full object-cover grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt={p.name} />
+                                         ) : (
+                                           <div className="w-full h-full flex items-center justify-center opacity-10">
+                                             <Package className="w-8 h-8" />
+                                           </div>
+                                         )}
                                       </div>
                                       <div>
-                                         <p className="font-bold uppercase tracking-tight">{p.name}</p>
-                                         <p className="text-[10px] text-white/20 uppercase tracking-widest">#{p.id.slice(0, 8)}</p>
+                                         <p className="text-2xl font-display font-black tracking-tighter uppercase italic leading-none mb-3">{p.name}</p>
+                                         <p className="text-[10px] text-white/20 uppercase tracking-[0.3em] font-black">Ref ID: {p.id.slice(0, 8)}</p>
                                       </div>
                                    </div>
                                 </td>
-                                <td className="p-8 text-center text-[10px] font-black opacity-40 uppercase tracking-widest">{p.category}</td>
-                                <td className="p-8 text-center font-mono text-white/60">₹ {p.price}</td>
-                                <td className="p-8 text-center">
-                                   <span className={`text-[10px] font-black px-4 py-1.5 rounded-full ${p.stock <= 5 ? 'bg-brand-red/10 text-brand-red' : 'bg-green-500/10 text-green-500'}`}>
-                                      {p.stock} Units
-                                   </span>
+                                <td className="p-10 text-center">
+                                   <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{p.category}</span>
                                 </td>
-                                <td className="p-8 text-right">
-                                   <div className="flex justify-end gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <button onClick={() => openEditModal(p)} className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-all"><Edit3 className="w-4 h-4 text-white/40" /></button>
-                                      <button onClick={async () => { if(confirm("Destroy artifact?")) await deleteDoc(doc(db, 'products', p.id)) }} className="p-3 bg-white/5 hover:bg-brand-red/10 hover:text-brand-red rounded-full transition-all"><Trash2 className="w-4 h-4" /></button>
+                                <td className="p-10 text-center font-display font-black tracking-tighter italic text-2xl">₹ {p.price.toLocaleString()}</td>
+                                <td className="p-10 text-center">
+                                   <div className="flex flex-col items-center gap-2">
+                                      <span className={`text-[9px] font-black px-5 py-2 rounded-full border transition-colors ${
+                                        p.stock <= 5 
+                                          ? 'bg-brand-red/10 border-brand-red/20 text-brand-red animate-pulse' 
+                                          : 'bg-white/5 border-white/10 text-white/60'
+                                      }`}>
+                                         {p.stock} ARCHIVED
+                                      </span>
                                    </div>
                                 </td>
-                             </tr>
+                                <td className="p-10 text-right pr-16">
+                                   <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                                      <motion.button 
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        onClick={() => openEditModal(p)} 
+                                        className="p-5 bg-white/5 hover:bg-white/10 rounded-3xl transition-all"
+                                      >
+                                        <Edit3 className="w-5 h-5 text-white/40 hover:text-white" />
+                                      </motion.button>
+                                      <motion.button 
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        onClick={async () => { if(confirm("Destroy artifact permanent?")) await deleteDoc(doc(db, 'products', p.id)) }} 
+                                        className="p-5 bg-white/5 hover:bg-brand-red/20 hover:text-brand-red rounded-3xl transition-all"
+                                      >
+                                        <Trash2 className="w-5 h-5" />
+                                      </motion.button>
+                                   </div>
+                                </td>
+                             </motion.tr>
                           ))}
                        </tbody>
                     </table>

@@ -44,32 +44,38 @@ export const Navbar = () => {
       <motion.nav
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 border-b ${
+        className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-700 ${
           isScrolled 
-          ? 'bg-black/90 backdrop-blur-xl border-white/10 py-4' 
-          : 'bg-transparent border-transparent py-6'
+          ? 'bg-black/60 backdrop-blur-2xl border-b border-white/5 py-4 shadow-2xl' 
+          : 'bg-transparent border-transparent py-8'
         }`}
       >
-        <div className="max-w-[1400px] mx-auto px-6 md:px-12 flex items-center justify-between">
+        <div className="max-w-[1800px] mx-auto px-6 md:px-12 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="group relative">
-            <motion.h1 
-              className="text-2xl md:text-3xl font-display font-black tracking-tighter gothic-glow"
-              whileHover={{ scale: 1.05 }}
+            <motion.div 
+               whileHover={{ scale: 1.05 }}
+               whileTap={{ scale: 0.95 }}
+               className="flex items-center gap-4"
             >
-              WH1RLPOOL
-            </motion.h1>
-            <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-brand-red group-hover:w-full transition-all duration-500" />
+              <div className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center font-black italic text-xl group-hover:bg-brand-red group-hover:text-white transition-all duration-500">AC</div>
+              <span className="text-xl font-display font-black tracking-tighter uppercase italic leading-none hidden sm:block gothic-glow">WH1RLPOOL</span>
+            </motion.div>
+            <span className="absolute -bottom-3 left-0 w-0 h-[1px] bg-brand-red group-hover:w-full transition-all duration-700" />
           </Link>
 
           {/* Desktop Nav */}
           <div className="hidden lg:flex items-center gap-12">
-            {navLinks.map((link) => (
+            {[
+              { name: 'Artifacts', path: '/shop' },
+              { name: 'Registry', path: '/shop' },
+              { name: 'About', path: '/about' }
+            ].map((link) => (
               <Link
                 key={link.name}
                 to={link.path}
-                className={`text-[10px] uppercase tracking-[0.3em] font-bold transition-all hover:text-brand-red relative group ${
-                  location.pathname === link.path ? 'text-brand-red' : 'text-white/60'
+                className={`text-[10px] uppercase tracking-[0.4em] font-black transition-all hover:text-white relative group ${
+                  location.pathname === link.path ? 'text-white' : 'text-white/40'
                 }`}
               >
                 {link.name}
@@ -78,78 +84,76 @@ export const Navbar = () => {
                   animate={{ w: location.pathname === link.path ? '100%' : '0%' }}
                   transition={{ duration: 0.5 }}
                 />
+                <span className="absolute -bottom-2 left-0 w-0 h-[1px] bg-white group-hover:w-full transition-all duration-500 delay-100" />
               </Link>
             ))}
           </div>
 
           {/* Actions */}
           <div className="flex items-center gap-4 md:gap-8">
-            <button 
-              onClick={() => setIsSearchOpen(true)}
-              className="text-white/60 hover:text-white transition-colors"
-            >
-              <Search className="w-5 h-5" />
-            </button>
-            
-            <Link to="/wishlist" className="text-white/60 hover:text-white transition-colors relative group">
-              <Heart className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-brand-red rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-            </Link>
-
-            <Link to="/cart" className="text-white/60 hover:text-white transition-colors relative group">
-              <CartIcon className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-brand-red rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-            </Link>
-
-            {isAdmin && (
-              <Link to="/admin" className="hidden lg:flex items-center gap-2 text-brand-red hover:text-white transition-colors group">
-                <ShieldAlert className="w-4 h-4" />
-                <span className="text-[8px] font-black uppercase tracking-widest leading-none">Admin Void</span>
-              </Link>
-            )}
-
-            <div className="h-6 w-[1px] bg-white/10 hidden md:block" />
-
-            {user ? (
-              <Link 
-                to="/profile" 
-                className="flex items-center gap-3 group"
+            <div className="flex items-center gap-6">
+              <motion.button 
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setIsSearchOpen(true)}
+                className="text-white/40 hover:text-white transition-colors p-2"
               >
-                <div className="text-right hidden md:block">
-                  <p className="text-[10px] font-bold uppercase tracking-widest leading-none mb-1">
-                    {profile?.displayName || user.displayName || 'Subject'}
-                  </p>
-                  <p className="text-[8px] text-brand-red font-black uppercase tracking-[0.2em]">
-                    ${profile?.balance?.toFixed(2) || '0.00'}
-                  </p>
-                </div>
-                <div className="w-10 h-10 rounded-full border border-white/10 p-0.5 group-hover:border-brand-red transition-all duration-500 overflow-hidden">
-                  <img 
-                    src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
-                    className="w-full h-full rounded-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
-                    alt="profile"
-                  />
-                </div>
+                <Search className="w-5 h-5" />
+              </motion.button>
+              
+              <Link to="/cart" className="text-white/40 hover:text-white transition-colors relative group p-2">
+                <CartIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <AnimatePresence>
+                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-brand-red rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                </AnimatePresence>
               </Link>
-            ) : (
-              <Link 
-                to="/login"
-                className="text-[10px] uppercase tracking-[0.2em] font-black px-6 py-2 border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-500"
-              >
-                Enter Void
-              </Link>
-            )}
+
+              {isAdmin && (
+                <Link to="/admin" className="hidden xl:flex items-center gap-3 bg-brand-red/10 border border-brand-red/20 rounded-full px-5 py-2 group hover:bg-brand-red transition-all">
+                  <ShieldAlert className="w-3.5 h-3.5 text-brand-red group-hover:text-white" />
+                  <span className="text-[9px] font-black uppercase tracking-widest leading-none text-brand-red group-hover:text-white">Admin Void</span>
+                </Link>
+              )}
+
+              <div className="h-4 w-[1px] bg-white/10 hidden md:block mx-2" />
+
+              {user ? (
+                <Link to="/profile" className="flex items-center gap-4 group">
+                  <div className="text-right hidden md:block">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-white transition-colors">{profile?.displayName || 'Archive'}</p>
+                    <p className="text-[9px] font-bold text-brand-red tracking-wider">₹ {profile?.balance || 0}</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-brand-red transition-all overflow-hidden relative p-1">
+                     <img 
+                      src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
+                      className="w-full h-full rounded-xl object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                      alt="profile"
+                     />
+                     <div className="absolute inset-0 bg-brand-red/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </Link>
+              ) : (
+                <Button 
+                  onClick={() => navigate('/login')}
+                  className="hidden sm:flex rounded-2xl h-10 px-8 text-[9px] font-black uppercase tracking-widest bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-500"
+                >
+                  Identification
+                </Button>
+              )}
+            </div>
 
             {/* Mobile Menu Toggle */}
-            <button 
-              className="lg:hidden text-white/60 hover:text-white"
+            <motion.button 
+              whileTap={{ scale: 0.9 }}
+              className="lg:hidden p-3 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all"
               onClick={() => setIsMobileMenuOpen(true)}
             >
-              <Menu className="w-6 h-6" />
-            </button>
+              <Menu className="w-5 h-5 text-white" />
+            </motion.button>
           </div>
         </div>
       </motion.nav>
+
 
       {/* Mobile Menu Overlay */}
       <AnimatePresence>

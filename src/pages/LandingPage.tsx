@@ -47,107 +47,143 @@ export const LandingPage = () => {
   }, []);
 
   return (
-    <div ref={containerRef} className="relative bg-black min-h-screen overflow-x-hidden">
-      {/* Immersive Hero Section */}
+    <div ref={containerRef} className="relative bg-black min-h-[100dvh] overflow-x-hidden selection:bg-brand-red selection:text-white">
+      {/* Liquid Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div 
+          animate={{
+            scale: [1, 1.2, 1],
+            rotate: [0, 90, 0],
+            x: [0, 100, 0],
+            y: [0, -50, 0],
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-brand-red/20 blur-[120px] rounded-full mix-blend-screen opacity-50"
+        />
+        <motion.div 
+          animate={{
+            scale: [1.2, 1, 1.2],
+            rotate: [0, -120, 0],
+            x: [0, -150, 0],
+            y: [0, 80, 0],
+          }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+          className="absolute -bottom-[20%] -right-[10%] w-[70%] h-[70%] bg-blue-600/10 blur-[150px] rounded-full mix-blend-screen opacity-30"
+        />
+      </div>
+
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <motion.div 
           style={{ y: heroY, scale: heroScale }}
-          className="absolute inset-0 z-0"
+          className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"
         >
-          {/* Animated Background Artifacts */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120vw] h-[120vw] opacity-30">
-            <div className="absolute inset-0 liquid-shape bg-brand-red blur-[120px] animate-pulse" />
-            <div className="absolute inset-0 liquid-shape bg-white/5 blur-[80px] scale-75 animate-spin-slow" />
-          </div>
-
-          {/* Floating Jerseys - Visual Representation */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, rotate: -20, scale: 0.5 }}
-                animate={{ 
-                  opacity: [0.1, 0.3, 0.1], 
-                  rotate: [ -20, 20, -20],
-                  y: [0, -50, 0],
-                  scale: 0.8
-                }}
-                transition={{ 
-                  duration: 8 + i * 2, 
-                  repeat: Infinity, 
-                  ease: "easeInOut"
-                }}
-                className="absolute w-[400px] h-[500px] bg-white/5 border border-white/10 rounded-[3rem] backdrop-blur-3xl overflow-hidden"
-                style={{ 
-                  left: `${20 + i * 30}%`, 
-                  top: `${15 + i * 10}%`,
-                  zIndex: i
-                }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
-              </motion.div>
-            ))}
-          </div>
+          {/* Subtle Grid Pattern */}
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+          
+          {/* Floating Silhouettes */}
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ 
+                opacity: [0.05, 0.15, 0.05], 
+                y: [0, -100, 0],
+                rotate: [ -10, 10, -10]
+              }}
+              transition={{ 
+                duration: 10 + i * 5, 
+                repeat: Infinity, 
+                ease: "easeInOut"
+              }}
+              className="absolute w-[800px] h-[800px] bg-white/5 blur-[120px] rounded-full"
+              style={{ 
+                left: `${10 + i * 30}%`, 
+                top: `${10 + i * 15}%`,
+              }}
+            />
+          ))}
         </motion.div>
 
         {/* Hero Content */}
         <div className="relative z-10 text-center px-6 max-w-7xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease: "easeOut" }}
-            className="space-y-8"
+            initial={{ opacity: 0, y: 60, filter: "blur(10px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+            className="space-y-12"
           >
-            <div className="flex flex-col items-center gap-4">
-              <motion.span 
-                initial={{ letterSpacing: '1em', opacity: 0 }}
-                animate={{ letterSpacing: '0.4em', opacity: 1 }}
-                className="text-[10px] md:text-xs font-black uppercase text-brand-red gothic-glow"
+            <div className="flex flex-col items-center gap-6">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.8 }}
+                className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-4"
               >
-                Just Go For It
-              </motion.span>
-              <h1 className="text-[15vw] md:text-[14rem] font-display font-black leading-[0.75] tracking-tighter uppercase gothic-glow select-none italic">
-                WH1RL<br />POOL
+                <div className="w-1.5 h-1.5 rounded-full bg-brand-red animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">System Online // v4.0.2</span>
+              </motion.div>
+              
+              <h1 className="text-[15vw] md:text-[14rem] font-display font-black leading-[0.75] tracking-tighter uppercase italic perspective-1000">
+                <motion.span 
+                  initial={{ rotateX: 90, opacity: 0 }}
+                  animate={{ rotateX: 0, opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                  className="block text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40"
+                >
+                  WH1RL
+                </motion.span>
+                <motion.span 
+                  initial={{ rotateX: 90, opacity: 0 }}
+                  animate={{ rotateX: 0, opacity: 1 }}
+                  transition={{ delay: 0.5, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                  className="block"
+                >
+                  POOL
+                </motion.span>
               </h1>
             </div>
 
-            <p className="max-w-2xl mx-auto text-sm md:text-xl font-serif italic text-white/40 leading-relaxed">
-              Curating the darkest artifacts of football culture. <br className="hidden md:block" />
-              Performance redefined through a gothic lens.
-            </p>
+            <motion.p 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               transition={{ delay: 1, duration: 1.5 }}
+               className="max-w-xl mx-auto text-lg md:text-xl font-medium text-white/40 leading-relaxed font-serif italic"
+            >
+              "The convergence of archival heritage and technical evolution. Materialize your identity through the global vault."
+            </motion.p>
 
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center pt-8">
+            <div className="flex flex-col items-center gap-12 pt-8">
               <Button 
                 onClick={() => navigate('/shop')}
-                className="w-full sm:w-80 h-20 text-lg rounded-full bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-black group px-12"
+                className="w-full sm:w-80 h-24 text-xl rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-black group px-12 relative overflow-hidden"
               >
-                <span className="flex items-center gap-4">
-                  ENTER VOID <ArrowRight className="group-hover:translate-x-2 transition-transform" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                <span className="flex items-center justify-center gap-4 relative z-10">
+                  ENTER VOID <ArrowRight className="group-hover:translate-x-3 transition-transform duration-500" />
                 </span>
               </Button>
-              <div className="flex flex-col gap-4">
-                <button 
+              
+              <div className="flex flex-col items-center gap-6">
+                <motion.button 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => navigate('/login')}
-                  className="text-[10px] uppercase tracking-[0.4em] font-bold text-white/40 hover:text-white transition-all underline underline-offset-8"
+                  className="text-[11px] uppercase tracking-[0.5em] font-black text-white/40 hover:text-white transition-all border-b border-white/10 pb-2"
                 >
                   ENTER AS ADMIN
-                </button>
+                </motion.button>
                 <button 
                   onClick={() => navigate('/login')}
                   className="text-[8px] uppercase tracking-[0.3em] font-bold text-white/20 hover:text-white transition-all"
                 >
-                  Terminal Access
+                  Terminal Access // Port 8080
                 </button>
               </div>
             </div>
           </motion.div>
         </div>
-
-        {/* Particles / Smoke Effect Placeholder */}
-        <div className="absolute inset-0 pointer-events-none mix-blend-screen opacity-20">
-           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.05)_0%,transparent_70%)] animate-pulse" />
-        </div>
       </section>
+
 
       {/* Featured Collections Feed */}
       <section className="py-32 px-6 md:px-12 max-w-[1600px] mx-auto space-y-32">
