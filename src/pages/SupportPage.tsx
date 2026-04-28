@@ -1,110 +1,113 @@
 import { motion } from 'motion/react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Instagram, Mail, MessageSquare, Send } from 'lucide-react';
 import { Button } from '@/src/components/ui/Button';
+import { Instagram, Send, MessageCircle, Mail, MapPin, ExternalLink, ArrowRight } from 'lucide-react';
 
 export const SupportPage = () => {
-  const navigate = useNavigate();
+  const socialLinks = [
+    { name: 'Instagram', icon: <Instagram className="w-5 h-5" />, handle: '@wh1rlpool.in', link: 'https://instagram.com/wh1rlpool.in' },
+    { name: 'WhatsApp', icon: <MessageCircle className="w-5 h-5" />, handle: 'Active Support Protocol', link: '#' }
+  ];
 
   return (
-    <div className="min-h-screen bg-black text-white px-4 md:px-8 py-12 flex flex-col items-center">
-      <div className="max-w-4xl w-full space-y-16">
-        <button 
-          onClick={() => navigate('/store')}
-          className="text-white/40 hover:text-white flex items-center gap-2 transition-colors uppercase text-[10px] tracking-widest self-start"
-        >
-          <ArrowLeft className="w-4 h-4" /> Exit Support
-        </button>
+    <div className="min-h-screen bg-black text-white pt-40 pb-32 px-6 md:px-12 relative overflow-hidden">
+      <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-32">
+        
+        {/* Left: Contact Info */}
+        <div className="space-y-16">
+          <header className="space-y-8">
+            <h1 className="text-6xl md:text-9xl font-display font-black tracking-tighter uppercase italic py-2 leading-tight">CONTACT THE VOID</h1>
+            <p className="text-white/40 text-xl font-serif italic max-w-xl">Our support entities are stationed to assist with your artifact transmissions and synchronization errors.</p>
+          </header>
 
-        <header className="text-center space-y-4">
-          <h1 className="text-6xl md:text-9xl font-display font-black tracking-tighter uppercase italic py-2 gothic-glow">Terminal Support</h1>
-          <p className="text-white/40 text-sm max-w-xl mx-auto italic font-serif">Reach out through the digital channels. We respond from the void.</p>
-        </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          {/* Direct channels */}
-          <div className="space-y-6">
-            <div className="glass p-8 rounded-[2.5rem] space-y-8">
-              <h2 className="text-[10px] uppercase tracking-[0.5em] text-brand-red font-bold">Encrypted Channels</h2>
-              
-              <a href="https://instagram.com/wh1rlpool.in" target="_blank" rel="noreferrer" className="flex items-center gap-6 p-6 bg-white/5 hover:bg-brand-red/10 border border-white/5 rounded-3xl transition-all group">
-                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Instagram className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold uppercase tracking-tight">Instagram Direct</h3>
-                  <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">@wh1rlpool.in</p>
-                </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+            {socialLinks.map((social) => (
+              <a 
+                key={social.name}
+                href={social.link}
+                target="_blank"
+                rel="noreferrer"
+                className="group flex items-center gap-6 p-8 rounded-[2.5rem] bg-white/5 border border-white/5 hover:border-brand-red/50 transition-all duration-700"
+              >
+                 <div className="w-16 h-16 rounded-2xl bg-black border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
+                    {social.icon}
+                 </div>
+                 <div className="space-y-1">
+                    <p className="text-[10px] uppercase font-black tracking-widest text-white/40">{social.name}</p>
+                    <p className="text-lg font-display font-bold tracking-tight group-hover:text-brand-red transition-colors">{social.handle}</p>
+                 </div>
+                 <ExternalLink className="ml-auto w-4 h-4 text-white/10 group-hover:text-white transition-colors" />
               </a>
+            ))}
+          </div>
 
-              <a href="mailto:support@wh1rlpool.in" className="flex items-center gap-6 p-6 bg-white/5 hover:bg-brand-red/10 border border-white/5 rounded-3xl transition-all group">
-                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Mail className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold uppercase tracking-tight">Email Support</h3>
-                  <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">support@wh1rlpool.in</p>
-                </div>
-              </a>
-            </div>
+          <div className="space-y-8 pt-8 border-t border-white/5">
+             <div className="flex items-center gap-6 opacity-40">
+                <Mail className="w-5 h-5" />
+                <span className="text-xs uppercase font-black tracking-[0.3em]">support@wh1rlpool.in</span>
+             </div>
+             <div className="flex items-center gap-6 opacity-40">
+                <MapPin className="w-5 h-5" />
+                <span className="text-xs uppercase font-black tracking-[0.3em]">Digital Headquarters, The Grid</span>
+             </div>
+          </div>
+        </div>
 
-            <div className="bg-brand-red/5 p-8 rounded-[2.5rem] border border-brand-red/10 overflow-hidden relative group">
-              <div className="absolute top-0 right-0 w-32 h-32 liquid-shape bg-brand-red/10 -mr-16 -mt-16 blur-2xl group-hover:scale-150 transition-transform duration-[2s]" />
-              <h3 className="text-lg font-display font-bold uppercase mb-2">Live Status</h3>
-              <div className="flex items-center gap-2">
-                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                 <span className="text-[10px] uppercase tracking-widest text-green-500 font-bold">Terminal Operational</span>
+        {/* Right: Message Form */}
+        <div className="relative">
+           <div className="p-12 md:p-16 rounded-[4rem] bg-[#0A0A0A] border border-white/5 space-y-12 relative overflow-hidden group">
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-brand-red/5 blur-[100px] -z-10 group-hover:bg-brand-red/10 transition-colors" />
+              <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-white/5 blur-[120px] -z-10 group-hover:bg-white/10 transition-colors" />
+
+              <div className="space-y-4">
+                 <h3 className="text-3xl font-display font-black tracking-tighter uppercase italic">DIRECT TRANSMISSION</h3>
+                 <p className="text-[10px] tracking-[0.4em] uppercase font-black text-white/20">Authorized query protocol</p>
               </div>
-              <p className="text-white/40 text-xs mt-4">Current expected response time: Under 2 hours</p>
-            </div>
-          </div>
 
-          {/* Contact Form */}
-          <div className="glass p-8 md:p-12 rounded-[3rem] space-y-8">
-             <h2 className="text-[10px] uppercase tracking-[0.5em] text-white/40 font-bold text-center">Transmission Form</h2>
-             <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); alert('Transmission Received'); }}>
-                <div className="space-y-4">
-                   <input type="text" placeholder="IDENTITY (NAME)" className="support-input" required />
-                   <input type="email" placeholder="CONTACT (EMAIL)" className="support-input" required />
-                   <select className="support-input">
-                      <option value="order">ORDER STATUS</option>
-                      <option value="product">PRODUCT INQUIRY</option>
-                      <option value="custom">CUSTOM REQUEST</option>
-                      <option value="other">OTHER</option>
-                   </select>
-                   <textarea placeholder="THE MESSAGE" className="support-input min-h-[150px] py-4" required />
-                </div>
-                <Button className="w-full h-16 rounded-full bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-bold flex items-center justify-center gap-2">
-                   Send Transmission <Send className="w-4 h-4" />
-                </Button>
-             </form>
-          </div>
+              <form className="space-y-8" onSubmit={(e) => { e.preventDefault(); alert("Transmission Sent."); }}>
+                 <div className="space-y-12">
+                    <div className="relative group/input">
+                       <label className="absolute -top-3 left-4 px-2 bg-[#0A0A0A] text-[8px] uppercase tracking-widest font-black text-white/20 group-focus-within/input:text-brand-red">Your Alias</label>
+                       <input 
+                        type="text" 
+                        required
+                        className="w-full bg-transparent border border-white/5 rounded-2xl py-6 px-8 text-sm focus:outline-none focus:border-brand-red transition-all" 
+                        placeholder="SUBJECT IDENTITY"
+                       />
+                    </div>
+                    
+                    <div className="relative group/input text-brand-red">
+                       <label className="absolute -top-3 left-4 px-2 bg-[#0A0A0A] text-[8px] uppercase tracking-widest font-black text-white/20 group-focus-within/input:text-brand-red">Query Frequency (Email)</label>
+                       <input 
+                        type="email" 
+                        required
+                        className="w-full bg-transparent border border-white/5 rounded-2xl py-6 px-8 text-sm focus:outline-none focus:border-brand-red transition-all" 
+                        placeholder="COORDINATES@VOX.COM"
+                       />
+                    </div>
+
+                    <div className="relative group/input">
+                       <label className="absolute -top-3 left-4 px-2 bg-[#0A0A0A] text-[8px] uppercase tracking-widest font-black text-white/20 group-focus-within/input:text-brand-red">The Signal (Message)</label>
+                       <textarea 
+                        required
+                        className="w-full bg-transparent border border-white/5 rounded-2xl py-6 px-8 text-sm min-h-[160px] focus:outline-none focus:border-brand-red transition-all resize-none" 
+                        placeholder="ENCODE YOUR SIGNAL HERE..."
+                       />
+                    </div>
+                 </div>
+
+                 <Button className="w-full h-20 rounded-full bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-extrabold group">
+                    <span className="flex items-center justify-center gap-4">
+                       INITIALIZE UPLOAD <Send className="w-5 h-5 group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform" />
+                    </span>
+                 </Button>
+              </form>
+           </div>
         </div>
       </div>
 
-      <style>{`
-        .support-input {
-          width: 100%;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          padding: 1rem 1.5rem;
-          border-radius: 1.5rem;
-          font-size: 0.75rem;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          transition: all 0.3s;
-        }
-        .support-input:focus {
-          outline: none;
-          background: rgba(255, 255, 255, 0.05);
-          border-color: rgba(139, 0, 0, 0.5);
-          box-shadow: 0 0 20px rgba(139, 0, 0, 0.1);
-        }
-      `}</style>
-
-      {/* Background blobs */}
-      <div className="fixed bottom-0 right-0 w-[600px] h-[600px] bg-brand-red/5 blur-[150px] liquid-shape -z-10" />
-      <div className="fixed top-0 left-0 w-[400px] h-[400px] bg-white/5 blur-[150px] liquid-shape -z-10" />
+      {/* Background blurs */}
+      <div className="fixed top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-brand-red/5 blur-[160px] pointer-events-none" />
     </div>
   );
 };

@@ -42,40 +42,53 @@ service cloud.firestore {
 
     function isValidProduct(data) {
       return data.keys().hasAll(['name', 'price', 'costPrice', 'stock', 'category']) &&
-             data.keys().size() >= 5 && data.keys().size() <= 10 &&
+             data.keys().size() >= 5 && data.keys().size() <= 15 &&
              data.name is string && data.name.size() > 0 &&
              data.price is number && data.price >= 0 &&
              data.costPrice is number && data.costPrice >= 0 &&
              data.stock is int && data.stock >= 0 &&
-             data.category in ['Jersey', 'Pants', 'Embroidery', 'OnSale', 'Accessories'] &&
+             data.category in ['Official', 'Retro', 'Embroidery', 'HighQuality', 'Sale', 'LimitedEdition', 'PlayerEdition', 'Club', 'NationalTeam', 'CustomName', 'TrainingKits', 'Shorts', 'Socks'] &&
              (!('description' in data) || data.description is string) &&
              (!('imageUrl' in data) || data.imageUrl is string) &&
+             (!('images' in data) || data.images is list) &&
+             (!('isFeatured' in data) || data.isFeatured is bool) &&
+             (!('isTrending' in data) || data.isTrending is bool) &&
+             (!('ratings' in data) || data.ratings is number) &&
              (!('createdAt' in data) || data.createdAt is timestamp);
     }
 
     function isValidUserProfile(data) {
-      return data.keys().size() <= 16 &&
+      return data.keys().size() <= 20 &&
              (!('displayName' in data) || data.displayName is string) &&
              (!('email' in data) || data.email is string) &&
+             (!('balance' in data) || data.balance is number) &&
              (!('phone' in data) || data.phone is string) &&
-             (!('whatsapp' in data) || data.whatsapp is string) &&
              (!('address' in data) || data.address is string) &&
              (!('city' in data) || data.city is string) &&
-             (!('state' in data) || data.state is string) &&
              (!('country' in data) || data.country is string) &&
-             (!('gender' in data) || data.gender in ['Male', 'Female', 'Unisex', 'Other']) &&
-             (!('size' in data) || data.size in ['XS', 'S', 'M', 'L', 'XL', 'XXL']) &&
              (!('role' in data) || data.role in ['admin', 'user']) &&
              (!('createdAt' in data) || data.createdAt is timestamp);
     }
 
     function isValidOrder(data) {
-      return data.keys().hasAll(['userId', 'items', 'total', 'status']) &&
-             data.keys().size() >= 4 && data.keys().size() <= 8 &&
+      return data.keys().hasAll(['userId', 'items', 'total', 'status', 'paymentMethod']) &&
+             data.keys().size() >= 5 && data.keys().size() <= 10 &&
              data.userId == request.auth.uid &&
              data.items is list && data.items.size() > 0 &&
              data.total is number && data.total >= 0 &&
+             data.paymentMethod in ['cod', 'online', 'balance'] &&
              data.status in ['pending', 'shipped', 'delivered', 'cancelled'] &&
+             (!('shippingAddress' in data) || data.shippingAddress is map) &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    function isValidBalanceRequest(data) {
+      return data.keys().hasAll(['userId', 'amount', 'status']) &&
+             data.keys().size() >= 3 && data.keys().size() <= 6 &&
+             data.userId == request.auth.uid &&
+             data.amount is number && data.amount > 0 &&
+             data.status in ['pending', 'approved', 'rejected'] &&
+             (!('proofImageUrl' in data) || data.proofImageUrl is string) &&
              (!('createdAt' in data) || data.createdAt is timestamp);
     }
 
@@ -91,7 +104,7 @@ service cloud.firestore {
       allow read: if true; 
       allow create: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
       allow update: if isAdmin() && isValidProduct(incoming()) && (
-        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'price', 'costPrice', 'description', 'imageUrl', 'category', 'stock'])
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'price', 'costPrice', 'description', 'imageUrl', 'images', 'category', 'stock', 'isFeatured', 'isTrending', 'ratings'])
       );
       allow delete: if isAdmin();
     }
@@ -102,7 +115,18 @@ service cloud.firestore {
       allow create: if isEmailVerified() && isValidId(orderId) && isValidOrder(incoming());
       allow update: if isAdmin() && (
         incoming().diff(existing()).affectedKeys().hasOnly(['status']) &&
-        incoming().status in ['shipped', 'delivered', 'cancelled']
+        incoming().status in ['pending', 'shipped', 'delivered', 'cancelled']
+      );
+      allow delete: if false;
+    }
+
+    match /balance_requests/{requestId} {
+      allow get: if isSignedIn() && (isOwner(existing().userId) || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isEmailVerified() && isValidId(requestId) && isValidBalanceRequest(incoming());
+      allow update: if isAdmin() && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['status']) &&
+        incoming().status in ['approved', 'rejected']
       );
       allow delete: if false;
     }
@@ -112,10 +136,11 @@ service cloud.firestore {
         allow get: if isSignedIn();
         allow list: if isAdmin() || (isSignedIn() && resource.data.role == 'user');
         
-        allow create: if isOwner(userId) && isValidUserProfile(incoming());
-        allow update: if isOwner(userId) && 
+        allow create: if isOwner(userId) && isValidUserProfile(incoming()) && (!('balance' in incoming()) || incoming().balance == 0);
+        allow update: if (isOwner(userId) && 
                       isValidUserProfile(incoming()) &&
-                      (!incoming().diff(existing()).affectedKeys().hasAny(['role', 'createdAt']));
+                      (!incoming().diff(existing()).affectedKeys().hasAny(['role', 'createdAt', 'balance'])))
+                      || isAdmin();
         allow delete: if false;
       }
 

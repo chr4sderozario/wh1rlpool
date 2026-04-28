@@ -2,19 +2,24 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Package, Plus, Trash2, Edit3, Settings, LogOut, Loader2, 
   Users, ShoppingBag, BarChart3, ChevronRight, User as UserIcon,
-  CreditCard, TrendingUp, DollarSign, Activity, Database, X, Upload, Image as ImageIcon
+  CreditCard, TrendingUp, DollarSign, Activity, Database, X, Upload, Image as ImageIcon,
+  CheckCircle, ShieldAlert, Wallet, AlertTriangle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   collection, addDoc, onSnapshot, query, orderBy, 
-  deleteDoc, doc, serverTimestamp, getDocs
+  deleteDoc, doc, serverTimestamp, getDocs, updateDoc, increment, getDoc
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/src/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
 import { useAuth } from '@/src/context/AuthContext';
 import { Button } from '@/src/components/ui/Button';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  LineChart, Line, AreaChart, Area 
+} from 'recharts';
 
 interface Product {
   id: string;
@@ -25,14 +30,17 @@ interface Product {
   category: string;
   imageUrl?: string;
   description?: string;
+  isFeatured?: boolean;
 }
 
 interface Order {
   id: string;
   userId: string;
+  userName?: string;
   items: any[];
   total: number;
   status: string;
+  paymentMethod: string;
   createdAt: any;
 }
 
@@ -41,22 +49,30 @@ interface UserProfile {
   displayName?: string;
   email?: string;
   role: string;
-  phone?: string;
-  city?: string;
-  country?: string;
+  balance: number;
   createdAt?: any;
 }
 
-type Tab = 'inventory' | 'orders' | 'users' | 'profits' | 'system';
+interface BalanceRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  amount: number;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: any;
+}
+
+type Tab = 'inventory' | 'orders' | 'users' | 'requests' | 'analytics';
 
 export const AdminDashboard = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   
-  const [activeTab, setActiveTab] = useState<Tab>('inventory');
+  const [activeTab, setActiveTab] = useState<Tab>('analytics');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [requests, setRequests] = useState<BalanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal State
@@ -69,52 +85,49 @@ export const AdminDashboard = () => {
     price: '',
     costPrice: '',
     stock: '',
-    category: 'Jersey',
+    category: 'Official Jerseys',
     description: '',
     image: null as File | null,
-    imagePreview: ''
+    imagePreview: '',
+    isFeatured: false
   });
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
-      navigate('/login');
+    if (!user || !isAdmin) {
+      navigate('/');
       return;
     }
 
-    if (!isAdmin) return;
-
-    // Fetch Products
-    const qProducts = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
-    const unsubProducts = onSnapshot(qProducts, (snapshot) => {
-      setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+    const unsubProducts = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'desc')), (snap) => {
+      setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
     });
 
-    // Fetch Orders
-    const qOrders = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-    const unsubOrders = onSnapshot(qOrders, (snapshot) => {
-      setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
-      setLoading(false);
+    const unsubOrders = onSnapshot(query(collection(db, 'orders'), orderBy('createdAt', 'desc')), (snap) => {
+      setOrders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
     });
 
-    // Fetch Users
+    const unsubRequests = onSnapshot(query(collection(db, 'balance_requests'), orderBy('createdAt', 'desc')), (snap) => {
+      setRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as BalanceRequest)));
+    });
+
     const unsubUsers = onSnapshot(collection(db, 'users'), async (snapshot) => {
        const userList: UserProfile[] = [];
        for (const userDoc of snapshot.docs) {
-          try {
-             const profileSnap = await getDocs(collection(db, 'users', userDoc.id, 'public'));
-             const profile = profileSnap.docs.find(d => d.id === 'profile')?.data();
-             if (profile) {
-                userList.push({ id: userDoc.id, ...profile } as UserProfile);
-             }
-          } catch(e) {}
+          const profileDoc = doc(db, 'users', userDoc.id, 'public', 'profile');
+          const profileSnap = await getDoc(profileDoc);
+          if (profileSnap.exists()) {
+             userList.push({ id: userDoc.id, ...profileSnap.data() } as UserProfile);
+          }
        }
        setUsers(userList);
+       setLoading(false);
     });
 
     return () => {
       unsubProducts();
       unsubOrders();
+      unsubRequests();
       unsubUsers();
     };
   }, [isAdmin, authLoading, navigate]);
@@ -123,513 +136,452 @@ export const AdminDashboard = () => {
     const totalRevenue = orders.reduce((acc, o) => acc + o.total, 0);
     const totalProfit = orders.reduce((acc, o) => {
       const orderProfit = o.items.reduce((itemAcc, item) => {
-        const prod = products.find(p => p.id === item.id);
+        const prod = products.find(p => p.id === item.productId);
         const margin = prod ? (prod.price - Number(prod.costPrice || 0)) : (item.price * 0.3);
         return itemAcc + (margin * (item.quantity || 1));
       }, 0);
       return acc + orderProfit;
     }, 0);
 
-    return { totalRevenue, totalProfit };
+    const chartData = orders.slice(0, 10).reverse().map(o => ({
+      name: o.id.slice(0, 4),
+      revenue: o.total,
+      profit: o.total * 0.4
+    }));
+
+    return { totalRevenue, totalProfit, chartData };
   }, [orders, products]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setNewProduct(prev => ({ 
-        ...prev, 
-        image: file,
-        imagePreview: URL.createObjectURL(file)
-      }));
-    }
+  const handleApproveRequest = async (req: BalanceRequest) => {
+    try {
+      // 1. Update Request
+      await updateDoc(doc(db, 'balance_requests', req.id), { status: 'approved' });
+      // 2. Add to User Balance
+      const profileRef = doc(db, 'users', req.userId, 'public', 'profile');
+      await updateDoc(profileRef, { balance: increment(req.amount) });
+      alert("CREDITS INJECTED.");
+    } catch (err) { console.error(err); }
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, status: string) => {
+    try {
+      await updateDoc(doc(db, 'orders', orderId), { status });
+    } catch (err) { console.error(err); }
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (uploading) return;
-    
     setUploading(true);
     let imageUrl = '';
-
     try {
-      // 1. Upload Image if exists
       if (newProduct.image) {
         const storageRef = ref(storage, `products/${Date.now()}_${newProduct.image.name}`);
         const snapshot = await uploadBytes(storageRef, newProduct.image);
         imageUrl = await getDownloadURL(snapshot.ref);
       }
-
-      // 2. Add to Firestore
       await addDoc(collection(db, 'products'), {
-        name: newProduct.name,
+        ...newProduct,
         price: Number(newProduct.price),
         costPrice: Number(newProduct.costPrice),
-        stock: Math.floor(Number(newProduct.stock)),
-        category: newProduct.category,
-        description: newProduct.description,
+        stock: Number(newProduct.stock),
         imageUrl,
+        image: null,
+        imagePreview: null,
         createdAt: serverTimestamp(),
       });
-
-      // 3. Reset and Close
       setIsModalOpen(false);
-      setNewProduct({
-        name: '',
-        price: '',
-        costPrice: '',
-        stock: '',
-        category: 'Jersey',
-        description: '',
-        image: null,
-        imagePreview: ''
-      });
-    } catch (error) {
-      console.error("Error adding product:", error);
-      alert("Failed to add product artifact.");
-    } finally {
-      setUploading(false);
-    }
+    } catch (err) { alert("Deployment Failed."); } finally { setUploading(false); }
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    if (confirm("Delete this product?")) {
-      try {
-        await deleteDoc(doc(db, 'products', id));
-      } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, `products/${id}`);
-      }
-    }
-  };
-
-  if (authLoading || loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} className="w-8 h-8 border-t-2 border-brand-red rounded-full" />
-      </div>
-    );
-  }
+  if (authLoading || loading) return null;
 
   return (
-    <div className="min-h-screen bg-black flex overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-72 border-r border-white/5 flex flex-col p-8 space-y-12 bg-[#050505]">
+    <div className="min-h-screen bg-[#050505] text-white flex">
+      {/* Sidebar Navigation */}
+      <aside className="w-80 border-r border-white/5 flex flex-col p-10 space-y-12 bg-black">
         <div>
-          <h1 className="text-2xl font-display font-black tracking-tighter gothic-glow">WH1RLPOOL</h1>
-          <span className="text-[10px] uppercase tracking-[0.4em] text-brand-red font-bold">Admin Terminal</span>
+          <h1 className="text-3xl font-display font-black tracking-tighter gothic-glow">WH1RLPOOL</h1>
+          <span className="text-[10px] uppercase tracking-[0.6em] text-brand-red font-black">Admin Command Center</span>
         </div>
 
         <nav className="flex-1 space-y-4">
-          <NavItem icon={<BarChart3 />} label="Dashboard" active={activeTab === 'system'} onClick={() => setActiveTab('system')} />
+          <NavItem icon={<BarChart3 />} label="Analytics" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
           <NavItem icon={<Package />} label="Inventory" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} />
           <NavItem icon={<ShoppingBag />} label="Orders" active={activeTab === 'orders'} onClick={() => setActiveTab('orders')} />
+          <NavItem icon={<Wallet />} label="Requests" active={activeTab === 'requests'} onClick={() => setActiveTab('requests')} count={requests.filter(r => r.status === 'pending').length} />
           <NavItem icon={<Users />} label="Accounts" active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
-          <NavItem icon={<TrendingUp />} label="Profits" active={activeTab === 'profits'} onClick={() => setActiveTab('profits')} />
         </nav>
 
         <div className="pt-8 border-t border-white/5">
-          <button 
-            onClick={() => navigate('/')}
-            className="flex items-center gap-3 px-4 py-3 text-white/20 hover:text-white transition-all text-[10px] uppercase tracking-widest font-bold group"
-          >
-            <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Exit Terminal
-          </button>
+           <button onClick={() => navigate('/')} className="flex items-center gap-4 text-white/20 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest group">
+              <LogOut className="w-4 h-4 group-hover:-translate-x-2 transition-transform" /> Exit Terminal
+           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-12 bg-black relative">
-        <div className="max-w-6xl mx-auto space-y-12 relative z-10">
+      <main className="flex-1 overflow-y-auto p-16">
+        <div className="max-w-[1400px] mx-auto space-y-16">
           
           <AnimatePresence mode="wait">
-            {activeTab === 'inventory' && (
-              <motion.section key="inv" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <header className="flex justify-between items-end mb-12">
-                  <div>
-                    <h2 className="text-5xl font-display font-bold tracking-tighter uppercase italic">Inventory</h2>
-                    <p className="text-white/40 text-sm italic font-serif">Curate the artifact collection.</p>
-                  </div>
-                  <button 
-                    onClick={() => setIsModalOpen(true)}
-                    className="bg-white text-black px-8 py-3 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-brand-red hover:text-white transition-all duration-500 rounded-full"
-                  >
-                    <Plus className="w-4 h-4" /> Add Item
-                  </button>
+            {activeTab === 'analytics' && (
+              <motion.section key="analytics" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-12">
+                <header>
+                   <h2 className="text-6xl font-display font-black tracking-tighter uppercase italic">System Yield</h2>
+                   <p className="text-white/40 font-serif italic text-lg">Performance metrics from the void.</p>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                  <StatCard label="Active SKU" value={products.length.toString()} icon={<Database className="w-4 h-4" />} />
-                  <StatCard label="Items in Void" value={products.reduce((acc, p) => acc + p.stock, 0).toString()} icon={<Activity className="w-4 h-4" />} />
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                   <StatCard label="Total Revenue" value={`₹${stats.totalRevenue}`} trend="+12.5%" />
+                   <StatCard label="Net Extraction" value={`₹${stats.totalProfit.toFixed(0)}`} trend="+8.2%" color="text-brand-red" />
+                   <StatCard label="Active Souls" value={users.length.toString()} trend="+3" />
+                   <StatCard label="Live Orders" value={orders.filter(o => o.status === 'pending').length.toString()} icon={<AlertTriangle className="text-orange-500" />} />
                 </div>
 
-                <div className="glass overflow-hidden rounded-[2rem]">
-                  <table className="w-full text-left">
-                    <thead className="bg-white/5">
-                      <tr className="text-[10px] uppercase tracking-widest text-white/40">
-                        <th className="p-6 font-bold">Item</th>
-                        <th className="p-6 font-bold">Category</th>
-                        <th className="p-6 font-bold">Price</th>
-                        <th className="p-6 font-bold">Stock</th>
-                        <th className="p-6 font-bold text-right">Ops</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {products.map((p) => (
-                        <tr key={p.id} className="group hover:bg-white/[0.02] transition-colors">
-                          <td className="p-6 flex items-center gap-4">
-                            <div className="w-10 h-12 bg-white/5 border border-white/5 rounded overflow-hidden flex items-center justify-center">
-                               {p.imageUrl ? <img src={p.imageUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-full h-full flex items-center justify-center opacity-10"><Package /></div>}
-                            </div>
-                            <span className="text-sm font-bold uppercase tracking-tight">{p.name}</span>
-                          </td>
-                          <td className="p-6 text-[10px] uppercase tracking-widest text-white/40">{p.category}</td>
-                          <td className="p-6 text-sm font-mono text-white/60">${p.price}</td>
-                          <td className="p-6">
-                             <div className={`text-[10px] font-bold px-2 py-1 rounded inline-block ${p.stock < 5 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
-                               {p.stock} Units
-                             </div>
-                          </td>
-                          <td className="p-6 text-right">
-                             <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button className="p-2 hover:bg-white/10 rounded-full transition-colors"><Edit3 className="w-4 h-4" /></button>
-                                <button onClick={() => handleDeleteProduct(p.id)} className="p-2 hover:bg-red-500/10 hover:text-red-500 rounded-full transition-colors"><Trash2 className="w-4 h-4" /></button>
-                             </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-8">
+                   <ChartBox title="Transmission Volume (Orders)">
+                      <ResponsiveContainer width="100%" height={300}>
+                         <AreaChart data={stats.chartData}>
+                            <defs>
+                               <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#8b0000" stopOpacity={0.3}/>
+                                  <stop offset="95%" stopColor="#8b0000" stopOpacity={0}/>
+                               </linearGradient>
+                            </defs>
+                            <XAxis dataKey="name" stroke="#ffffff20" fontSize={10} />
+                            <YAxis stroke="#ffffff20" fontSize={10} />
+                            <Tooltip contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #ffffff10' }} />
+                            <Area type="monotone" dataKey="revenue" stroke="#8b0000" fillOpacity={1} fill="url(#colorRev)" />
+                         </AreaChart>
+                      </ResponsiveContainer>
+                   </ChartBox>
+                   <ChartBox title="Entity Growth (Users)">
+                     <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={stats.chartData}>
+                           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" />
+                           <XAxis dataKey="name" stroke="#ffffff20" fontSize={10} />
+                           <YAxis stroke="#ffffff20" fontSize={10} />
+                           <Tooltip contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #ffffff10' }} />
+                           <Bar dataKey="profit" fill="#ffffff" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                     </ResponsiveContainer>
+                   </ChartBox>
                 </div>
+              </motion.section>
+            )}
+
+            {activeTab === 'inventory' && (
+              <motion.section key="inv" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12">
+                 <header className="flex justify-between items-end">
+                    <div className="space-y-4">
+                       <h2 className="text-6xl font-display font-black tracking-tighter uppercase italic">The Vault</h2>
+                       <p className="text-white/40 font-serif italic text-lg">Curating the current collection of artifact SKUs.</p>
+                    </div>
+                    <Button onClick={() => setIsModalOpen(true)} className="rounded-full bg-white text-black hover:bg-brand-red hover:text-white px-12 h-16 font-black text-xs space-x-4">
+                       <Plus className="w-4 h-4" /> <span>MATERIALIZE ARTIFACT</span>
+                    </Button>
+                 </header>
+
+                 <div className="bg-black/40 border border-white/5 rounded-[3rem] overflow-hidden">
+                    <table className="w-full text-left">
+                       <thead className="bg-white/5">
+                          <tr className="text-[10px] uppercase font-black tracking-widest text-white/40">
+                             <th className="p-8">Artifact SKU</th>
+                             <th className="p-8 text-center">Category</th>
+                             <th className="p-8 text-center">Price</th>
+                             <th className="p-8 text-center">Stock</th>
+                             <th className="p-8 text-right">Ops</th>
+                          </tr>
+                       </thead>
+                       <tbody className="divide-y divide-white/5">
+                          {products.map(p => (
+                             <tr key={p.id} className="group hover:bg-white/[0.02] transition-colors">
+                                <td className="p-8">
+                                   <div className="flex items-center gap-6">
+                                      <div className="w-12 h-16 rounded-xl bg-white/5 overflow-hidden grayscale group-hover:grayscale-0 transition-all">
+                                         {p.imageUrl && <img src={p.imageUrl} className="w-full h-full object-cover" />}
+                                      </div>
+                                      <div>
+                                         <p className="font-bold uppercase tracking-tight">{p.name}</p>
+                                         <p className="text-[10px] text-white/20 uppercase tracking-widest">#{p.id.slice(0, 8)}</p>
+                                      </div>
+                                   </div>
+                                </td>
+                                <td className="p-8 text-center text-[10px] font-black opacity-40 uppercase tracking-widest">{p.category}</td>
+                                <td className="p-8 text-center font-mono text-white/60">₹ {p.price}</td>
+                                <td className="p-8 text-center">
+                                   <span className={`text-[10px] font-black px-4 py-1.5 rounded-full ${p.stock <= 5 ? 'bg-brand-red/10 text-brand-red' : 'bg-green-500/10 text-green-500'}`}>
+                                      {p.stock} Units
+                                   </span>
+                                </td>
+                                <td className="p-8 text-right">
+                                   <div className="flex justify-end gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-all"><Edit3 className="w-4 h-4 text-white/40" /></button>
+                                      <button onClick={async () => { if(confirm("Destroy artifact?")) await deleteDoc(doc(db, 'products', p.id)) }} className="p-3 bg-white/5 hover:bg-brand-red/10 hover:text-brand-red rounded-full transition-all"><Trash2 className="w-4 h-4" /></button>
+                                   </div>
+                                </td>
+                             </tr>
+                          ))}
+                       </tbody>
+                    </table>
+                 </div>
+              </motion.section>
+            )}
+
+            {activeTab === 'requests' && (
+               <motion.section key="req" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12">
+                  <header>
+                    <h2 className="text-6xl font-display font-black tracking-tighter uppercase italic">Inject Requests</h2>
+                    <p className="text-white/40 font-serif italic text-lg">Verification required for credit materialization.</p>
+                  </header>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                     {requests.map(req => (
+                        <div key={req.id} className={`p-10 rounded-[3rem] border transition-all ${req.status === 'pending' ? 'bg-[#0A0A0A] border-white/10' : 'bg-black/40 border-white/5 opacity-40'}`}>
+                           <div className="flex justify-between items-start mb-8">
+                              <div className="space-y-2">
+                                 <h4 className="text-2xl font-display font-black tracking-tighter uppercase">{req.userName}</h4>
+                                 <p className="text-[10px] text-white/40 uppercase tracking-widest leading-none truncate w-40">{req.userId}</p>
+                              </div>
+                              <div className="text-right space-y-1">
+                                 <p className="text-3xl font-display font-black tracking-tighter italic">₹ {req.amount}</p>
+                                 <p className={`text-[10px] uppercase font-black tracking-widest ${req.status === 'pending' ? 'text-brand-red' : 'text-green-500'}`}>{req.status}</p>
+                              </div>
+                           </div>
+                           
+                           {req.status === 'pending' && (
+                              <div className="flex gap-4">
+                                 <Button onClick={() => handleApproveRequest(req)} className="flex-1 bg-white text-black hover:bg-green-500 hover:text-white rounded-2xl h-14 font-black text-xs">APPROVE INJECTION</Button>
+                                 <Button variant="outline" onClick={async () => await updateDoc(doc(db, 'balance_requests', req.id), { status: 'rejected' })} className="px-8 border-white/10 text-white/40 hover:text-white rounded-2xl h-14 font-black text-xs">REJECT</Button>
+                              </div>
+                           )}
+                        </div>
+                     ))}
+                     {requests.length === 0 && <p className="text-white/10 italic p-20 text-center border-2 border-dashed border-white/5 rounded-[4rem]">No payment signals detected.</p>}
+                  </div>
+               </motion.section>
+            )}
+
+            {activeTab === 'orders' && (
+              <motion.section key="orders" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12">
+                 <header>
+                    <h2 className="text-6xl font-display font-black tracking-tighter uppercase italic">Transmissions</h2>
+                    <p className="text-white/40 font-serif italic text-lg">Active deployment streams.</p>
+                  </header>
+
+                  <div className="bg-black border border-white/5 rounded-[3rem] overflow-hidden">
+                     <table className="w-full text-left">
+                        <thead className="bg-white/5">
+                           <tr className="text-[10px] uppercase font-black tracking-widest text-white/40">
+                              <th className="p-8">Sync ID</th>
+                              <th className="p-8">Entity</th>
+                              <th className="p-8">Payload</th>
+                              <th className="p-8">Sync Method</th>
+                              <th className="p-8">Terminal Status</th>
+                           </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                           {orders.map(o => (
+                              <tr key={o.id} className="group hover:bg-white/[0.02]">
+                                 <td className="p-8 font-mono text-[10px] text-white/20 uppercase">#{o.id.slice(0, 12)}</td>
+                                 <td className="p-8 text-sm font-bold uppercase truncate max-w-[150px]">{o.userName || o.userId}</td>
+                                 <td className="p-8">
+                                    <div className="flex items-center gap-2">
+                                       <span className="text-[10px] px-2 py-1 bg-white/5 rounded font-black">{o.items.length} Artifacts</span>
+                                       <span className="text-sm font-black tracking-tighter">₹ {o.total}</span>
+                                    </div>
+                                 </td>
+                                 <td className="p-8 text-[10px] uppercase font-black opacity-40">{o.paymentMethod}</td>
+                                 <td className="p-8">
+                                    <select 
+                                       value={o.status}
+                                       onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
+                                       className={`bg-transparent text-[10px] font-black uppercase tracking-widest focus:outline-none cursor-pointer ${
+                                          o.status === 'pending' ? 'text-orange-500' :
+                                          o.status === 'shipped' ? 'text-blue-500' :
+                                          o.status === 'delivered' ? 'text-green-500' : 'text-red-500'
+                                       }`}
+                                    >
+                                       <option value="pending">PENDING</option>
+                                       <option value="shipped">SHIPPED</option>
+                                       <option value="delivered">DELIVERED</option>
+                                       <option value="cancelled">CANCELLED</option>
+                                    </select>
+                                 </td>
+                              </tr>
+                           ))}
+                        </tbody>
+                     </table>
+                  </div>
               </motion.section>
             )}
 
             {activeTab === 'users' && (
-              <motion.section key="users" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <header className="mb-12">
-                  <h2 className="text-5xl font-display font-bold tracking-tighter uppercase italic">Identities</h2>
-                  <p className="text-white/40 text-sm italic font-serif">Monitoring members of the collective.</p>
-                </header>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-                   <StatCard label="Total Souls" value={users.length.toString()} />
-                </div>
-                <div className="glass rounded-[2rem] overflow-hidden">
-                   <table className="w-full text-left">
-                     <thead className="bg-white/5">
-                        <tr className="text-[10px] uppercase tracking-widest text-white/40">
-                           <th className="p-6">Entity</th>
-                           <th className="p-6">Contact</th>
-                           <th className="p-6">Location</th>
-                           <th className="p-6">Joined</th>
-                        </tr>
-                     </thead>
-                     <tbody className="divide-y divide-white/5">
-                        {users.map(u => (
-                          <tr key={u.id} className="hover:bg-white/[0.02]">
-                            <td className="p-6">
-                               <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-full bg-brand-red/20 flex items-center justify-center text-brand-red font-black text-xs">
-                                     {u.displayName?.[0] || 'U'}
-                                  </div>
-                                  <div>
-                                     <p className="text-sm font-bold uppercase">{u.displayName || 'Unknown'}</p>
-                                     <p className="text-[10px] text-white/20 uppercase tracking-widest">{u.role}</p>
-                                  </div>
-                               </div>
-                            </td>
-                            <td className="p-6 text-sm text-white/60">
-                               <p>{u.email}</p>
-                               <p className="text-[10px] text-white/20">{u.phone || u.whatsapp}</p>
-                            </td>
-                            <td className="p-6 text-[10px] uppercase tracking-widest text-white/40">
-                               {u.city}, {u.country}
-                            </td>
-                            <td className="p-6 text-[10px] text-white/20">
-                               {u.createdAt ? u.createdAt.toDate().toLocaleDateString() : 'Historical'}
-                            </td>
-                          </tr>
-                        ))}
-                     </tbody>
-                   </table>
-                </div>
-              </motion.section>
-            )}
+               <motion.section key="users" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12">
+                  <header>
+                    <h2 className="text-6xl font-display font-black tracking-tighter uppercase italic">Accounts</h2>
+                    <p className="text-white/40 font-serif italic text-lg">Registry of active entities in the void.</p>
+                  </header>
 
-            {activeTab === 'orders' && (
-              <motion.section key="orders" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <header className="mb-12">
-                   <h2 className="text-5xl font-display font-bold tracking-tighter uppercase italic">Transmissions</h2>
-                   <p className="text-white/40 text-sm italic font-serif">Deployment queue of artifacts.</p>
-                </header>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-                   <StatCard label="Successful Drops" value={orders.length.toString()} />
-                   <StatCard label="Revenue" value={`$${stats.totalRevenue.toFixed(2)}`} />
-                </div>
-                <div className="glass rounded-[2rem] overflow-hidden">
-                   <table className="w-full text-left">
-                     <thead className="bg-white/5">
-                        <tr className="text-[10px] uppercase tracking-widest text-white/40">
-                           <th className="p-6">Order ID</th>
-                           <th className="p-6">Customer</th>
-                           <th className="p-6">Artifacts</th>
-                           <th className="p-6">Total</th>
-                           <th className="p-6">Status</th>
-                        </tr>
-                     </thead>
-                     <tbody className="divide-y divide-white/5">
-                        {orders.map(o => (
-                          <tr key={o.id} className="hover:bg-white/[0.02]">
-                            <td className="p-6 text-[10px] font-mono text-white/40 uppercase">#{o.id.slice(0,8)}</td>
-                            <td className="p-6 text-sm">
-                               {users.find(u => u.id === o.userId)?.displayName || 'Unknown Subject'}
-                            </td>
-                            <td className="p-6">
-                               <div className="flex -space-x-2">
-                                  {o.items.map((it, idx) => (
-                                    <div key={idx} className="w-6 h-6 rounded-full bg-white/10 border border-black flex items-center justify-center text-[8px] font-bold">
-                                       {it.quantity}x
-                                    </div>
-                                  ))}
-                                </div>
-                            </td>
-                            <td className="p-6 text-sm font-mono">${o.total.toFixed(2)}</td>
-                            <td className="p-6">
-                               <span className={`text-[8px] uppercase font-black px-2 py-1 rounded-full ${o.status === 'pending' ? 'bg-orange-500/20 text-orange-500' : 'bg-blue-500/20 text-blue-500'}`}>
-                                  {o.status}
-                               </span>
-                            </td>
-                          </tr>
-                        ))}
-                     </tbody>
-                   </table>
-                </div>
-              </motion.section>
-            )}
-
-            {activeTab === 'profits' && (
-              <motion.section key="profit" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <header className="mb-12">
-                   <h2 className="text-5xl font-display font-bold tracking-tighter uppercase italic">Extraction</h2>
-                   <p className="text-white/40 text-sm italic font-serif">Financial yield from the void.</p>
-                </header>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                   <div className="glass p-12 rounded-[3rem] space-y-8 flex flex-col items-center justify-center text-center">
-                      <div className="w-24 h-24 rounded-full bg-brand-red/10 flex items-center justify-center mb-4">
-                         <DollarSign className="w-12 h-12 text-brand-red" />
-                      </div>
-                      <div className="space-y-2">
-                        <span className="text-[10px] uppercase tracking-[0.4em] text-white/40">Net Extraction</span>
-                        <h3 className="text-7xl font-display font-black tracking-tighter gothic-glow">${stats.totalProfit.toFixed(2)}</h3>
-                      </div>
-                      <p className="text-white/20 text-xs italic font-serif">Calculated after artifact cost subtraction.</p>
-                   </div>
-
-                   <div className="space-y-6">
-                      <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5">
-                         <div className="flex justify-between items-center mb-4">
-                            <span className="text-[10px] uppercase tracking-widest text-white/40">Gross Volume</span>
-                            <span className="text-lg font-mono">${stats.totalRevenue.toFixed(2)}</span>
-                         </div>
-                         <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                            <div className="h-full bg-brand-red" style={{ width: '70%' }} />
-                         </div>
-                      </div>
-
-                      <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5">
-                         <div className="flex justify-between items-center mb-4">
-                            <span className="text-[10px] uppercase tracking-widest text-white/40">Margin Strength</span>
-                            <span className="text-lg font-mono">{((stats.totalProfit / (stats.totalRevenue || 1)) * 100).toFixed(1)}%</span>
-                         </div>
-                         <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                            <div className="h-full bg-blue-500/50" style={{ width: '45%' }} />
-                         </div>
-                      </div>
-                   </div>
-                </div>
-              </motion.section>
-            )}
-
-            {activeTab === 'system' && (
-              <motion.section key="sys" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                 <header className="mb-12">
-                   <h2 className="text-5xl font-display font-bold tracking-tighter uppercase italic">System Overview</h2>
-                   <p className="text-white/40 text-sm italic font-serif">Digital vitals of WH1RLPOOL.</p>
-                </header>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                   <SystemModule icon={<Settings />} label="Terminal Config" status="Operational" />
-                   <SystemModule icon={<Database />} label="Vault Integrity" status="Encrypted" />
-                   <SystemModule icon={<Activity />} label="Flow Stream" status="Live" />
-                </div>
-              </motion.section>
+                  <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-8">
+                     {users.map(u => (
+                        <div key={u.id} className="p-10 rounded-[3rem] bg-white/5 border border-white/5 group hover:border-white/20 transition-all">
+                           <div className="flex justify-between items-start mb-8">
+                              <div className="flex items-center gap-4">
+                                 <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-xs font-black">
+                                    {u.displayName?.[0] || 'U'}
+                                 </div>
+                                 <div>
+                                    <p className="text-xl font-display font-black tracking-tighter uppercase italic leading-none">{u.displayName}</p>
+                                    <p className="text-[10px] text-white/20 uppercase tracking-widest font-bold mt-2">{u.email}</p>
+                                 </div>
+                              </div>
+                              <div className="text-right">
+                                 <p className="text-[10px] text-brand-red uppercase font-black tracking-widest mb-1">Balance</p>
+                                 <p className="text-2xl font-display font-black tracking-tighter italic">₹ {u.balance?.toFixed(0)}</p>
+                              </div>
+                           </div>
+                           
+                           <div className="flex gap-4">
+                              <Button 
+                               onClick={() => {
+                                 const amt = prompt("Credit Amount?");
+                                 if(amt) updateDoc(doc(db, 'users', u.id, 'public', 'profile'), { balance: increment(parseFloat(amt)) });
+                               }}
+                               className="flex-1 h-12 rounded-xl bg-white text-black hover:bg-brand-red hover:text-white transition-all text-[10px] font-black"
+                              >
+                                 QUICK CREDIT
+                              </Button>
+                              <Button variant="outline" className="px-6 h-12 rounded-xl border-white/5 text-white/20 hover:text-white transition-all">
+                                 <Settings className="w-4 h-4" />
+                              </Button>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               </motion.section>
             )}
           </AnimatePresence>
 
         </div>
+      </main>
 
-        {/* Modal */}
-        <AnimatePresence>
-          {isModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-               <motion.div 
-                 initial={{ opacity: 0 }} 
-                 animate={{ opacity: 1 }} 
-                 exit={{ opacity: 0 }}
-                 onClick={() => !uploading && setIsModalOpen(false)}
-                 className="absolute inset-0 bg-black/90 backdrop-blur-md" 
-               />
-               
-               <motion.div 
-                  initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                  animate={{ scale: 1, opacity: 1, y: 0 }}
-                  exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                  className="relative w-full max-w-2xl glass p-8 md:p-12 rounded-[3rem] overflow-hidden"
-               >
-                  <button 
-                    onClick={() => setIsModalOpen(false)}
-                    className="absolute top-8 right-8 text-white/20 hover:text-white transition-colors"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
+      {/* Artifact Materialization Modal */}
+      <AnimatePresence>
+         {isModalOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/95 backdrop-blur-3xl">
+               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative w-full max-w-2xl bg-[#0A0A0A] border border-white/10 p-12 rounded-[4rem] space-y-12">
+                  <header className="flex justify-between items-center">
+                     <h3 className="text-4xl font-display font-black tracking-tighter uppercase italic">MATERIALIZE ARTIFACT</h3>
+                     <button onClick={() => setIsModalOpen(false)} className="text-white/20 hover:text-white"><X className="w-8 h-8" /></button>
+                  </header>
 
-                  <h3 className="text-3xl font-display font-black tracking-tighter uppercase italic mb-8">Add New Artifact</h3>
-
-                  <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                     <div className="space-y-6">
-                        <div className="space-y-2">
-                           <label className="text-[10px] uppercase tracking-widest text-white/40">Image Upload</label>
-                           <div 
-                              onClick={() => fileInputRef.current?.click()}
-                              className="aspect-[3/4] border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-brand-red/50 transition-all group overflow-hidden relative"
-                           >
-                              {newProduct.imagePreview ? (
-                                 <img src={newProduct.imagePreview} className="w-full h-full object-cover" />
-                              ) : (
-                                 <>
-                                    <Upload className="w-8 h-8 text-white/10 group-hover:text-brand-red transition-colors" />
-                                    <span className="text-[8px] uppercase tracking-widest text-white/20">Drop File Here</span>
-                                 </>
-                              )}
-                              <input 
-                                 ref={fileInputRef}
-                                 type="file" 
-                                 className="hidden" 
-                                 accept="image/*"
-                                 onChange={handleImageChange}
-                              />
-                           </div>
+                  <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                     <div className="space-y-4">
+                        <div 
+                          onClick={() => fileInputRef.current?.click()}
+                          className="aspect-[4/5] border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-brand-red group overflow-hidden relative transition-all"
+                        >
+                           {newProduct.imagePreview ? <img src={newProduct.imagePreview} className="w-full h-full object-cover" /> : (
+                              <div className="text-center space-y-4">
+                                 <Plus className="w-12 h-12 text-white/10 group-hover:text-brand-red transition-colors mx-auto" />
+                                 <p className="text-[10px] uppercase tracking-widest text-white/20 font-black">Upload Visual Artifact</p>
+                              </div>
+                           )}
+                           <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if(f) setNewProduct({...newProduct, image: f, imagePreview: URL.createObjectURL(f)});
+                           }} />
                         </div>
                      </div>
 
                      <div className="space-y-6">
-                        <div className="space-y-4">
-                           <input 
-                              type="text" 
-                              placeholder="ITEM NAME"
-                              value={newProduct.name}
-                              onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                              className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-brand-red outline-none transition-colors uppercase font-bold"
-                              required
-                           />
-                           <div className="grid grid-cols-2 gap-4">
-                              <input 
-                                 type="number" 
-                                 placeholder="PRICE ($)"
-                                 value={newProduct.price}
-                                 onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
-                                 className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-red transition-colors"
-                                 required
-                              />
-                              <input 
-                                 type="number" 
-                                 placeholder="COST ($)"
-                                 value={newProduct.costPrice}
-                                 onChange={(e) => setNewProduct({...newProduct, costPrice: e.target.value})}
-                                 className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-red transition-colors"
-                                 required
-                              />
-                           </div>
-                           <input 
-                              type="number" 
-                              placeholder="STOCK COUNT"
-                              value={newProduct.stock}
-                              onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
-                              className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-red transition-colors"
-                              required
-                           />
-                           <select 
-                              value={newProduct.category}
-                              onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
-                              className="w-full bg-white/10 border border-white/5 rounded-xl px-4 py-3 text-[10px] uppercase tracking-widest outline-none focus:border-brand-red transition-colors"
-                           >
-                              <option value="Jersey">Jersey</option>
-                              <option value="Pants">Pants</option>
-                              <option value="Embroidery">Embroidery</option>
-                              <option value="OnSale">On Sale</option>
-                              <option value="Accessories">Accessories</option>
-                           </select>
-                           <textarea 
-                              placeholder="DESCRIPTION (OPTIONAL)..."
-                              value={newProduct.description}
-                              onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                              className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-xs min-h-[100px] outline-none focus:border-brand-red transition-colors resize-none"
-                           />
+                        <input value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="admin-input" placeholder="PRODUCT NAME" />
+                        <div className="grid grid-cols-2 gap-4">
+                           <input type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="admin-input" placeholder="PRICE ₹" />
+                           <input type="number" value={newProduct.costPrice} onChange={e => setNewProduct({...newProduct, costPrice: e.target.value})} className="admin-input" placeholder="COST ₹" />
                         </div>
-
-                        <button 
-                           disabled={uploading}
-                           className="w-full bg-brand-red text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.4em] hover:bg-white hover:text-black transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                           {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-                           {uploading ? 'Materializing...' : 'Commit to Vault'}
-                        </button>
+                        <input type="number" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} className="admin-input" placeholder="INITIAL STOCK" />
+                        <select value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="admin-input uppercase font-black text-[10px]">
+                           {[
+                              'Official Jerseys', 'Retro Jerseys', 'Embroidery Jerseys', 'High Quality Jerseys', 
+                              'Sale Jerseys', 'Limited Edition Jerseys', 'Player Edition Jerseys', 
+                              'Club Jerseys', 'National Team Jerseys', 'Custom Name Jerseys', 
+                              'Training Kits', 'Shorts', 'Socks'
+                           ].map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                        <Button type="submit" disabled={uploading} className="w-full h-16 rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white font-black text-xs uppercase tracking-widest">
+                           {uploading ? 'TRANSMITTING...' : 'COMMIT TO VAULT'}
+                        </Button>
                      </div>
                   </form>
                </motion.div>
             </div>
-          )}
-        </AnimatePresence>
+         )}
+      </AnimatePresence>
 
-        {/* Background blurs */}
-        <div className="fixed -bottom-48 -right-48 w-[800px] h-[800px] liquid-shape bg-brand-red/[0.03] blur-[160px] pointer-events-none" />
-      </main>
+      <style>{`
+         .admin-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1.25rem 1.5rem;
+            border-radius: 1.25rem;
+            font-size: 0.875rem;
+            color: white;
+            transition: all 0.3s;
+         }
+         .admin-input:focus {
+            outline: none;
+            border-color: #8b0000;
+            background: rgba(255,255,255,0.08);
+         }
+         select.admin-input option {
+           background: #111;
+           color: white;
+         }
+      `}</style>
     </div>
   );
 };
 
-const NavItem = ({ icon, label, active, onClick }: { icon: any; label: string; active: boolean; onClick: () => void }) => (
+const NavItem = ({ icon, label, active, onClick, count }: any) => (
   <button 
     onClick={onClick}
-    className={`w-full flex items-center gap-4 px-6 py-4 text-[10px] uppercase tracking-[0.2em] transition-all duration-500 rounded-2xl group ${
-      active 
-      ? 'bg-white text-black font-black shadow-[0_10px_30px_rgba(255,255,255,0.1)]' 
-      : 'text-white/40 hover:text-white hover:bg-white/5'
+    className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-500 overflow-hidden relative group ${
+      active ? 'bg-white text-black shadow-2xl' : 'text-white/40 hover:bg-white/5'
     }`}
   >
-    <span className={`transition-transform duration-500 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>
-      {icon}
-    </span>
-    {label}
+    <div className="flex items-center gap-4">
+       <span className={`transition-transform duration-500 ${active ? 'scale-110' : 'group-hover:translate-x-2'}`}>{icon}</span>
+       <span className="text-[10px] uppercase font-black tracking-widest">{label}</span>
+    </div>
+    {count && count > 0 && (
+      <span className="bg-brand-red text-white text-[8px] font-black px-2 py-1 rounded-full">{count}</span>
+    )}
   </button>
 );
 
-const StatCard = ({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) => (
-  <div className="glass p-8 rounded-[2rem] space-y-4 group hover:border-brand-red/30 transition-all">
-    <div className="flex justify-between items-center">
-       <p className="text-[10px] uppercase tracking-[0.3em] text-white/20 font-bold">{label}</p>
-       <div className="text-white/10 group-hover:text-brand-red transition-colors">
-          {icon}
-       </div>
-    </div>
-    <div className="text-4xl font-display font-bold tracking-tighter gothic-glow transition-all group-hover:scale-105 origin-left">{value}</div>
+const StatCard = ({ label, value, trend, icon, color }: any) => (
+  <div className="p-8 rounded-[3rem] bg-white/5 border border-white/5 space-y-4 hover:border-brand-red/30 transition-all group">
+     <div className="flex justify-between items-center text-white/20 group-hover:text-brand-red transition-colors">
+        <span className="text-[10px] uppercase font-black tracking-widest">{label}</span>
+        {icon || <Activity className="w-4 h-4" />}
+     </div>
+     <div className={`text-4xl font-display font-black tracking-tighter italic ${color || ''}`}>{value}</div>
+     {trend && (
+        <div className="flex items-center gap-2 text-[8px] uppercase tracking-widest font-black text-green-500">
+           <TrendingUp className="w-3 h-3" /> {trend} SYNC
+        </div>
+     )}
   </div>
 );
 
-const SystemModule = ({ icon, label, status }: { icon: any; label: string; status: string }) => (
-  <div className="glass p-8 rounded-[2.5rem] flex flex-col items-center text-center gap-6 group cursor-crosshair">
-     <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-brand-red/10 transition-colors">
-        {icon}
-     </div>
-     <div>
-        <h3 className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-2">{label}</h3>
-        <p className="text-xl font-display font-black tracking-tighter uppercase italic">{status}</p>
+const ChartBox = ({ title, children }: any) => (
+  <div className="p-10 rounded-[4rem] bg-[#0A0A0A] border border-white/5 space-y-10 group">
+     <h4 className="text-[10px] uppercase font-black tracking-[0.4em] text-white/20 text-center">{title}</h4>
+     <div className="w-full grayscale group-hover:grayscale-0 transition-all duration-1000 opacity-60 group-hover:opacity-100">
+        {children}
      </div>
   </div>
 );

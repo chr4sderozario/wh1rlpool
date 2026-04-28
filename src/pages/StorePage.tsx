@@ -1,32 +1,73 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/src/components/ui/Button';
-import { ShoppingBag, User, ArrowLeft, Loader2, Package, Search, X, Filter } from 'lucide-react';
+import { 
+  ShoppingBag, 
+  ArrowLeft, 
+  Search, 
+  X, 
+  Filter, 
+  ChevronDown, 
+  LayoutGrid, 
+  List,
+  SlidersHorizontal,
+  ChevronRight
+} from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
-import { useAuth } from '@/src/context/AuthContext';
 
 interface Product {
   id: string;
   name: string;
   price: number;
   stock: number;
-  category: 'Jersey' | 'Pants' | 'Embroidery' | 'OnSale' | 'Accessories';
+  category: string;
   imageUrl?: string;
+  gender?: string;
+  club?: string;
+  country?: string;
+  isTrending?: boolean;
+  isNew?: boolean;
 }
 
-const CATEGORIES = ['All', 'Jersey', 'Pants', 'Embroidery', 'OnSale', 'Accessories'];
+const CATEGORIES = [
+  'All Artifacts',
+  'Official Jerseys',
+  'Retro Jerseys',
+  'Embroidery Jerseys',
+  'High Quality Jerseys',
+  'Sale Jerseys',
+  'Limited Edition Jerseys',
+  'Player Edition Jerseys',
+  'Club Jerseys',
+  'National Team Jerseys',
+  'Custom Name Jerseys',
+  'Training Kits',
+  'Shorts',
+  'Socks'
+];
 
-export const StorePage = () => {
+interface StorePageProps {
+  gender?: 'men' | 'women';
+  onSale?: boolean;
+}
+
+export const StorePage = ({ gender, onSale }: StorePageProps) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const location = useLocation();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('All Artifacts');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<'newest' | 'price-low' | 'price-high' | 'popular'>('newest');
+
+  // Filters state
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
+  const [selectedClub, setSelectedClub] = useState<string>('All');
+  const [selectedCountry, setSelectedCountry] = useState<string>('All');
 
   useEffect(() => {
     const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
@@ -37,179 +78,238 @@ export const StorePage = () => {
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'products');
     });
-
     return unsubscribe;
   }, []);
 
   const filteredProducts = useMemo(() => {
-    return products.filter(p => {
+    let result = products.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
-      return matchesSearch && matchesCategory;
-    });
-  }, [products, searchQuery, selectedCategory]);
+      const matchesCategory = selectedCategory === 'All Artifacts' || p.category === selectedCategory;
+      const matchesGender = !gender || p.gender === gender || p.gender === 'unisex';
+      const matchesSale = !onSale || p.category === 'Sale Jerseys';
+      const matchesPrice = p.price >= priceRange[0] && p.price <= priceRange[1];
+      const matchesClub = selectedClub === 'All' || p.club === selectedClub;
+      const matchesCountry = selectedCountry === 'All' || p.country === selectedCountry;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <motion.div 
-          animate={{ scale: [1, 1.2, 1], rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="w-12 h-12 border-t-2 border-brand-red rounded-full"
-        />
-      </div>
-    );
-  }
+      return matchesSearch && matchesCategory && matchesGender && matchesSale && matchesPrice && matchesClub && matchesCountry;
+    });
+
+    // Sorting
+    if (sortBy === 'price-low') result.sort((a, b) => a.price - b.price);
+    if (sortBy === 'price-high') result.sort((a, b) => b.price - a.price);
+    if (sortBy === 'popular') result.sort((a, b) => (b.isTrending ? 1 : 0) - (a.isTrending ? 1 : 0));
+
+    return result;
+  }, [products, searchQuery, selectedCategory, gender, onSale, priceRange, selectedClub, selectedCountry, sortBy]);
+
+  const clubs = useMemo(() => ['All', ...new Set(products.map(p => p.club).filter(Boolean) as string[])], [products]);
+  const countries = useMemo(() => ['All', ...new Set(products.map(p => p.country).filter(Boolean) as string[])], [products]);
 
   return (
-    <div className="min-h-screen bg-black px-4 md:px-8 py-12 relative">
-      {/* Header / Nav */}
-      <nav className="flex justify-between items-center mb-16 relative z-50">
-        <button 
-          onClick={() => navigate('/')}
-          className="text-white/40 hover:text-white flex items-center gap-2 transition-colors uppercase text-xs tracking-widest z-10"
-        >
-          <ArrowLeft className="w-4 h-4" /> Return
-        </button>
-
-        <h1 className="text-3xl font-display font-black tracking-tighter absolute left-1/2 -translate-x-1/2 whitespace-nowrap gothic-glow">WH1RLPOOL</h1>
-
-        <div className="flex gap-4 md:gap-6 z-10 items-center">
-          <button 
-            onClick={() => setIsSearchOpen(!isSearchOpen)}
-            className="text-white/40 hover:text-white transition-all transform hover:scale-110"
-          >
-            {isSearchOpen ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
-          </button>
-          <button className="text-white/40 hover:text-white transition-all transform hover:scale-110"><ShoppingBag className="w-5 h-5" /></button>
-          <button className="text-white/40 hover:text-white transition-all transform hover:scale-110" onClick={() => navigate('/login')} title={user?.email || 'Login'}>
-            <User className="w-5 h-5" />
-          </button>
-        </div>
-      </nav>
-
-      {/* Liquid Search Bar */}
-      <AnimatePresence>
-        {isSearchOpen && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="max-w-xl mx-auto mb-12 overflow-hidden"
-          >
-            <div className="relative group">
-              <input 
-                type="text" 
-                autoFocus
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Searching the void..."
-                className="w-full bg-white/5 border-none py-6 px-8 rounded-full focus:ring-2 focus:ring-brand-red/30 transition-all text-xl font-display tracking-tight placeholder:text-white/10"
-              />
-              <div className="absolute inset-0 bg-brand-red/5 blur-xl -z-10 group-focus-within:opacity-100 opacity-0 transition-opacity rounded-full" />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="max-w-7xl mx-auto space-y-16">
-        {/* Category Filter */}
-        <div className="flex flex-wrap justify-center gap-3">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-6 py-2 rounded-full text-[10px] uppercase tracking-widest transition-all duration-500 border ${
-                selectedCategory === cat 
-                ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.3)]' 
-                : 'bg-transparent text-white/40 border-white/10 hover:border-white/30'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        <header className="text-center space-y-4">
-          <span className="text-[10px] uppercase tracking-[0.5em] text-brand-red font-bold animate-pulse">Catalog 2026</span>
-          <h2 className="text-5xl md:text-8xl font-display font-black tracking-tighter uppercase italic py-2">
-            {selectedCategory === 'All' ? 'The Void' : selectedCategory}
-          </h2>
-        </header>
-
-        {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 md:gap-12">
-          <AnimatePresence mode="popLayout">
-            {filteredProducts.map((product, i) => (
-              <motion.div 
-                key={product.id}
-                layout
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
-                transition={{ delay: i * 0.05, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="group cursor-pointer"
-              >
-                <div className="aspect-[3/4] bg-white/5 border border-white/10 relative overflow-hidden mb-6 liquid-shadow group-hover:border-brand-red/30 transition-all duration-500">
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    {product.imageUrl ? (
-                      <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000 transform group-hover:scale-110" />
-                    ) : (
-                      <div className="w-24 h-24 text-white/5 relative">
-                        <Package className="w-full h-full" />
-                        <div className="absolute inset-0 bg-brand-red/10 blur-2xl animate-pulse" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="absolute inset-x-0 bottom-0 p-6 z-20 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                    <Button className="w-full bg-brand-red text-white hover:bg-brand-red/80 border-none shadow-lg shadow-brand-red/20">Add to Terminal</Button>
-                  </div>
-                </div>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-sm font-bold uppercase tracking-tight mb-1 group-hover:text-brand-red transition-colors">{product.name}</h3>
-                    <p className="text-[10px] text-white/40 uppercase tracking-widest">{product.category} / {product.stock > 0 ? `${product.stock} Units Left` : "Exhausted"}</p>
-                  </div>
-                  <span className="text-sm font-mono text-white/60 tracking-tighter">${product.price.toFixed(2)}</span>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {filteredProducts.length === 0 && (
-            <div className="col-span-full py-32 text-center space-y-6">
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex flex-col items-center"
-              >
-                <div className="w-32 h-32 mb-8 relative">
-                   <div className="absolute inset-0 liquid-shape bg-white/5 animate-spin-slow" />
-                   <Package className="absolute inset-0 m-auto w-12 h-12 text-white/10" />
-                </div>
-                <h3 className="text-4xl md:text-6xl font-display font-black tracking-tighter uppercase italic text-white/20">It's Empty..</h3>
-                <p className="text-white/10 text-xs uppercase tracking-[0.4em] mt-4">The void awaits its next drop.</p>
-              </motion.div>
-            </div>
-          )}
+    <div className="min-h-screen bg-black text-white pt-24 pb-32 px-6 md:px-12">
+      {/* Dynamic Header */}
+      <header className="max-w-[1600px] mx-auto mb-16 space-y-8">
+        <div className="flex items-center gap-4 text-white/20 text-[10px] uppercase tracking-[0.4em] font-black">
+          <Link to="/" className="hover:text-brand-red transition-colors">Home</Link>
+          <ChevronRight className="w-3 h-3" />
+          <span className="text-white/60">{gender ? gender : onSale ? 'Sale' : 'Shop'}</span>
         </div>
         
-        <footer className="text-center py-24 border-t border-white/5 space-y-8">
-          <div className="flex justify-center flex-col items-center gap-6">
-             <span className="text-[10px] uppercase tracking-[0.3em] text-white/20">Establishing connection</span>
-             <h3 className="text-3xl font-display font-bold uppercase tracking-tighter">Support Terminal</h3>
-             <div className="flex gap-6">
-                <Button variant="outline" className="rounded-full" onClick={() => navigate('/support')}>Contact Support</Button>
-                <Button variant="outline" className="rounded-full" onClick={() => window.open('https://instagram.com/wh1rlpool.in', '_blank')}>Instagram</Button>
-             </div>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+          <div className="space-y-4">
+            <h1 className="text-6xl md:text-9xl font-display font-black tracking-tighter uppercase italic gothic-glow">
+              {gender ? `${gender}'s archive` : onSale ? 'The Clearance' : 'The archive'}
+            </h1>
+            <p className="text-white/40 font-serif italic text-lg">
+              Filtering through the artifacts of the void. {filteredProducts.length} Results detected.
+            </p>
           </div>
-        </footer>
-      </div>
+          
+          <div className="flex flex-wrap gap-4">
+            <button 
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className={`flex items-center gap-3 px-8 py-4 rounded-full border transition-all uppercase text-[10px] font-black tracking-widest ${
+                isFilterOpen ? 'bg-white text-black border-white' : 'bg-transparent border-white/10 hover:border-white/30 text-white/60'
+              }`}
+            >
+              <SlidersHorizontal className="w-4 h-4" /> 
+              {isFilterOpen ? 'Close Filters' : 'Fine Tune'}
+            </button>
+            <div className="relative group">
+              <select 
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="appearance-none bg-white/5 border border-white/10 rounded-full px-8 py-4 pr-12 text-[10px] uppercase font-black tracking-widest focus:outline-none focus:border-brand-red transition-all cursor-pointer"
+              >
+                <option value="newest">Newest First</option>
+                <option value="price-low">Price: Low - High</option>
+                <option value="price-high">Price: High - Low</option>
+                <option value="popular">Most Trending</option>
+              </select>
+              <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+      </header>
 
-      {/* Floating decorative elements */}
-      <div className="fixed -bottom-24 -left-24 w-96 h-96 liquid-shape bg-brand-red/5 blur-3xl pointer-events-none -z-10" />
-      <div className="fixed -top-24 -right-24 w-96 h-96 liquid-shape bg-white/5 blur-3xl pointer-events-none -z-10" />
+      <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-12">
+        {/* Sticky Filters Sidebar */}
+        <AnimatePresence>
+          {isFilterOpen && (
+            <motion.aside
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: '320px', opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              className="hidden lg:block space-y-12 shrink-0 border-r border-white/5 pr-12 h-fit sticky top-32"
+            >
+              {/* Category Filter */}
+              <div className="space-y-6">
+                <h3 className="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold">Categories</h3>
+                <div className="flex flex-col gap-3">
+                  {CATEGORIES.map(cat => (
+                    <button 
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`text-left text-sm uppercase tracking-widest font-black transition-all hover:pl-2 ${
+                        selectedCategory === cat ? 'text-brand-red' : 'text-white/20 hover:text-white/60'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Club Filter */}
+              <div className="space-y-6">
+                <h3 className="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold">Filter By Club</h3>
+                <select 
+                  value={selectedClub}
+                  onChange={(e) => setSelectedClub(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs uppercase font-bold tracking-widest focus:outline-none focus:border-brand-red"
+                >
+                  {clubs.map(club => <option key={club} value={club}>{club}</option>)}
+                </select>
+              </div>
+
+              {/* Country Filter */}
+              <div className="space-y-6">
+                <h3 className="text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold">Filter By Country</h3>
+                <select 
+                  value={selectedCountry}
+                  onChange={(e) => setSelectedCountry(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs uppercase font-bold tracking-widest focus:outline-none focus:border-brand-red"
+                >
+                  {countries.map(country => <option key={country} value={country}>{country}</option>)}
+                </select>
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
+        {/* Main Product Grid */}
+        <div className="flex-1 space-y-12">
+          {/* Active Filters Display */}
+          <div className="flex flex-wrap gap-4">
+             {selectedCategory !== 'All Artifacts' && <ActiveFilter label={selectedCategory} onRemove={() => setSelectedCategory('All Artifacts')} />}
+             {selectedClub !== 'All' && <ActiveFilter label={selectedClub} onRemove={() => setSelectedClub('All')} />}
+             {selectedCountry !== 'All' && <ActiveFilter label={selectedCountry} onRemove={() => setSelectedCountry('All')} />}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-x-8 gap-y-16">
+            <AnimatePresence mode="popLayout">
+              {filteredProducts.map((product, idx) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </AnimatePresence>
+          </div>
+
+          {filteredProducts.length === 0 && (
+             <div className="flex flex-col items-center justify-center py-40 border border-dashed border-white/5 rounded-[4rem]">
+                <div className="w-24 h-24 mb-8 text-white/5 animate-pulse">
+                   <Search className="w-full h-full" />
+                </div>
+                <h3 className="text-4xl font-display font-black tracking-tighter uppercase italic text-white/20">Artifact Not Found</h3>
+                <p className="text-white/10 text-[10px] uppercase tracking-[0.5em] mt-4">Adjust your transmission parameters.</p>
+                <button 
+                  onClick={() => { setSelectedCategory('All Artifacts'); setSelectedClub('All'); setSelectedCountry('All'); }}
+                  className="mt-12 text-brand-red text-[10px] uppercase font-black tracking-widest hover:underline"
+                >
+                  RESET FILTERS
+                </button>
+             </div>
+          )}
+        </div>
+      </div>
     </div>
   );
+};
+
+const ProductCard = ({ product, key }: { product: Product, key?: any }) => {
+  const navigate = useNavigate();
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      whileHover={{ y: -10 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="group cursor-pointer"
+      onClick={() => navigate(`/product/${product.id}`)}
+    >
+      <div className="relative aspect-[3/4] rounded-[2.5rem] overflow-hidden mb-6 bg-white/5 border border-white/5 transition-all duration-700 group-hover:border-brand-red/30">
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10" />
+        {product.imageUrl ? (
+          <img 
+            src={product.imageUrl} 
+            alt={product.name}
+            className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-1000"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-white/5">
+            <ShoppingBag className="w-16 h-16" />
+          </div>
+        )}
+
+        {/* Labels */}
+        <div className="absolute top-6 left-6 z-20 flex flex-col gap-2">
+           {product.isNew && <span className="bg-brand-red text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-2xl">New Transmission</span>}
+           {product.isTrending && <span className="bg-white text-black text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-2xl">Trending</span>}
+        </div>
+
+        {/* Pricing tag */}
+        <div className="absolute bottom-8 right-8 z-20">
+           <div className="px-6 py-2 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full">
+              <span className="text-sm font-black tracking-tighter">₹ {product.price}</span>
+           </div>
+        </div>
+      </div>
+
+      <div className="space-y-1.5 px-2">
+        <h3 className="text-sm font-bold uppercase tracking-tight line-clamp-1 group-hover:text-brand-red transition-colors">{product.name}</h3>
+        <div className="flex items-center justify-between">
+           <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-black">{product.category}</span>
+           {product.stock <= 5 && product.stock > 0 && (
+             <span className="text-[8px] text-brand-red uppercase font-black animate-pulse">Low Stock</span>
+           )}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+const ActiveFilter = ({ label, onRemove }: { label: string; onRemove: () => void }) => (
+  <button 
+    onClick={onRemove}
+    className="flex items-center gap-3 px-6 py-2 bg-white/5 border border-white/10 rounded-full text-[10px] uppercase font-black tracking-widest hover:border-brand-red hover:text-brand-red transition-all group"
+  >
+    {label}
+    <X className="w-3 h-3 text-white/20 group-hover:text-brand-red" />
+  </button>
+);
+
+const Link = ({ to, children, className }: any) => {
+  const navigate = useNavigate();
+  return <button onClick={() => navigate(to)} className={className}>{children}</button>;
 };

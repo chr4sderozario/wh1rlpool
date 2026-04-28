@@ -9,6 +9,11 @@ import { AdminDashboard } from '@/src/pages/AdminDashboard';
 import { StorePage } from '@/src/pages/StorePage';
 import { ProfilePage } from '@/src/pages/ProfilePage';
 import { SupportPage } from '@/src/pages/SupportPage';
+import { Navbar } from '@/src/components/layout/Navbar';
+import { CartPage } from '@/src/pages/CartPage';
+import { ProductDetailPage } from '@/src/pages/ProductDetailPage';
+import { WishlistPage } from '@/src/pages/WishlistPage';
+import { OrdersPage } from '@/src/pages/OrdersPage';
 import { AuthProvider } from '@/src/context/AuthContext';
 
 export default function App() {
@@ -30,12 +35,20 @@ export default function App() {
           ) : (
             <div key="content" className="relative text-white selection:bg-brand-red selection:text-white">
               <GothicBackground />
+              <Navbar />
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/store" element={<StorePage />} />
+                <Route path="/shop" element={<StorePage />} />
+                <Route path="/men" element={<StorePage gender="men" />} />
+                <Route path="/women" element={<StorePage gender="women" />} />
+                <Route path="/sale" element={<StorePage onSale={true} />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/wishlist" element={<WishlistPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/product/:id" element={<ProductDetailPage />} />
                 <Route path="/support" element={<SupportPage />} />
               </Routes>
             </div>

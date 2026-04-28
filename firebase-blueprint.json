@@ -2,16 +2,20 @@
   "entities": {
     "Product": {
       "title": "Product",
-      "description": "A luxury apparel item",
+      "description": "A luxury football jersey",
       "type": "object",
       "properties": {
-        "name": { "type": "string", "description": "Name of the item" },
+        "name": { "type": "string", "description": "Name of the jersey" },
         "description": { "type": "string", "description": "Product details" },
         "price": { "type": "number", "description": "Selling price" },
         "costPrice": { "type": "number", "description": "Cost to brand" },
         "stock": { "type": "integer", "description": "Available inventory" },
         "imageUrl": { "type": "string", "description": "URL to the product image" },
-        "category": { "type": "string", "enum": ["Jersey", "Pants", "Embroidery", "OnSale", "Accessories"] },
+        "images": { "type": "array", "description": "List of secondary images" },
+        "category": { "type": "string", "enum": ["Official", "Retro", "Embroidery", "HighQuality", "Sale", "LimitedEdition", "PlayerEdition", "Club", "NationalTeam", "CustomName", "TrainingKits", "Shorts", "Socks"] },
+        "isFeatured": { "type": "boolean" },
+        "isTrending": { "type": "boolean" },
+        "ratings": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "price", "costPrice", "stock", "category"]
@@ -21,13 +25,28 @@
       "description": "A customer order",
       "type": "object",
       "properties": {
-        "userId": { "type": "string", "description": "ID of the user who placed the order" },
-        "items": { "type": "array", "description": "List of products ordered" },
-        "total": { "type": "number", "description": "Total amount paid" },
+        "userId": { "type": "string" },
+        "items": { "type": "array" },
+        "total": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["cod", "online", "balance"] },
         "status": { "type": "string", "enum": ["pending", "shipped", "delivered", "cancelled"] },
+        "shippingAddress": { "type": "object" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["userId", "items", "total", "status"]
+      "required": ["userId", "items", "total", "status", "paymentMethod"]
+    },
+    "BalanceRequest": {
+      "title": "BalanceRequest",
+      "description": "Request to add funds via QR",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "proofImageUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "amount", "status"]
     },
     "UserProfile": {
       "title": "UserProfile",
@@ -35,16 +54,13 @@
       "type": "object",
       "properties": {
         "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "balance": { "type": "number" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
         "phone": { "type": "string" },
-        "whatsapp": { "type": "string" },
         "address": { "type": "string" },
         "city": { "type": "string" },
-        "state": { "type": "string" },
         "country": { "type": "string" },
-        "gender": { "type": "string", "enum": ["Male", "Female", "Unisex", "Other"] },
-        "size": { "type": "string", "enum": ["XS", "S", "M", "L", "XL", "XXL"] },
-        "email": { "type": "string" },
-        "role": { "type": "string", "enum": ["admin", "user"] },
         "createdAt": { "type": "string", "format": "date-time" }
       }
     },
@@ -66,6 +82,10 @@
     "orders/{orderId}": {
       "schema": "Order",
       "description": "Customer orders"
+    },
+    "balance_requests/{requestId}": {
+      "schema": "BalanceRequest",
+      "description": "Wallet addition requests"
     },
     "users/{userId}/public/profile": {
       "schema": "UserProfile",
