@@ -14,6 +14,7 @@ import {
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext';
+import { Button } from '@/src/components/ui/Button';
 
 export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);

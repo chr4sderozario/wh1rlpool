@@ -5,7 +5,7 @@ import {
   CreditCard, TrendingUp, DollarSign, Activity, Database, X, Upload, Image as ImageIcon,
   CheckCircle, ShieldAlert, Wallet, AlertTriangle, Phone, MapPin
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   collection, addDoc, onSnapshot, query, orderBy, 
