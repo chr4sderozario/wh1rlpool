@@ -115,17 +115,21 @@ export const AdminDashboard = () => {
       setRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as BalanceRequest)));
     });
 
-    const unsubUsers = onSnapshot(collection(db, 'users'), async (snapshot) => {
-       const userList: UserProfile[] = [];
-       for (const userDoc of snapshot.docs) {
-          const profileDoc = doc(db, 'users', userDoc.id, 'public', 'profile');
-          const profileSnap = await getDoc(profileDoc);
-          if (profileSnap.exists()) {
-             userList.push({ id: userDoc.id, ...profileSnap.data() } as UserProfile);
-          }
-       }
-       setUsers(userList);
-       setLoading(false);
+    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+       const userDocs = snapshot.docs;
+       const fetchProfiles = async () => {
+         const userList: UserProfile[] = [];
+         for (const userDoc of userDocs) {
+            const profileDoc = doc(db, 'users', userDoc.id, 'public', 'profile');
+            const profileSnap = await getDoc(profileDoc).catch(() => null);
+            if (profileSnap && profileSnap.exists()) {
+               userList.push({ id: userDoc.id, ...profileSnap.data() } as UserProfile);
+            }
+         }
+         setUsers(userList);
+         setLoading(false);
+       };
+       fetchProfiles();
     });
 
     return () => {
@@ -248,7 +252,14 @@ export const AdminDashboard = () => {
     setIsModalOpen(true);
   };
 
-  if (authLoading || loading) return null;
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 gap-6">
+        <Loader2 className="w-12 h-12 text-brand-red animate-spin" />
+        <p className="text-[10px] uppercase font-black tracking-widest text-white/40">Synchronizing Void Connection...</p>
+      </div>
+    );
+  }
 
   if (!isAdminUnlocked) {
     return (

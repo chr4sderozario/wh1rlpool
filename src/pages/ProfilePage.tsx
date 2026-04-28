@@ -54,6 +54,10 @@ export const ProfilePage = () => {
         country: profile.country || '',
       });
       setLoading(false);
+    } else if (!authLoading && user) {
+      // If profile is not loaded but user exists, we might need to wait or handle the empty state
+      // For now, let's allow loading to finish if we have basic user info
+      setLoading(false);
     }
   }, [user, authLoading, profile, navigate]);
 
@@ -98,7 +102,14 @@ export const ProfilePage = () => {
     } catch (err) { console.error(err); }
   };
 
-  if (authLoading || loading) return null;
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 gap-6">
+        <div className="w-12 h-12 border-2 border-dashed border-brand-red rounded-full animate-spin" />
+        <p className="text-[10px] uppercase font-black tracking-widest text-white/40">Recalibrating Subject Identity...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white pt-40 pb-32 px-6 md:px-12 relative overflow-hidden">

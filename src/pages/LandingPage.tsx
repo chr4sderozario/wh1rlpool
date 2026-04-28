@@ -122,15 +122,23 @@ export const LandingPage = () => {
                 className="w-full sm:w-80 h-20 text-lg rounded-full bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-black group px-12"
               >
                 <span className="flex items-center gap-4">
-                  ENTER THE SHOP <ArrowRight className="group-hover:translate-x-2 transition-transform" />
+                  ENTER VOID <ArrowRight className="group-hover:translate-x-2 transition-transform" />
                 </span>
               </Button>
-              <button 
-                onClick={() => navigate('/login')}
-                className="text-[10px] uppercase tracking-[0.4em] font-bold text-white/40 hover:text-white transition-all underline underline-offset-8"
-              >
-                Terminal Access
-              </button>
+              <div className="flex flex-col gap-4">
+                <button 
+                  onClick={() => navigate('/login')}
+                  className="text-[10px] uppercase tracking-[0.4em] font-bold text-white/40 hover:text-white transition-all underline underline-offset-8"
+                >
+                  ENTER AS ADMIN
+                </button>
+                <button 
+                  onClick={() => navigate('/login')}
+                  className="text-[8px] uppercase tracking-[0.3em] font-bold text-white/20 hover:text-white transition-all"
+                >
+                  Terminal Access
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>

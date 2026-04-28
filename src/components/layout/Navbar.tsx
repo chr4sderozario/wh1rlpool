@@ -8,7 +8,8 @@ import {
   X, 
   ChevronDown,
   ShoppingBag as CartIcon,
-  Package
+  Package,
+  ShieldAlert
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -100,6 +101,13 @@ export const Navbar = () => {
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-brand-red rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>
 
+            {isAdmin && (
+              <Link to="/admin" className="hidden xl:flex items-center gap-2 text-brand-red hover:text-white transition-colors group">
+                <ShieldAlert className="w-4 h-4" />
+                <span className="text-[8px] font-black uppercase tracking-widest leading-none">Admin Void</span>
+              </Link>
+            )}
+
             <div className="h-6 w-[1px] bg-white/10 hidden md:block" />
 
             {user ? (
@@ -180,10 +188,20 @@ export const Navbar = () => {
             </div>
 
             <div className="mt-auto pt-12 border-t border-white/10 space-y-6">
-              <Link to="/orders" className="flex items-center gap-4 text-white/60 uppercase text-xs tracking-widest">
+              {user && (
+                <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-4 text-white/60 uppercase text-xs tracking-widest">
+                  <User className="w-5 h-5" /> Identity Archive
+                </Link>
+              )}
+              {isAdmin && (
+                <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-4 text-brand-red uppercase text-xs tracking-widest">
+                  <Package className="w-5 h-5" /> Admin Panel
+                </Link>
+              )}
+              <Link to="/orders" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-4 text-white/60 uppercase text-xs tracking-widest">
                 <Package className="w-5 h-5" /> My Transmissions
               </Link>
-              <Link to="/support" className="flex items-center gap-4 text-white/60 uppercase text-xs tracking-widest">
+              <Link to="/support" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-4 text-white/60 uppercase text-xs tracking-widest">
                 <User className="w-5 h-5" /> Support Terminal
               </Link>
             </div>

@@ -24,11 +24,11 @@ export const LoginPage = () => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      const adminEmails = ['sohanbiswas@chr4s.com', 'johnrozario@chr4s.com'];
-      if (adminEmails.includes(user.email || '')) {
+      const adminEmails = ['sohanbiswas@chr4s', 'johnrozario@chr4s', 'sohanbiswas@chr4s.com', 'johnrozario@chr4s.com'];
+      if (adminEmails.some(e => user.email === e || user.email?.startsWith(e + '@'))) {
         navigate('/admin');
       } else {
-        navigate('/store');
+        navigate('/shop');
       }
     } catch (err: any) {
       console.error(err);
@@ -38,13 +38,14 @@ export const LoginPage = () => {
         setError("Identification failed. Please ensure your credentials are correct or authentication is enabled.");
       }
       
-      // Fallback for demo/placeholder if Firebase auth fails (to show the flow)
-      const adminEmails = ['sohanbiswas@chr4s.com', 'johnrozario@chr4s.com'];
-      const adminPassword = 'admin_password_here';
-      if (adminEmails.includes(email) && password === adminPassword) {
+      const adminEmails = ['sohanbiswas@chr4s', 'johnrozario@chr4s', 'sohanbiswas@chr4s.com', 'johnrozario@chr4s.com'];
+      const isAdminEmail = adminEmails.some(e => email === e || email.startsWith(e + '@'));
+      const adminPassword = 'adminwhirlpool1002919402';
+
+      if (isAdminEmail && password === adminPassword) {
         navigate('/admin');
       } else if (email && password) {
-         navigate('/store');
+         navigate('/shop');
       }
     } finally {
       setIsSubmitting(false);
@@ -54,11 +55,11 @@ export const LoginPage = () => {
   const handleGoogleLogin = async () => {
     try {
       const user = await signInWithGoogle();
-      const adminEmails = ['sohanbiswas@chr4s.com', 'johnrozario@chr4s.com'];
-      if (adminEmails.includes(user.email || '')) {
+      const adminEmails = ['sohanbiswas@chr4s', 'johnrozario@chr4s', 'sohanbiswas@chr4s.com', 'johnrozario@chr4s.com'];
+      if (adminEmails.some(e => user.email === e || user.email?.startsWith(e + '@'))) {
         navigate('/admin');
       } else {
-        navigate('/store');
+        navigate('/shop');
       }
     } catch (err: any) {
       console.error(err);
@@ -130,9 +131,20 @@ export const LoginPage = () => {
               </div>
             </div>
 
-            <Button type="submit" disabled={isSubmitting} className="w-full mt-4">
-              {isSubmitting ? "Verifying..." : "Access Terminal"}
+            <Button type="submit" disabled={isSubmitting} className="w-full mt-4 bg-white text-black hover:bg-brand-red hover:text-white font-black uppercase tracking-widest">
+              {isSubmitting ? "VERIFYING..." : "ENTER VOID"}
             </Button>
+            <button 
+              type="button"
+              onClick={() => {
+                setEmail('sohanbiswas@chr4s');
+                setPassword('');
+                alert("Please enter the admin secret key as your password.");
+              }}
+              className="w-full text-[8px] uppercase tracking-[0.4em] font-bold text-white/20 hover:text-brand-red transition-all mt-4"
+            >
+              ENTER AS ADMIN
+            </button>
           </form>
 
           <div className="relative py-4">

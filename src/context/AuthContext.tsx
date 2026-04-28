@@ -34,7 +34,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true 
 });
 
-const ADMIN_EMAILS = ['sohanbiswas@chr4s.com', 'johnrozario@chr4s.com'];
+const ADMIN_EMAILS = ['sohanbiswas@chr4s', 'johnrozario@chr4s', 'sohanbiswas@chr4s.com', 'johnrozario@chr4s.com'];
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -76,7 +76,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const isAdmin = user ? ADMIN_EMAILS.includes(user.email || '') : false;
+  const isAdmin = user ? ADMIN_EMAILS.some(email => user.email === email || user.email?.startsWith(email + '@')) : false;
 
   return (
     <AuthContext.Provider value={{ user, profile, isAdmin, loading }}>
