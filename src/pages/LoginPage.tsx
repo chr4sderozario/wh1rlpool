@@ -25,7 +25,8 @@ export const LoginPage = () => {
       const user = userCredential.user;
       
       const adminEmails = ['sohanbiswas@chr4s', 'johnrozario@chr4s', 'sohanbiswas@chr4s.com', 'johnrozario@chr4s.com'];
-      if (adminEmails.some(e => user.email === e || user.email?.startsWith(e + '@'))) {
+      if (adminEmails.some(e => user.email?.toLowerCase() === e.toLowerCase() || user.email?.toLowerCase().startsWith(e.toLowerCase() + '@'))) {
+        localStorage.setItem('admin_session', 'true');
         navigate('/admin');
       } else {
         navigate('/shop');
@@ -39,10 +40,11 @@ export const LoginPage = () => {
       }
       
       const adminEmails = ['sohanbiswas@chr4s', 'johnrozario@chr4s', 'sohanbiswas@chr4s.com', 'johnrozario@chr4s.com'];
-      const isAdminEmail = adminEmails.some(e => email === e || email.startsWith(e + '@'));
+      const isAdminEmail = adminEmails.some(e => email.toLowerCase() === e.toLowerCase() || email.toLowerCase().startsWith(e.toLowerCase() + '@'));
       const adminPassword = 'adminwhirlpool1002919402';
 
       if (isAdminEmail && password === adminPassword) {
+        localStorage.setItem('admin_session', 'true');
         navigate('/admin');
       } else if (email && password) {
          navigate('/shop');
@@ -56,7 +58,8 @@ export const LoginPage = () => {
     try {
       const user = await signInWithGoogle();
       const adminEmails = ['sohanbiswas@chr4s', 'johnrozario@chr4s', 'sohanbiswas@chr4s.com', 'johnrozario@chr4s.com'];
-      if (adminEmails.some(e => user.email === e || user.email?.startsWith(e + '@'))) {
+      if (adminEmails.some(e => user.email?.toLowerCase() === e.toLowerCase() || user.email?.toLowerCase().startsWith(e.toLowerCase() + '@'))) {
+        localStorage.setItem('admin_session', 'true');
         navigate('/admin');
       } else {
         navigate('/shop');

@@ -54,14 +54,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (docSnap.exists()) {
             setProfile(docSnap.data() as UserProfile);
           } else {
-            // New user, initial local profile state (won't persist until they save or we auto-create)
+            // New user, initial local profile state
             setProfile({
               balance: 0,
-              role: ADMIN_EMAILS.includes(firebaseUser.email || '') ? 'admin' : 'user',
+              role: ADMIN_EMAILS.some(e => firebaseUser.email === e || firebaseUser.email?.startsWith(e + '@')) ? 'admin' : 'user',
               email: firebaseUser.email || '',
               displayName: firebaseUser.displayName || ''
             });
           }
+          setLoading(false);
+        }, (error) => {
+          console.error("Profile Error:", error);
           setLoading(false);
         });
       } else {
@@ -76,7 +79,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const isAdmin = user ? ADMIN_EMAILS.some(email => user.email === email || user.email?.startsWith(email + '@')) : false;
+  const isAdmin = user 
+    ? ADMIN_EMAILS.some(email => user.email?.toLowerCase() === email.toLowerCase() || user.email?.toLowerCase().startsWith(email.toLowerCase() + '@')) 
+    : (localStorage.getItem('admin_session') === 'true');
 
   return (
     <AuthContext.Provider value={{ user, profile, isAdmin, loading }}>

@@ -98,38 +98,61 @@ export const AdminDashboard = () => {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user || !isAdmin) {
+    
+    const isFallbackAdmin = localStorage.getItem('admin_session') === 'true';
+    if (!user && !isFallbackAdmin) {
+      navigate('/login');
+      return;
+    }
+
+    if (!isAdmin && !isFallbackAdmin) {
       navigate('/');
       return;
     }
 
     const unsubProducts = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'desc')), (snap) => {
       setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
-    });
+    }, (err) => console.error("Products Snapshot Error:", err));
 
     const unsubOrders = onSnapshot(query(collection(db, 'orders'), orderBy('createdAt', 'desc')), (snap) => {
       setOrders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
-    });
+    }, (err) => console.error("Orders Snapshot Error:", err));
 
     const unsubRequests = onSnapshot(query(collection(db, 'balance_requests'), orderBy('createdAt', 'desc')), (snap) => {
       setRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as BalanceRequest)));
-    });
+    }, (err) => console.error("Requests Snapshot Error:", err));
 
     const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
        const userDocs = snapshot.docs;
-       const fetchProfiles = async () => {
-         const userList: UserProfile[] = [];
-         for (const userDoc of userDocs) {
-            const profileDoc = doc(db, 'users', userDoc.id, 'public', 'profile');
-            const profileSnap = await getDoc(profileDoc).catch(() => null);
-            if (profileSnap && profileSnap.exists()) {
-               userList.push({ id: userDoc.id, ...profileSnap.data() } as UserProfile);
-            }
-         }
-         setUsers(userList);
+       if (userDocs.length === 0) {
+         setUsers([]);
          setLoading(false);
+         return;
+       }
+
+       const fetchProfiles = async () => {
+         try {
+           const profilePromises = userDocs.map(async (userDoc) => {
+             const profileDoc = doc(db, 'users', userDoc.id, 'public', 'profile');
+             const profileSnap = await getDoc(profileDoc).catch(() => null);
+             if (profileSnap && profileSnap.exists()) {
+                return { id: userDoc.id, ...profileSnap.data() } as UserProfile;
+             }
+             return null;
+           });
+
+           const results = await Promise.all(profilePromises);
+           setUsers(results.filter((u): u is UserProfile => u !== null));
+         } catch (err) {
+           console.error("Error fetching users:", err);
+         } finally {
+           setLoading(false);
+         }
        };
        fetchProfiles();
+    }, (error) => {
+       console.error("Users Snapshot Error:", error);
+       setLoading(false);
     });
 
     return () => {
@@ -308,7 +331,13 @@ export const AdminDashboard = () => {
         </nav>
 
         <div className="pt-8 border-t border-white/5">
-           <button onClick={() => navigate('/')} className="flex items-center gap-4 text-white/20 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest group">
+           <button 
+             onClick={() => {
+               localStorage.removeItem('admin_session');
+               navigate('/');
+             }} 
+             className="flex items-center gap-4 text-white/20 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest group"
+           >
               <LogOut className="w-4 h-4 group-hover:-translate-x-2 transition-transform" /> Exit Terminal
            </button>
         </div>

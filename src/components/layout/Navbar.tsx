@@ -102,7 +102,7 @@ export const Navbar = () => {
             </Link>
 
             {isAdmin && (
-              <Link to="/admin" className="hidden xl:flex items-center gap-2 text-brand-red hover:text-white transition-colors group">
+              <Link to="/admin" className="hidden lg:flex items-center gap-2 text-brand-red hover:text-white transition-colors group">
                 <ShieldAlert className="w-4 h-4" />
                 <span className="text-[8px] font-black uppercase tracking-widest leading-none">Admin Void</span>
               </Link>
