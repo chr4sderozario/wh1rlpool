@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
@@ -21,6 +21,7 @@ export const OrdersPage = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -111,9 +112,30 @@ export const OrdersPage = () => {
                  </div>
 
                  <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-6 md:gap-8 border-t border-white/5">
-                    <p className="text-[8px] md:text-[10px] uppercase font-black tracking-[0.4em] text-white/10 italic text-center md:text-left">Secured via WH1RLPOOL protocols</p>
+                    <div className="w-full md:w-1/2 space-y-4">
+                       <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-white/20">
+                          <span>Transmission Progress</span>
+                          <span className="text-brand-red italic">{order.status === 'delivered' ? '100% SECURED' : 'SYNCING...'}</span>
+                       </div>
+                       <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            whileInView={{ 
+                               width: order.status === 'delivered' ? '100%' : 
+                                      order.status === 'shipped' ? '65%' : '15%' 
+                            }}
+                            className="h-full bg-brand-red shadow-[0_0_15px_#E20613]"
+                          />
+                       </div>
+                    </div>
                     <div className="flex gap-4">
-                       <Button variant="outline" className="rounded-full px-8 h-12 text-[8px] md:text-[10px] font-black border-white/10 hover:bg-white hover:text-black">INSPECT</Button>
+                       <Button 
+                         onClick={() => setSelectedOrder(order)}
+                         variant="outline" 
+                         className="rounded-full px-8 h-12 text-[8px] md:text-[10px] font-black border-white/10 hover:bg-white hover:text-black"
+                       >
+                         INSPECT
+                       </Button>
                     </div>
                  </div>
               </motion.div>
@@ -121,6 +143,77 @@ export const OrdersPage = () => {
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {selectedOrder && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-black/95 backdrop-blur-3xl">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="w-full max-w-2xl bg-[#0A0A0A] border border-white/10 p-8 md:p-12 rounded-[3.5rem] md:rounded-[4rem] space-y-8 md:space-y-12 overflow-y-auto max-h-[90vh]"
+            >
+              <header className="flex justify-between items-start">
+                 <div className="space-y-2">
+                    <h2 className="text-3xl md:text-5xl font-display font-black uppercase tracking-tighter italic">Inspection Report</h2>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-brand-red">TX-ID: {selectedOrder.id.toUpperCase()}</p>
+                 </div>
+                 <button onClick={() => setSelectedOrder(null)} className="text-white/20 hover:text-white transition-colors">
+                    <XCircle className="w-8 h-8" />
+                 </button>
+              </header>
+
+              <div className="space-y-8 md:space-y-12">
+                 <div className="grid grid-cols-2 gap-8 md:gap-12 border-b border-white/5 pb-8 md:pb-12">
+                    <div className="space-y-2">
+                       <p className="text-[8px] md:text-[10px] uppercase font-black tracking-widest text-white/20">Sync Status</p>
+                       <p className="text-sm font-black uppercase text-brand-red">{selectedOrder.status}</p>
+                    </div>
+                    <div className="space-y-2">
+                       <p className="text-[8px] md:text-[10px] uppercase font-black tracking-widest text-white/20">Protocol</p>
+                       <p className="text-sm font-black uppercase">{selectedOrder.paymentMethod}</p>
+                    </div>
+                 </div>
+
+                 <div className="space-y-6 md:space-y-8">
+                    <p className="text-[8px] md:text-[10px] uppercase font-black tracking-widest text-white/20">Deployed Artifacts</p>
+                    <div className="space-y-4 md:space-y-6">
+                       {selectedOrder.items.map((item, idx) => (
+                         <div key={idx} className="flex justify-between items-center group">
+                            <div className="flex items-center gap-4 md:gap-6">
+                               <div className="w-12 h-16 rounded-xl bg-white/5 overflow-hidden border border-white/5">
+                                  <img src={item.imageUrl} className="w-full h-full object-cover" />
+                               </div>
+                               <div className="space-y-1">
+                                  <p className="text-[10px] md:text-xs font-black uppercase tracking-tight">{item.name}</p>
+                                  <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">{item.size} | QTY: {item.quantity}</p>
+                               </div>
+                            </div>
+                            <p className="text-sm font-black italic">₹ {item.price * item.quantity}</p>
+                         </div>
+                       ))}
+                    </div>
+                 </div>
+
+                 <div className="pt-8 md:pt-12 border-t border-white/5 space-y-4 md:space-y-6">
+                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/20">
+                       <span>Transmission Value</span>
+                       <span>₹ {selectedOrder.total}</span>
+                    </div>
+                    <div className="flex justify-between text-2xl md:text-3xl font-display font-black tracking-tighter uppercase italic text-brand-red">
+                       <span>TOTAL YIELD</span>
+                       <span>₹ {selectedOrder.total}</span>
+                    </div>
+                 </div>
+              </div>
+
+              <div className="pt-8 border-t border-white/5">
+                 <Button onClick={() => setSelectedOrder(null)} className="w-full h-16 rounded-3xl bg-white text-black hover:bg-brand-red hover:text-white font-black text-xs uppercase tracking-widest">CLOSE REPORT</Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

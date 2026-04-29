@@ -63,6 +63,7 @@ export const StorePage = ({ gender, onSale }: StorePageProps) => {
   const [selectedCategory, setSelectedCategory] = useState('All Artifacts');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [sortBy, setSortBy] = useState<'newest' | 'price-low' | 'price-high' | 'popular'>('newest');
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Advanced Filters state
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
@@ -157,6 +158,13 @@ export const StorePage = ({ gender, onSale }: StorePageProps) => {
 
   const clubs = useMemo(() => ['All', ...new Set(products.map(p => p.club).filter(Boolean) as string[])], [products]);
   const countries = useMemo(() => ['All', ...new Set(products.map(p => p.country).filter(Boolean) as string[])], [products]);
+
+  const searchSuggestions = useMemo(() => {
+    if (searchQuery.length < 2) return [];
+    return products
+      .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      .slice(0, 5);
+  }, [searchQuery, products]);
 
   if (loading) {
      return (

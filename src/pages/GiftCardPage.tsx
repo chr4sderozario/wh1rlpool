@@ -76,6 +76,11 @@ export const GiftCardPage = () => {
            </motion.div>
            <h1 className="text-6xl md:text-8xl font-display font-black tracking-tighter uppercase italic leading-none">Gift Voucher</h1>
            <p className="text-white/40 font-serif italic text-lg">Generate stored value for other subjects in the void.</p>
+           <div className="pt-8">
+              <Button onClick={() => navigate('/checkout')} variant="outline" className="text-[10px] uppercase font-black tracking-widest border-white/20 h-12 rounded-full px-8 hover:bg-white hover:text-black transition-all">
+                RAID CHECKOUT TO REDEEM →
+              </Button>
+           </div>
         </header>
 
         <div className="bg-[#080808] border border-white/5 rounded-[4rem] p-12 md:p-20 relative overflow-hidden">

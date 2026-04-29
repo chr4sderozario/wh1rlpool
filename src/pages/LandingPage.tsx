@@ -5,95 +5,68 @@ import { ArrowRight, ShoppingBag, Zap, Shield, Globe, Cpu } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { collection, query, limit, onSnapshot, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
-import { Html5Qrcode } from 'html5-qrcode';
+import { useScanner } from '@/src/context/ScannerContext';
 import { X, Camera, Search, MessageSquare, AlertCircle } from 'lucide-react';
 
 export const LandingPage = () => {
   const navigate = useNavigate();
+  const { openScanner } = useScanner();
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [newArrivals, setNewArrivals] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'searching' | 'found' | 'error'>('idle');
-  const [scannedResult, setScannedResult] = useState<string>('');
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const scannerId = "void-scanner-region";
-
-  const customerCareNumber = "+91 88888 77777"; 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [jerseyOfTheDay, setJerseyOfTheDay] = useState<any | null>(null);
 
   useEffect(() => {
-    if (isScannerOpen) {
-      const startScanner = async () => {
-        try {
-          const html5QrCode = new Html5Qrcode(scannerId);
-          scannerRef.current = html5QrCode;
-          setScanStatus('scanning');
-          
-          await html5QrCode.start(
-            { facingMode: "environment" },
-            {
-              fps: 10,
-              qrbox: { width: 250, height: 250 }
-            },
-            async (decodedText) => {
-              await handleScanSuccess(decodedText);
-            },
-            () => {}
-          );
-        } catch (err) {
-          console.error("Scanner failed to start:", err);
-          setIsScannerOpen(false);
-        }
-      };
-      
-      startScanner();
-    } else {
-      if (scannerRef.current && scannerRef.current.isScanning) {
-        scannerRef.current.stop().catch(e => console.log("Scanner stop error", e));
-      }
-    }
-
-    return () => {
-       if (scannerRef.current && scannerRef.current.isScanning) {
-          scannerRef.current.stop().catch(e => console.log("Cleanup stop error", e));
-       }
+    // Fetch Jersey of the Day
+    const fetchJOD = async () => {
+      const q = query(collection(db, 'products'), where('isFeatured', '==', true), limit(1));
+      const snap = await getDocs(q);
+      if (!snap.empty) setJerseyOfTheDay({ id: snap.docs[0].id, ...snap.docs[0].data() });
     };
-  }, [isScannerOpen]);
-
-  const handleScanSuccess = async (text: string) => {
-    setScannedResult(text);
-    setScanStatus('searching');
-    
-    if (scannerRef.current) {
-       await scannerRef.current.stop();
-    }
-
-    try {
-      const q = query(collection(db, 'products'));
-      const querySnapshot = await getDocs(q);
-      
-      const match = querySnapshot.docs.find(doc => {
-         const data = doc.data();
-         return data.name.toLowerCase().includes(text.toLowerCase()) || doc.id === text;
-      });
-
-      if (match) {
-        setScanStatus('found');
-        setTimeout(() => {
-           navigate(`/product/${match.id}`);
-           setIsScannerOpen(false);
-           setScanStatus('idle');
-        }, 1500);
-      } else {
-        setScanStatus('error');
-      }
-    } catch (error) {
-      console.error("Search failed:", error);
-      setScanStatus('error');
-    }
-  };
+    fetchJOD();
+  }, []);
 
   useEffect(() => {
+    if (searchQuery.trim().length > 2) {
+      setIsSearching(true);
+      const timer = setTimeout(async () => {
+        const q = query(
+          collection(db, 'products'),
+          where('name', '>=', searchQuery.toUpperCase()),
+          where('name', '<=', searchQuery.toUpperCase() + '\uf8ff'),
+          limit(5)
+        );
+        const snap = await getDocs(q);
+        setSearchResults(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setIsSearching(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery]);
+
+  useEffect(() => {
+    // Fetch store reviews
+    const qReviews = query(collection(db, 'store_reviews'), orderBy('createdAt', 'desc'), limit(10));
+    const unsubReviews = onSnapshot(qReviews, (snap) => {
+      setReviews(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    // Pick a random product for 'Jersey of the Day'
+    const fetchRandomJersey = async () => {
+      const q = query(collection(db, 'products'), limit(20));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const randomProduct = snap.docs[Math.floor(Math.random() * snap.docs.length)].data();
+        setJerseyOfTheDay({ id: snap.docs[0].id, ...randomProduct });
+      }
+    };
+    fetchRandomJersey();
     // Fetch Featured Products for Flash Deals
     const qFeatured = query(
       collection(db, 'products'), 
@@ -119,6 +92,7 @@ export const LandingPage = () => {
     return () => {
       unsubFeatured();
       unsubNew();
+      unsubReviews();
     };
   }, []);
 
@@ -203,15 +177,65 @@ export const LandingPage = () => {
                     transition={{ delay: 0.5, duration: 0.8 }}
                   >
                      <span className="text-brand-red font-black tracking-[0.4em] md:tracking-[0.8em] text-[8px] md:text-[10px] uppercase mb-4 md:mb-6 block drop-shadow-glow">THE GOTHIC REGISTRY // V3.0</span>
-                     <h1 className="text-6xl md:text-9xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-6 md:mb-8">WH1RL<br/>POOL</h1>
-                     <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start md:items-center">
+                     <h1 className="text-5xl md:text-9xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-4 md:mb-8">WH1RL<br/>POOL</h1>
+                     <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-start md:items-center">
+                        <div className="relative w-full md:w-96 group">
+                           <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 group-focus-within:text-brand-red transition-colors" />
+                           <input 
+                             type="text" 
+                             placeholder="SEARCH ARTIFACTS..."
+                             className="w-full h-14 bg-white/5 border border-white/10 rounded-xl pl-16 pr-6 text-[10px] font-black tracking-widest uppercase focus:outline-none focus:border-brand-red focus:bg-white/10 transition-all"
+                             value={searchQuery}
+                             onChange={(e) => setSearchQuery(e.target.value)}
+                           />
+                           {searchQuery && (
+                              <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors">
+                                 <X className="w-4 h-4" />
+                              </button>
+                           )}
+                           
+                           <AnimatePresence>
+                              {searchQuery.length > 2 && (
+                                 <motion.div 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 10 }}
+                                    className="absolute left-0 right-0 top-full mt-4 bg-[#0A0A0A] border border-white/10 rounded-[2rem] p-4 z-[100] shadow-2xl backdrop-blur-3xl overflow-hidden"
+                                 >
+                                    {isSearching ? (
+                                       <p className="p-8 text-[8px] font-black uppercase text-center text-white/20 animate-pulse">Scanning Archive...</p>
+                                    ) : searchResults.length > 0 ? (
+                                       <div className="space-y-4">
+                                          {searchResults.map(p => (
+                                             <button 
+                                                key={p.id} 
+                                                onClick={() => navigate(`/product/${p.id}`)}
+                                                className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/5 transition-all text-left"
+                                             >
+                                                <div className="w-12 h-12 bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+                                                   <img src={p.imageUrl} className="w-full h-full object-cover" alt="" />
+                                                </div>
+                                                <div>
+                                                   <p className="text-[10px] font-black uppercase tracking-widest">{p.name}</p>
+                                                   <p className="text-[8px] font-bold text-brand-red">₹ {p.price}</p>
+                                                </div>
+                                             </button>
+                                          ))}
+                                       </div>
+                                    ) : (
+                                       <p className="p-8 text-[8px] font-black uppercase text-center text-white/20">No matching signals.</p>
+                                    )}
+                                 </motion.div>
+                              )}
+                           </AnimatePresence>
+                        </div>
                         <Button 
                           onClick={() => navigate('/shop')}
                           className="h-14 w-full md:w-auto px-10 rounded-xl bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-display font-black italic uppercase tracking-[0.2em] text-xs"
                         >
                           ENTER THE VOID
                         </Button>
-                        <div className="md:block">
+                        <div className="hidden md:block">
                            <p className="text-[8px] font-black uppercase tracking-[0.5em] text-white/20 mb-1 italic">SYSTEM STATUS</p>
                            <p className="text-xs md:text-sm font-display font-black tracking-widest italic text-brand-red animate-pulse">OPERATIONAL</p>
                         </div>
@@ -267,7 +291,37 @@ export const LandingPage = () => {
            </div>
         </section>
 
-        {/* Categorical Bento Grid (The Registry) */}
+        {/* Jersey of the Day (Spotlight) */}
+        {jerseyOfTheDay && (
+           <section className="mb-32">
+              <div className="p-8 md:p-20 rounded-[3rem] md:rounded-[5rem] bg-[#0A0A0A] border border-brand-red/10 overflow-hidden relative group">
+                 <div className="absolute top-0 right-0 w-[50%] h-full bg-brand-red/10 blur-[150px] -z-10 group-hover:bg-brand-red/20 transition-all duration-1000" />
+                 <div className="flex flex-col lg:flex-row items-center gap-12 md:gap-24">
+                    <div className="lg:w-1/2 space-y-8 md:space-y-12">
+                       <div className="inline-block px-6 py-2 bg-brand-red text-white text-[10px] font-black uppercase tracking-[0.5em] rounded-full animate-pulse italic shadow-lg shadow-brand-red/30">ARTIFACT OF THE DAY</div>
+                       <h2 className="text-6xl md:text-[10rem] font-display font-black tracking-tighter uppercase italic leading-[0.85] text-transparent bg-clip-text bg-gradient-to-br from-white to-white/40">{jerseyOfTheDay.name.split(' ')[0]}<br />{jerseyOfTheDay.name.split(' ')[1] || 'VOID'}</h2>
+                       <p className="text-lg md:text-2xl font-serif italic text-white/40 leading-relaxed uppercase tracking-widest max-w-xl">{jerseyOfTheDay.description}</p>
+                       <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center pt-8">
+                          <div className="space-y-1">
+                             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 italic">EXTRACTION UNIT</p>
+                             <div className="text-5xl font-display font-black tracking-tighter italic">₹ {jerseyOfTheDay.price}</div>
+                          </div>
+                          <Button 
+                             onClick={() => navigate(`/product/${jerseyOfTheDay.id}`)}
+                             className="px-16 h-20 rounded-[2rem] bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-display font-black uppercase italic tracking-[0.2em] shadow-2xl"
+                          >
+                             ACQUIRE NOW
+                          </Button>
+                       </div>
+                    </div>
+                    <div className="lg:w-1/2 relative group-hover:scale-110 transition-transform duration-1000">
+                       <div className="absolute inset-0 bg-brand-red/20 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                       <img src={jerseyOfTheDay.imageUrl} className="w-full aspect-square object-contain drop-shadow-[0_0_100px_rgba(255,20,20,0.2)]" alt={jerseyOfTheDay.name} />
+                    </div>
+                 </div>
+              </div>
+           </section>
+        )}
         <section className="mb-24 md:mb-32">
            <h2 className="text-3xl md:text-5xl font-display font-black tracking-tighter uppercase italic mb-8 md:mb-12 text-center md:text-left">THE VOID SECTORS</h2>
            <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-none md:grid-rows-2 h-auto md:h-[800px] gap-4 md:gap-6">
@@ -310,7 +364,7 @@ export const LandingPage = () => {
                        Spotted a jersey in the physical world? Use the Wh1rlpool Spectral Scanner to identify the artifact and extract it from our digital registry instantly.
                     </p>
                     <Button 
-                      onClick={() => setIsScannerOpen(true)}
+                      onClick={openScanner}
                       className="h-14 w-full md:w-auto px-10 rounded-xl bg-brand-red text-white hover:bg-white hover:text-black transition-all duration-500 font-display font-black italic uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-4"
                     >
                        <Camera className="w-4 h-4" />
@@ -330,117 +384,17 @@ export const LandingPage = () => {
            </div>
         </section>
 
-        {/* Scanner Overlay UI */}
-        {isScannerOpen && (
-           <motion.div 
-             initial={{ opacity: 0 }}
-             animate={{ opacity: 1 }}
-             className="fixed inset-0 z-[100] bg-black/95 flex flex-col p-6 backdrop-blur-xl"
-           >
-              <div className="flex justify-between items-center mb-8">
-                 <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-brand-red flex items-center justify-center rounded-lg">
-                       <Search className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                       <p className="text-[8px] font-black uppercase tracking-widest text-brand-red italic">SPECTRAL SCANNER</p>
-                       <p className="text-lg font-display font-black italic uppercase">ARTIFACT IDENTIFICATION</p>
-                    </div>
-                 </div>
-                 <button 
-                  onClick={() => setIsScannerOpen(false)}
-                  className="w-12 h-12 bg-white/5 hover:bg-brand-red transition-colors rounded-full flex items-center justify-center"
-                 >
-                    <X className="w-6 h-6" />
-                 </button>
-              </div>
-
-              <div className="flex-1 max-w-2xl mx-auto w-full flex flex-col justify-center gap-4 md:gap-8 overflow-y-auto no-scrollbar">
-                 <div className="aspect-[3/4] md:aspect-[4/3] rounded-[2rem] md:rounded-[2.5rem] bg-white/[0.02] border border-white/5 overflow-hidden relative shadow-2xl shadow-brand-red/5">
-                    <div id={scannerId} className="w-full h-full object-cover scale-[1.02]"></div>
-                    
-                    {scanStatus === 'scanning' && (
-                       <div className="absolute inset-0 pointer-events-none border-[40px] border-black/40">
-                          <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-brand-red" />
-                          <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-brand-red" />
-                          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-brand-red" />
-                          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-brand-red" />
-                          <motion.div 
-                             animate={{ top: ['0%', '100%', '0%'] }}
-                             transition={{ duration: 2, repeat: Infinity }}
-                             className="absolute left-0 w-full h-[2px] bg-brand-red shadow-[0_0_15px_rgba(255,0,0,0.8)]"
-                          />
-                       </div>
-                    )}
-
-                    {scanStatus === 'searching' && (
-                       <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-6 backdrop-blur-sm">
-                          <div className="w-16 h-16 border-4 border-brand-red/30 border-t-brand-red rounded-full animate-spin" />
-                          <p className="text-xs font-black uppercase tracking-[0.5em] text-brand-red animate-pulse">QUERYING THE VOID ARCHIVE...</p>
-                       </div>
-                    )}
-
-                    {scanStatus === 'found' && (
-                       <div className="absolute inset-0 bg-brand-red flex flex-col items-center justify-center gap-4">
-                          <Zap className="w-16 h-16 text-white" />
-                          <p className="text-xl font-display font-black italic uppercase leading-none">ARTIFACT LOCATED</p>
-                          <p className="text-[10px] font-black uppercase tracking-widest opacity-60">MATERIALIZING UNITS...</p>
-                       </div>
-                    )}
-
-                    {scanStatus === 'error' && (
-                       <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-12 text-center gap-8">
-                          <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-full flex items-center justify-center mb-4">
-                             <AlertCircle className="w-10 h-10 text-brand-red" />
-                          </div>
-                          <div>
-                             <h3 className="text-2xl font-display font-black italic uppercase mb-4">ARTIFACT NOT RECOGNIZED</h3>
-                             <p className="text-sm text-white/40 font-medium leading-relaxed mb-6">
-                                The unit <span className="text-brand-red font-black">"{scannedResult}"</span> is not indexed in our core registry. 
-                                Transmit this code to our customer care sector to request manual acquisition.
-                             </p>
-                             <div className="bg-white/5 border border-white/10 p-6 rounded-2xl flex flex-col items-center gap-4">
-                                <span className="text-[8px] font-black uppercase tracking-widest text-white/20">CONTACT SECTOR</span>
-                                <p className="text-xl font-display font-black italic text-brand-red tracking-widest">{customerCareNumber}</p>
-                                <Button 
-                                  onClick={() => window.location.href = `https://wa.me/${customerCareNumber.replace(/\D/g,'')}?text=I'm%20looking%20for%20jersey%20code:%20${scannedResult}`}
-                                  className="bg-white text-black hover:bg-brand-red hover:text-white w-full h-12 flex items-center justify-center gap-2 font-display font-black italic uppercase transition-all"
-                                >
-                                   <MessageSquare className="w-4 h-4" />
-                                   MESSAGE CARE
-                                </Button>
-                             </div>
-                             <button 
-                                onClick={() => {
-                                   setIsScannerOpen(false);
-                                   setScanStatus('idle');
-                                }}
-                                className="mt-8 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-colors"
-                             >
-                                ← RETURN TO REGISTRY
-                             </button>
-                          </div>
-                       </div>
-                    )}
-                 </div>
-
-                 <div className="grid grid-cols-3 gap-6">
-                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl text-center">
-                       <p className="text-[10px] font-black text-brand-red mb-1 uppercase tracking-widest">FPS</p>
-                       <p className="text-xl font-display font-black italic">60.00</p>
-                    </div>
-                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl text-center">
-                       <p className="text-[10px] font-black text-white/30 mb-1 uppercase tracking-widest">BITRATE</p>
-                       <p className="text-xl font-display font-black italic">12.4G</p>
-                    </div>
-                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl text-center">
-                       <p className="text-[10px] font-black text-white/30 mb-1 uppercase tracking-widest">PING</p>
-                       <p className="text-xl font-display font-black italic">1MS</p>
-                    </div>
-                 </div>
-              </div>
-           </motion.div>
-        )}
+        {/* Floating Mobile Scanner */}
+        <div className="fixed bottom-8 right-8 z-[90] md:hidden">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={openScanner}
+            className="w-16 h-16 rounded-full bg-brand-red text-white flex items-center justify-center shadow-[0_0_30px_rgba(255,0,0,0.5)] border border-white/20"
+          >
+            <Camera className="w-6 h-6" />
+          </motion.button>
+        </div>
 
         {/* New Arrivals Product Grid (Amazon Dense Layout) */}
         <section>
@@ -502,6 +456,38 @@ export const LandingPage = () => {
                  <h4 className="font-display font-black uppercase italic tracking-wider">ORACLE CURATION</h4>
                  <p className="text-xs text-white/40 font-medium leading-relaxed">Automated quality indexing ensures only elite artifacts enter the grid.</p>
               </div>
+           </div>
+        </section>
+
+        {/* Curated Reviews Section */}
+        <section className="mt-40 border-t border-white/5 pt-20">
+           <div className="flex justify-between items-center mb-16">
+              <h2 className="text-4xl font-display font-black uppercase italic tracking-tighter">Subject Testimonials</h2>
+              <div className="flex gap-4">
+                 {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 text-brand-red fill-brand-red" />)}
+                 <span className="text-[10px] font-black tracking-widest text-white/40 uppercase italic">MATRIX VERIFIED</span>
+              </div>
+           </div>
+           
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {reviews.length > 0 ? reviews.map((review, i) => (
+                <div key={review.id} className="p-10 rounded-[3rem] bg-white/[0.02] border border-white/5 space-y-6 group hover:bg-white/[0.04] transition-all">
+                   <div className="flex justify-between items-start">
+                      <div className="w-12 h-12 rounded-2xl bg-brand-red/10 border border-brand-red/20 flex items-center justify-center">
+                         <Ghost className="w-6 h-6 text-brand-red" />
+                      </div>
+                      <div className="text-right">
+                         <p className="text-[8px] font-black uppercase tracking-widest text-brand-red">{review.tag || 'ELITE UNIT'}</p>
+                         <p className="text-xs font-black uppercase text-white/40">{review.author || 'ANONYMOUS'}</p>
+                      </div>
+                   </div>
+                   <p className="text-sm font-serif italic text-white/60 leading-relaxed">"{review.text}"</p>
+                </div>
+              )) : (
+                <div className="col-span-1 md:col-span-3 text-center py-20 bg-white/[0.01] rounded-[3rem] border border-white/5 border-dashed">
+                   <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/10">WAITING FOR TESTIMONIAL EXTRACTION...</p>
+                </div>
+              )}
            </div>
         </section>
 

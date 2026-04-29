@@ -302,6 +302,21 @@ export const ProfilePage = () => {
                     <span>Loyalty Points</span>
                     <span className="text-brand-red font-black tracking-widest">{profile?.loyaltyPoints || 0} PTS</span>
                   </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40">Loyalty Tier</span>
+                    <div className={`px-4 py-1.5 rounded-full text-[8px] font-black tracking-widest border transition-all ${
+                      (profile?.totalSpending || 0) >= 50000 ? 'text-white bg-white/5 border-white shadow-lg' :
+                      (profile?.totalSpending || 0) >= 20000 ? 'text-white bg-white/5 border-white/40' :
+                      (profile?.totalSpending || 0) >= 10000 ? 'text-yellow-500 border-yellow-500/20' :
+                      (profile?.totalSpending || 0) >= 5000 ? 'text-blue-400 border-blue-400/20' : 'text-orange-900 border-orange-900/10'
+                    }`}>
+                      {(profile?.totalSpending || 0) >= 50000 ? 'OBSIDIAN' :
+                       (profile?.totalSpending || 0) >= 20000 ? 'PLATINUM' :
+                       (profile?.totalSpending || 0) >= 10000 ? 'GOLD' :
+                       (profile?.totalSpending || 0) >= 5000 ? 'SILVER' : 'BRONZE'}
+                    </div>
+                  </div>
                   
                   <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-[0.4em] text-white/40">
                     <span>Void Level</span>

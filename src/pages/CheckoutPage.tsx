@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { Button } from '@/src/components/ui/Button';
 import { useAuth } from '@/src/context/AuthContext';
 import { db } from '@/src/lib/firebase';
-import { collection, addDoc, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, query, where, limit, getDocs } from 'firebase/firestore';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -30,9 +30,56 @@ export const CheckoutPage = () => {
   const [proofPreview, setProofPreview] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
+  const [giftCardCode, setGiftCardCode] = useState('');
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState(0);
 
   const deliveryFee = paymentMethod === 'cod' ? 50 : 0;
-  const finalTotal = total + deliveryFee;
+  const finalTotal = Math.max(0, total + deliveryFee - discountAmount);
+
+  const handleRedeemGiftCard = async () => {
+    if (!giftCardCode.trim()) return;
+    setIsRedeeming(true);
+    try {
+      const q = query(
+        collection(db, 'gift_cards'), 
+        where('code', '==', giftCardCode.trim().toUpperCase()), 
+        where('status', '==', 'active'),
+        limit(1)
+      );
+      const snap = await getDocs(q);
+      
+      if (snap.empty) {
+        alert("Invalid or already redeemed sequence.");
+      } else {
+        const cardDoc = snap.docs[0];
+        const amount = cardDoc.data().amount;
+        
+        // Mark as redeemed
+        await updateDoc(doc(db, 'gift_cards', cardDoc.id), { 
+          status: 'redeemed',
+          redeemedBy: user?.uid || 'guest',
+          redeemedAt: serverTimestamp()
+        });
+        
+        // Add to user balance
+        if (user) {
+          const profileRef = doc(db, 'users', user.uid, 'public', 'profile');
+          await updateDoc(profileRef, { balance: increment(amount) });
+          alert(`Success! ₹${amount} injected into your account balance.`);
+        } else {
+          setDiscountAmount(prev => prev + amount);
+          alert(`Success! ₹${amount} discount applied to this order.`);
+        }
+        setGiftCardCode('');
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Verification failed.");
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -75,6 +122,7 @@ export const CheckoutPage = () => {
         customerName: profile?.displayName || 'Guest',
         items: cartItems,
         total: finalTotal,
+        discount: discountAmount,
         deliveryFee,
         address,
         phoneNumber,
@@ -94,7 +142,7 @@ export const CheckoutPage = () => {
           totalSpending: increment(finalTotal),
           loyaltyPoints: increment(pointsEarned),
           wh1rlCoins: increment(Math.floor(finalTotal)),
-          balance: paymentMethod === 'balance' ? increment(-total) : increment(0)
+          balance: paymentMethod === 'balance' ? increment(-finalTotal) : increment(0)
         });
       }
 
@@ -186,6 +234,26 @@ export const CheckoutPage = () => {
                <div className="flex justify-between text-3xl md:text-4xl font-display font-black tracking-tighter italic">
                   <span>TOTAL</span>
                   <span className="text-brand-red">₹ {finalTotal}</span>
+               </div>
+
+               {/* Gift Card Redemption UI */}
+               <div className="pt-6 mt-4 border-t border-white/5 space-y-4">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-white/20 italic">VOUCHER INJECTION</p>
+                  <div className="flex gap-3">
+                     <input 
+                        value={giftCardCode}
+                        onChange={(e) => setGiftCardCode(e.target.value.toUpperCase())}
+                        placeholder="ENTER CODE"
+                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-[10px] font-black tracking-widest focus:outline-none focus:border-brand-red"
+                     />
+                     <Button 
+                        onClick={handleRedeemGiftCard}
+                        disabled={isRedeeming || !giftCardCode}
+                        className="bg-white text-black hover:bg-brand-red hover:text-white px-6 rounded-xl text-[10px] h-auto py-3 font-black"
+                     >
+                        {isRedeeming ? '...' : 'REDEEM'}
+                     </Button>
+                  </div>
                </div>
             </div>
           </div>

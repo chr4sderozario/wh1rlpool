@@ -438,10 +438,44 @@ export const ProductDetailPage = () => {
             </div>
 
             {/* Security Suite */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-12">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 py-12 border-b border-white/5">
                <SecurityBadge icon={<ShieldCheck className="w-6 h-6" />} title="VERIFIED" desc="EXTRACTION" />
                <SecurityBadge icon={<Truck className="w-6 h-6" />} title="STEALTH" desc="SHIPMENT" />
                <SecurityBadge icon={<RotateCcw className="w-6 h-6" />} title="ENCRYPTED" desc="PAYMENTS" />
+            </div>
+
+            {/* Artifact Reviews */}
+            <div className="pt-24 space-y-12 pb-24">
+                <div className="flex items-center gap-6">
+                    <h3 className="text-3xl font-display font-black uppercase italic tracking-tighter">Testimonials</h3>
+                    <div className="flex-1 h-[1px] bg-white/5" />
+                    <button 
+                      onClick={() => {
+                        const url = window.location.href;
+                        if (navigator.share) navigator.share({ title: product.name, url });
+                        else { navigator.clipboard.writeText(url); alert("LINK SECURED."); }
+                      }}
+                      className="text-[10px] font-black uppercase tracking-widest text-brand-red hover:text-white"
+                    >
+                      SHARE ARTIFACT
+                    </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                   {[
+                     { user: "V01D_WALK3R", rating: 5, comment: "Authentic pattern replication. The matrix is satisfied." },
+                     { user: "ARCHIVE_CLERK", rating: 4, comment: "Encryption level maximal. Ship arrived in stealth mode." }
+                   ].map((rev, i) => (
+                     <div key={i} className="p-10 rounded-[2.5rem] bg-white/[0.02] border border-white/5 space-y-4">
+                        <div className="flex justify-between items-center">
+                           <span className="text-[10px] font-black tracking-widest text-brand-red uppercase">{rev.user}</span>
+                           <div className="flex gap-1">
+                              {[...Array(5)].map((_, j) => <Star key={j} className={`w-3 h-3 ${j < rev.rating ? 'fill-brand-red text-brand-red' : 'text-white/10'}`} />)}
+                           </div>
+                        </div>
+                        <p className="text-xs font-serif italic text-white/60">"{rev.comment}"</p>
+                     </div>
+                   ))}
+                </div>
             </div>
           </div>
         </div>

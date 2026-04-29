@@ -3,7 +3,7 @@ import {
   Package, Plus, Trash2, Edit3, Settings, LogOut, Loader2, 
   Users, ShoppingBag, BarChart3, ChevronRight, User as UserIcon,
   CreditCard, TrendingUp, DollarSign, Activity, Database, X, Upload, Image as ImageIcon,
-  CheckCircle, ShieldAlert, Wallet, AlertTriangle, Phone, MapPin
+  CheckCircle, ShieldAlert, Wallet, AlertTriangle, Phone, MapPin, MessageSquare
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -81,7 +81,15 @@ interface BalanceRequest {
   createdAt: any;
 }
 
-type Tab = 'inventory' | 'orders' | 'users' | 'requests' | 'analytics' | 'support' | 'giftcards';
+interface Review {
+  id: string;
+  author: string;
+  tag: string;
+  text: string;
+  createdAt: any;
+}
+
+type Tab = 'inventory' | 'orders' | 'users' | 'requests' | 'analytics' | 'support' | 'giftcards' | 'settings' | 'reviews';
 
 export const AdminDashboard = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -94,13 +102,25 @@ export const AdminDashboard = () => {
   const [requests, setRequests] = useState<BalanceRequest[]>([]);
   const [giftCards, setGiftCards] = useState<GiftCard[]>([]);
   const [giftCardRequests, setGiftCardRequests] = useState<any[]>([]);
+  const [storeReviews, setStoreReviews] = useState<Review[]>([]);
   const [chats, setChats] = useState<any[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [replyText, setReplyText] = useState('');
+  const [customGiftAmount, setCustomGiftAmount] = useState('500');
   const [loading, setLoading] = useState(true);
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
   const [adminPassInput, setAdminPassInput] = useState('');
+  const [systemSettings, setSystemSettings] = useState({
+    customerCareNumber: '918073809618',
+    customerCareEmail: 'support@wh1rlpool.com',
+    isCareOnline: true,
+    paymentMethods: {
+      upi: 'whirlpool@upi',
+      bankTransfer: 'A/C: 123456789, IFSC: SBIN0001',
+      cod: true
+    }
+  });
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -108,6 +128,9 @@ export const AdminDashboard = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [secondaryUploading, setSecondaryUploading] = useState(false);
+  const secondaryFileInputRef = useRef<HTMLInputElement>(null);
   
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -122,7 +145,7 @@ export const AdminDashboard = () => {
     image: null as File | null,
     imagePreview: '',
     imageUrl: '', // Manual URL input
-    images: [] as string[], // Additional images
+    images: [] as string[], // Additional images (secondary)
     isFeatured: false
   });
 
@@ -160,8 +183,16 @@ export const AdminDashboard = () => {
       setGiftCardRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
+    const unsubStoreReviews = onSnapshot(query(collection(db, 'store_reviews'), orderBy('createdAt', 'desc')), (snap) => {
+      setStoreReviews(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review)));
+    });
+
     const unsubChats = onSnapshot(query(collection(db, 'support_sessions'), orderBy('lastMessageAt', 'desc')), (snap) => {
       setChats(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'system'), (snap) => {
+      if (snap.exists()) setSystemSettings(snap.data() as any);
     });
 
     const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
@@ -203,7 +234,10 @@ export const AdminDashboard = () => {
       unsubRequests();
       unsubUsers();
       unsubGiftCards();
+      unsubGiftCardRequests();
+      unsubStoreReviews();
       unsubChats();
+      unsubSettings();
     };
   }, [isAdmin, authLoading, navigate]);
 
@@ -255,7 +289,10 @@ export const AdminDashboard = () => {
       const profileRef = doc(db, 'users', req.userId, 'public', 'profile');
       await updateDoc(profileRef, { balance: increment(req.amount) });
       alert("CREDITS INJECTED.");
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error(err);
+      handleFirestoreError(err, OperationType.UPDATE, 'balance_requests');
+    }
   };
 
   const handleApproveGiftCardRequest = async (req: any) => {
@@ -270,13 +307,19 @@ export const AdminDashboard = () => {
       });
       await updateDoc(doc(db, 'gift_card_requests', req.id), { status: 'approved', materializedCode: code });
       alert(`GIFT CARD MATERIALIZED: ${code}`);
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error(err);
+      handleFirestoreError(err, OperationType.CREATE, 'gift_cards');
+    }
   };
 
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
     try {
       await updateDoc(doc(db, 'orders', orderId), { status });
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error(err);
+      handleFirestoreError(err, OperationType.UPDATE, 'orders');
+    }
   };
 
   const handleUpdateDeliveryTime = async (orderId: string) => {
@@ -288,18 +331,26 @@ export const AdminDashboard = () => {
   };
 
   const handleGenerateGiftCard = async () => {
-    const amount = prompt("Enter Gift Card Amount (₹):");
+    const amount = parseFloat(customGiftAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert("Invalid amount.");
+      return;
+    }
+    
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    if (!amount) return;
     try {
       await addDoc(collection(db, 'gift_cards'), {
         code,
-        amount: parseFloat(amount),
+        amount,
         status: 'active',
         createdAt: serverTimestamp()
       });
-      alert(`Gift Card Created: ${code}`);
-    } catch (err) { console.error(err); }
+      alert(`Gift Card Materialized: ${code}`);
+      setCustomGiftAmount('500');
+    } catch (err) { 
+      console.error(err);
+      handleFirestoreError(err, OperationType.CREATE, 'gift_cards');
+    }
   };
 
   const handleSendChatReply = async (userId: string) => {
@@ -319,26 +370,52 @@ export const AdminDashboard = () => {
       });
 
       setReplyText('');
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error(err);
+      handleFirestoreError(err, OperationType.WRITE, 'support_chats');
+    }
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newProduct.name || !newProduct.price || !newProduct.category) {
+      alert("Please fill required fields (Name, Price, Category).");
+      return;
+    }
+
     setUploading(true);
-    let finalImageUrl = newProduct.imageUrl || newProduct.imagePreview;
+    
+    // Priority: 1. Newly uploaded file, 2. URL input, 3. Old preview (for edits)
+    let finalImageUrl = newProduct.imageUrl;
     
     try {
       if (newProduct.image) {
+        console.log("Commencing artifact upload to void storage...");
         const storageRef = ref(storage, `products/${Date.now()}_${newProduct.image.name}`);
         const snapshot = await uploadBytes(storageRef, newProduct.image);
         finalImageUrl = await getDownloadURL(snapshot.ref);
+        console.log("Artifact visualized at:", finalImageUrl);
+      } else if (!finalImageUrl && newProduct.imagePreview) {
+        // If it's a blob, we must prevent it if not uploading, but usually this is for edits
+        if (newProduct.imagePreview.startsWith('blob:')) {
+           alert("IMAGE UPLOAD ERROR: Please select the file again or use URL.");
+           setUploading(false);
+           return;
+        }
+        finalImageUrl = newProduct.imagePreview;
+      }
+
+      if (!finalImageUrl) {
+        alert("Primary image is required.");
+        setUploading(false);
+        return;
       }
 
       const productData = {
         name: newProduct.name,
         price: Number(newProduct.price),
-        costPrice: Number(newProduct.costPrice),
-        stock: Math.floor(Number(newProduct.stock)),
+        costPrice: Number(newProduct.costPrice || 0),
+        stock: Math.floor(Number(newProduct.stock || 0)),
         category: newProduct.category,
         description: newProduct.description,
         gender: newProduct.gender,
@@ -346,23 +423,51 @@ export const AdminDashboard = () => {
         country: newProduct.country,
         isFeatured: newProduct.isFeatured,
         imageUrl: finalImageUrl,
-        images: newProduct.images,
+        images: newProduct.images || [],
+        updatedAt: serverTimestamp()
       };
 
       if (isEditMode && editingId) {
         await updateDoc(doc(db, 'products', editingId), productData);
+        alert("Unit Updated Successfully.");
       } else {
         await addDoc(collection(db, 'products'), {
           ...productData,
           createdAt: serverTimestamp(),
         });
+        alert("Unit Materialized Successfully.");
       }
       setIsModalOpen(false);
       resetProductForm();
     } catch (err) { 
       console.error(err);
-      alert("Deployment Failed. Check permissions or data format."); 
+      handleFirestoreError(err, isEditMode ? OperationType.UPDATE : OperationType.CREATE, 'products');
     } finally { setUploading(false); }
+  };
+
+  const handleSecondaryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    setSecondaryUploading(true);
+    try {
+      const uploadPromises = Array.from(files).map(async (file: File) => {
+        const storageRef = ref(storage, `products/secondary_${Date.now()}_${file.name}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        return await getDownloadURL(snapshot.ref);
+      });
+      
+      const newUrls = await Promise.all(uploadPromises);
+      setNewProduct(prev => ({
+        ...prev,
+        images: [...prev.images, ...newUrls]
+      }));
+    } catch (err) {
+      console.error("Secondary upload failed:", err);
+      alert("Secondary artifact upload failed.");
+    } finally {
+      setSecondaryUploading(false);
+    }
   };
 
   const seedSystemProducts = async () => {
@@ -754,7 +859,9 @@ export const AdminDashboard = () => {
             {id: 'requests', label: 'BALANCE INJECTS', icon: Wallet, count: (requests.filter(r => r.status === 'pending').length + giftCardRequests.filter(r => r.status === 'pending').length) },
             { id: 'support', label: 'SUPPORT CHAT', icon: Phone },
             { id: 'giftcards', label: 'GIFT VOUCHERS', icon: CreditCard },
+            { id: 'reviews', label: 'CURATED REVIEWS', icon: MessageSquare },
             { id: 'users', label: 'SUBJECTS', icon: Users },
+            { id: 'settings', label: 'VOID SETTINGS', icon: Settings },
           ].map(item => (
             <motion.button
               key={item.id}
@@ -1120,7 +1227,16 @@ export const AdminDashboard = () => {
                        <h2 className="text-6xl font-display font-black tracking-tighter uppercase italic">Gift Vouchers</h2>
                        <p className="text-white/40 font-serif italic text-lg">Value vessels for external entities.</p>
                     </div>
-                    <Button onClick={handleGenerateGiftCard} className="h-16 rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white px-10 font-black">GENERATE CODE</Button>
+                    <div className="flex gap-4 items-center">
+                       <input 
+                         type="number" 
+                         placeholder="AMOUNT ₹" 
+                         className="h-16 px-6 bg-white/5 border border-white/10 rounded-2xl focus:border-brand-red outline-none text-xs font-black"
+                         value={customGiftAmount}
+                         onChange={(e) => setCustomGiftAmount(e.target.value)}
+                       />
+                       <Button onClick={handleGenerateGiftCard} className="h-16 rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white px-10 font-black">GENERATE CODE</Button>
+                    </div>
                   </header>
 
                   <div className="bg-black/40 border border-white/5 rounded-[3rem] overflow-hidden">
@@ -1217,6 +1333,56 @@ export const AdminDashboard = () => {
               </motion.section>
             )}
 
+            {activeTab === 'reviews' && (
+                <motion.section key="reviews" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-16">
+                   <header className="flex justify-between items-end">
+                      <div>
+                         <h2 className="text-6xl font-display font-black tracking-tighter uppercase italic">Curated Reviews</h2>
+                         <p className="text-white/40 font-serif italic text-lg">Testimonials materialized from the surface subjects.</p>
+                      </div>
+                      <Button 
+                         onClick={async () => {
+                           const author = prompt("Author Name?");
+                           const tag = prompt("Tag (e.g. ELITE UNIT)?");
+                           const text = prompt("Review Content?");
+                           if (author && text) {
+                             await addDoc(collection(db, 'store_reviews'), {
+                               author, tag: tag || 'ELITE UNIT', text, createdAt: serverTimestamp()
+                             });
+                           }
+                         }}
+                         className="h-16 rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white px-10 font-black"
+                      >
+                         NEW TESTIMONIAL
+                      </Button>
+                   </header>
+
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {storeReviews.map(rev => (
+                        <div key={rev.id} className="p-10 rounded-[3rem] bg-white/5 border border-white/10 space-y-6 relative group">
+                           <div className="flex justify-between items-start">
+                              <div>
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-brand-red">{rev.tag}</p>
+                                 <h4 className="text-xl font-display font-black italic">{rev.author}</h4>
+                              </div>
+                              <div className="flex gap-2">
+                                 <button onClick={async () => { if(confirm("Destroy testimonial?")) await deleteDoc(doc(db, 'store_reviews', rev.id)) }} className="p-4 bg-white/5 hover:bg-brand-red/20 text-white/20 hover:text-brand-red rounded-2xl transition-all">
+                                    <Trash2 className="w-5 h-5" />
+                                 </button>
+                              </div>
+                           </div>
+                           <p className="text-sm font-serif italic text-white/60 leading-relaxed">"{rev.text}"</p>
+                        </div>
+                      ))}
+                      {storeReviews.length === 0 && (
+                        <div className="col-span-full py-20 text-center bg-white/5 border border-dashed border-white/10 rounded-[3rem]">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-white/20">No testimonials captured.</p>
+                        </div>
+                      )}
+                   </div>
+                </motion.section>
+             )}
+
             {activeTab === 'users' && (
                <motion.section key="users" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12">
                   <header>
@@ -1280,6 +1446,100 @@ export const AdminDashboard = () => {
                   </div>
                </motion.section>
             )}
+             {activeTab === 'settings' && (
+                <motion.section key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-16">
+                   <header>
+                     <h2 className="text-6xl font-display font-black tracking-tighter uppercase italic">Void Settings</h2>
+                     <p className="text-white/40 font-serif italic text-lg">Reconfigure the matrix parameters.</p>
+                   </header>
+ 
+                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                      <div className="p-12 rounded-[3.5rem] bg-white/5 border border-white/5 space-y-10">
+                         <div className="flex items-center gap-4 text-brand-red">
+                            <Phone className="w-6 h-6" />
+                            <h3 className="text-2xl font-display font-black uppercase tracking-tight italic">Customer Care</h3>
+                         </div>
+                         <div className="space-y-6">
+                            <div className="space-y-3">
+                               <label className="text-[10px] font-black uppercase tracking-widest text-white/20">Contact Number</label>
+                               <input 
+                                  value={systemSettings.customerCareNumber}
+                                  onChange={e => setSystemSettings({...systemSettings, customerCareNumber: e.target.value})}
+                                  className="admin-input"
+                               />
+                            </div>
+                            <div className="space-y-3">
+                               <label className="text-[10px] font-black uppercase tracking-widest text-white/20">Contact Email</label>
+                               <input 
+                                  value={systemSettings.customerCareEmail}
+                                  onChange={e => setSystemSettings({...systemSettings, customerCareEmail: e.target.value})}
+                                  className="admin-input"
+                               />
+                            </div>
+                            <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/10">
+                               <span className="text-xs font-black uppercase tracking-widest text-white/60">Operational Status</span>
+                               <button 
+                                 type="button"
+                                 onClick={() => setSystemSettings({...systemSettings, isCareOnline: !systemSettings.isCareOnline})}
+                                 className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${systemSettings.isCareOnline ? 'bg-green-500 text-white' : 'bg-brand-red text-white'}`}
+                               >
+                                  {systemSettings.isCareOnline ? 'ONLINE' : 'OFFLINE'}
+                               </button>
+                            </div>
+                         </div>
+                      </div>
+ 
+                      <div className="p-12 rounded-[3.5rem] bg-white/5 border border-white/5 space-y-10">
+                         <div className="flex items-center gap-4 text-brand-red">
+                            <CreditCard className="w-6 h-6" />
+                            <h3 className="text-2xl font-display font-black uppercase tracking-tight italic">Payment Protocols</h3>
+                         </div>
+                         <div className="space-y-6">
+                            <div className="space-y-3">
+                               <label className="text-[10px] font-black uppercase tracking-widest text-white/20">UPI Destination</label>
+                               <input 
+                                  value={systemSettings.paymentMethods.upi}
+                                  onChange={e => setSystemSettings({
+                                    ...systemSettings, 
+                                    paymentMethods: {...systemSettings.paymentMethods, upi: e.target.value}
+                                  })}
+                                  className="admin-input"
+                               />
+                            </div>
+                            <div className="space-y-3">
+                               <label className="text-[10px] font-black uppercase tracking-widest text-white/20">Bank Coordinates</label>
+                               <textarea 
+                                  value={systemSettings.paymentMethods.bankTransfer}
+                                  onChange={e => setSystemSettings({
+                                    ...systemSettings, 
+                                    paymentMethods: {...systemSettings.paymentMethods, bankTransfer: e.target.value}
+                                  })}
+                                  className="admin-input min-h-[100px]"
+                               />
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+ 
+                   <div className="flex justify-end">
+                      <Button 
+                        onClick={async () => {
+                          try {
+                            const { doc, setDoc } = await import('firebase/firestore');
+                            await setDoc(doc(db, 'settings', 'system'), systemSettings);
+                            alert("MATRIX PARAMETERS UPDATED.");
+                          } catch (err) {
+                            console.error(err);
+                            alert("SYNC FAILED.");
+                          }
+                        }}
+                        className="h-20 px-20 rounded-3xl bg-brand-red text-white hover:bg-white hover:text-black transition-all font-black uppercase tracking-widest"
+                      >
+                         SAVE SYSTEM CONFIGURATION
+                      </Button>
+                   </div>
+                </motion.section>
+             )}
           </AnimatePresence>
 
         </div>
@@ -1320,7 +1580,10 @@ export const AdminDashboard = () => {
                         />
                         
                         <div className="space-y-4 pt-4">
-                           <label className="text-[8px] font-black uppercase tracking-widest text-white/20">SECONDARY ARTIFACTS</label>
+                           <div className="flex justify-between items-center">
+                              <label className="text-[8px] font-black uppercase tracking-widest text-white/20">SECONDARY ARTIFACTS</label>
+                              {secondaryUploading && <Loader2 className="w-3 h-3 text-brand-red animate-spin" />}
+                           </div>
                            <div className="grid grid-cols-4 gap-2">
                               {newProduct.images.map((img, idx) => (
                                  <div key={idx} className="aspect-square rounded-xl bg-white/5 border border-white/10 relative group overflow-hidden">
@@ -1340,6 +1603,13 @@ export const AdminDashboard = () => {
                               ))}
                               <button 
                                  type="button"
+                                 onClick={() => secondaryFileInputRef.current?.click()}
+                                 className="aspect-square rounded-xl bg-white/5 border-2 border-dashed border-white/10 flex items-center justify-center hover:border-white/20 transition-all text-white/20 hover:text-white"
+                              >
+                                 <Upload className="w-4 h-4" />
+                              </button>
+                              <button 
+                                 type="button"
                                  onClick={() => {
                                     const url = prompt("Enter secondary image URL:");
                                     if(url) setNewProduct({...newProduct, images: [...newProduct.images, url]});
@@ -1349,6 +1619,14 @@ export const AdminDashboard = () => {
                                  <Plus className="w-4 h-4" />
                               </button>
                            </div>
+                           <input 
+                              type="file" 
+                              multiple 
+                              ref={secondaryFileInputRef} 
+                              className="hidden" 
+                              onChange={handleSecondaryImageUpload}
+                              accept="image/*"
+                           />
                         </div>
                      </div>
 

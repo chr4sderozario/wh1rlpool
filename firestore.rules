@@ -48,7 +48,12 @@ service cloud.firestore {
              data.price is number && data.price >= 0 &&
              data.costPrice is number && data.costPrice >= 0 &&
              data.stock is int && data.stock >= 0 &&
-             data.category in ['Official', 'Retro', 'Embroidery', 'HighQuality', 'Sale', 'LimitedEdition', 'PlayerEdition', 'Club', 'NationalTeam', 'CustomName', 'TrainingKits', 'Shorts', 'Socks'] &&
+             data.category in [
+               'Official Jerseys', 'Retro Jerseys', 'Embroidery Jerseys', 
+               'High Quality Jerseys', 'Sale Jerseys', 'Limited Edition Jerseys', 
+               'Player Edition Jerseys', 'Club Jerseys', 'National Team Jerseys', 
+               'Custom Name Jerseys', 'Training Kits', 'Shorts', 'Socks'
+             ] &&
              (!('description' in data) || data.description is string) &&
              (!('imageUrl' in data) || data.imageUrl is string) &&
              (!('images' in data) || data.images is list) &&
@@ -58,6 +63,26 @@ service cloud.firestore {
              (!('isFeatured' in data) || data.isFeatured is bool) &&
              (!('isTrending' in data) || data.isTrending is bool) &&
              (!('ratings' in data) || data.ratings is number) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp) &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    function isValidGiftCard(data) {
+      return data.keys().hasAll(['code', 'amount', 'status']) &&
+             data.code is string && data.code.size() == 6 &&
+             data.amount is number && data.amount > 0 &&
+             data.status in ['active', 'redeemed'] &&
+             (!('createdAt' in data) || data.createdAt is timestamp) &&
+             (!('requestId' in data) || data.requestId is string);
+    }
+
+    function isValidGiftCardRequest(data) {
+      return data.keys().hasAll(['userId', 'userName', 'amount', 'status']) &&
+             data.userId == request.auth.uid &&
+             data.amount is number && data.amount > 0 &&
+             data.status in ['pending', 'approved', 'rejected'] &&
+             (!('transactionId' in data) || data.transactionId is string) &&
+             (!('materializedCode' in data) || data.materializedCode is string) &&
              (!('createdAt' in data) || data.createdAt is timestamp);
     }
 
@@ -73,6 +98,7 @@ service cloud.firestore {
              (!('address' in data) || data.address is string) &&
              (!('city' in data) || data.city is string) &&
              (!('country' in data) || data.country is string) &&
+             (!('preferredPayment' in data) || data.preferredPayment is string) &&
              (!('role' in data) || data.role in ['admin', 'user']) &&
              (!('createdAt' in data) || data.createdAt is timestamp);
     }
@@ -156,6 +182,29 @@ service cloud.firestore {
         // Force server timestamp on update/create if added to schema, for now simple write
         allow write: if isOwner(userId) && isValidUserPrivateInfo(incoming());
       }
+    }
+
+    match /gift_cards/{cardId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() && isValidGiftCard(incoming());
+      allow update: if (isSignedIn() && incoming().status == 'redeemed' && existing().status == 'active') || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /gift_card_requests/{requestId} {
+      allow get: if isSignedIn() && (isOwner(existing().userId) || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isEmailVerified() && isValidId(requestId) && isValidGiftCardRequest(incoming());
+      allow update: if isAdmin() && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'materializedCode']) &&
+        incoming().status in ['approved', 'rejected']
+      );
+      allow delete: if false;
+    }
+
+    match /store_reviews/{reviewId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

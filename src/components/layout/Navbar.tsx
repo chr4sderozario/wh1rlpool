@@ -8,11 +8,13 @@ import {
   ShoppingBag as CartIcon,
   Package,
   ShieldAlert,
-  Ghost
+  Ghost,
+  Camera
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/src/context/AuthContext';
+import { useScanner } from '@/src/context/ScannerContext';
 import { Button } from '@/src/components/ui/Button';
 
 export const Navbar = () => {
@@ -20,6 +22,7 @@ export const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { user, profile, isAdmin } = useAuth();
+  const { openScanner } = useScanner();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -33,10 +36,10 @@ export const Navbar = () => {
 
   const navLinks = [
     { name: 'ARCHIVE', path: '/' },
-    { name: 'REGISTRY', path: '/shop' },
-    { name: 'SECTOR M', path: '/men' },
-    { name: 'SECTOR W', path: '/women' },
-    { name: 'FLASH', path: '/sale' },
+    { name: 'REGISTRY', path: '/store' },
+    { name: 'LOYALTY', path: '/loyalty' },
+    { name: 'WH1RL AI', path: '/ai' },
+    { name: 'SUPPORT', path: '/support' },
   ];
 
   return (
@@ -90,7 +93,17 @@ export const Navbar = () => {
 
           {/* Actions */}
           <div className="flex items-center gap-4 md:gap-8">
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 md:gap-6">
+              <motion.button 
+                whileHover={{ scale: 1.1, color: '#ff1414' }}
+                whileTap={{ scale: 0.9 }}
+                onClick={openScanner}
+                className="text-white hover:text-brand-red transition-colors p-2 flex items-center gap-2"
+              >
+                <Camera className="w-5 h-5 md:w-4 md:h-4 text-brand-red md:text-white/20" />
+                <span className="text-[8px] font-black uppercase tracking-widest hidden sm:block">SCAN</span>
+              </motion.button>
+
               <motion.button 
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
