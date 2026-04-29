@@ -41,6 +41,12 @@ interface Order {
   total: number;
   status: string;
   paymentMethod: string;
+  paymentDetails?: {
+    transactionId?: string;
+    proofImageUrl?: string;
+  };
+  deliveryFee?: number;
+  estimatedDelivery?: string;
   createdAt: any;
 }
 
@@ -50,7 +56,18 @@ interface UserProfile {
   email?: string;
   role: string;
   balance: number;
+  phone?: string;
+  address?: string;
   createdAt?: any;
+}
+
+interface GiftCard {
+  id: string;
+  code: string;
+  amount: number;
+  status: 'active' | 'redeemed';
+  recipientEmail?: string;
+  createdAt: any;
 }
 
 interface BalanceRequest {
@@ -58,11 +75,12 @@ interface BalanceRequest {
   userId: string;
   userName: string;
   amount: number;
+  transactionId?: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: any;
 }
 
-type Tab = 'inventory' | 'orders' | 'users' | 'requests' | 'analytics';
+type Tab = 'inventory' | 'orders' | 'users' | 'requests' | 'analytics' | 'support' | 'giftcards';
 
 export const AdminDashboard = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -73,6 +91,12 @@ export const AdminDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [requests, setRequests] = useState<BalanceRequest[]>([]);
+  const [giftCards, setGiftCards] = useState<GiftCard[]>([]);
+  const [giftCardRequests, setGiftCardRequests] = useState<any[]>([]);
+  const [chats, setChats] = useState<any[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [replyText, setReplyText] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
   const [adminPassInput, setAdminPassInput] = useState('');
@@ -125,6 +149,18 @@ export const AdminDashboard = () => {
       setRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as BalanceRequest)));
     }, (err) => console.error("Requests Snapshot Error:", err));
 
+    const unsubGiftCards = onSnapshot(query(collection(db, 'gift_cards'), orderBy('createdAt', 'desc')), (snap) => {
+      setGiftCards(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as GiftCard)));
+    });
+
+    const unsubGiftCardRequests = onSnapshot(query(collection(db, 'gift_card_requests'), orderBy('createdAt', 'desc')), (snap) => {
+      setGiftCardRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    const unsubChats = onSnapshot(query(collection(db, 'support_sessions'), orderBy('lastMessageAt', 'desc')), (snap) => {
+      setChats(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
     const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
        const userDocs = snapshot.docs;
        if (userDocs.length === 0) {
@@ -163,8 +199,23 @@ export const AdminDashboard = () => {
       unsubOrders();
       unsubRequests();
       unsubUsers();
+      unsubGiftCards();
+      unsubChats();
     };
   }, [isAdmin, authLoading, navigate]);
+
+  useEffect(() => {
+    if (!activeChatId) return;
+    const unsubMessages = onSnapshot(
+      query(collection(db, 'support_chats'), where('userId', '==', activeChatId), orderBy('timestamp', 'asc')),
+      (snap) => {
+        setChatMessages(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        // Reset unread count when admin opens chat
+        updateDoc(doc(db, 'support_sessions', activeChatId), { unreadCount: 0 });
+      }
+    );
+    return () => unsubMessages();
+  }, [activeChatId]);
 
   const stats = useMemo(() => {
     const totalRevenue = orders.reduce((acc, o) => acc + o.total, 0);
@@ -195,7 +246,7 @@ export const AdminDashboard = () => {
     }
   };
 
-  const handleApproveRequest = async (req: BalanceRequest) => {
+  const handleApproveBalanceRequest = async (req: any) => {
     try {
       await updateDoc(doc(db, 'balance_requests', req.id), { status: 'approved' });
       const profileRef = doc(db, 'users', req.userId, 'public', 'profile');
@@ -204,9 +255,67 @@ export const AdminDashboard = () => {
     } catch (err) { console.error(err); }
   };
 
+  const handleApproveGiftCardRequest = async (req: any) => {
+    try {
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      await addDoc(collection(db, 'gift_cards'), {
+        code,
+        amount: req.amount,
+        status: 'active',
+        createdAt: serverTimestamp(),
+        requestId: req.id
+      });
+      await updateDoc(doc(db, 'gift_card_requests', req.id), { status: 'approved', materializedCode: code });
+      alert(`GIFT CARD MATERIALIZED: ${code}`);
+    } catch (err) { console.error(err); }
+  };
+
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
     try {
       await updateDoc(doc(db, 'orders', orderId), { status });
+    } catch (err) { console.error(err); }
+  };
+
+  const handleUpdateDeliveryTime = async (orderId: string) => {
+    const time = prompt("Enter Estimated Delivery (e.g. 13 Days):");
+    if (!time) return;
+    try {
+      await updateDoc(doc(db, 'orders', orderId), { estimatedDelivery: time });
+    } catch (err) { console.error(err); }
+  };
+
+  const handleGenerateGiftCard = async () => {
+    const amount = prompt("Enter Gift Card Amount (₹):");
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    if (!amount) return;
+    try {
+      await addDoc(collection(db, 'gift_cards'), {
+        code,
+        amount: parseFloat(amount),
+        status: 'active',
+        createdAt: serverTimestamp()
+      });
+      alert(`Gift Card Created: ${code}`);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleSendChatReply = async (userId: string) => {
+    if (!replyText.trim()) return;
+    try {
+      await addDoc(collection(db, 'support_chats'), {
+        userId,
+        senderId: 'admin',
+        text: replyText,
+        isAdmin: true,
+        timestamp: serverTimestamp()
+      });
+      
+      await updateDoc(doc(db, 'support_sessions', userId), {
+        lastMessage: replyText,
+        lastMessageAt: serverTimestamp()
+      });
+
+      setReplyText('');
     } catch (err) { console.error(err); }
   };
 
@@ -513,7 +622,9 @@ export const AdminDashboard = () => {
             { id: 'analytics', label: 'ANALYTICS', icon: BarChart3 },
             { id: 'inventory', label: 'VAULT INVENTORY', icon: Database },
             { id: 'orders', label: 'TRANSMISSIONS', icon: ShoppingBag },
-            { id: 'requests', label: 'BALANCE INJECTS', icon: Wallet, count: requests.filter(r => r.status === 'pending').length },
+            {id: 'requests', label: 'BALANCE INJECTS', icon: Wallet, count: (requests.filter(r => r.status === 'pending').length + giftCardRequests.filter(r => r.status === 'pending').length) },
+            { id: 'support', label: 'SUPPORT CHAT', icon: Phone },
+            { id: 'giftcards', label: 'GIFT VOUCHERS', icon: CreditCard },
             { id: 'users', label: 'SUBJECTS', icon: Users },
           ].map(item => (
             <motion.button
@@ -757,12 +868,14 @@ export const AdminDashboard = () => {
                   </header>
                   
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                     {/* Balance Requests */}
                      {requests.map(req => (
                         <div key={req.id} className={`p-10 rounded-[3rem] border transition-all ${req.status === 'pending' ? 'bg-[#0A0A0A] border-white/10' : 'bg-black/40 border-white/5 opacity-40'}`}>
                            <div className="flex justify-between items-start mb-8">
                               <div className="space-y-2">
-                                 <h4 className="text-2xl font-display font-black tracking-tighter uppercase">{req.userName}</h4>
-                                 <p className="text-[10px] text-white/40 uppercase tracking-widest leading-none truncate w-40">{req.userId}</p>
+                                 <span className="text-[8px] font-black tracking-widest text-brand-red bg-brand-red/10 px-2 py-1 rounded">CREDIT TOP-UP</span>
+                                 <h4 className="text-2xl font-display font-black tracking-tighter uppercase mt-2">{req.userName}</h4>
+                                 <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">TXID: {req.transactionId || 'NOT PROVIDED'}</p>
                               </div>
                               <div className="text-right space-y-1">
                                  <p className="text-3xl font-display font-black tracking-tighter italic">₹ {req.amount}</p>
@@ -772,13 +885,136 @@ export const AdminDashboard = () => {
                            
                            {req.status === 'pending' && (
                               <div className="flex gap-4">
-                                 <Button onClick={() => handleApproveRequest(req)} className="flex-1 bg-white text-black hover:bg-green-500 hover:text-white rounded-2xl h-14 font-black text-xs">APPROVE INJECTION</Button>
+                                 <Button onClick={() => handleApproveBalanceRequest(req)} className="flex-1 bg-white text-black hover:bg-green-500 hover:text-white rounded-2xl h-14 font-black text-xs">APPROVE INJECTION</Button>
                                  <Button variant="outline" onClick={async () => await updateDoc(doc(db, 'balance_requests', req.id), { status: 'rejected' })} className="px-8 border-white/10 text-white/40 hover:text-white rounded-2xl h-14 font-black text-xs">REJECT</Button>
                               </div>
                            )}
                         </div>
                      ))}
-                     {requests.length === 0 && <p className="text-white/10 italic p-20 text-center border-2 border-dashed border-white/5 rounded-[4rem]">No payment signals detected.</p>}
+
+                     {/* Gift Card Requests */}
+                     {giftCardRequests.map(req => (
+                        <div key={req.id} className={`p-10 rounded-[3rem] border transition-all ${req.status === 'pending' ? 'bg-[#0A0A0A] border-white/10' : 'bg-black/40 border-white/5 opacity-40'}`}>
+                           <div className="flex justify-between items-start mb-8">
+                              <div className="space-y-2">
+                                 <span className="text-[8px] font-black tracking-widest text-blue-500 bg-blue-500/10 px-2 py-1 rounded">GIFT VOUCHER PURCHASE</span>
+                                 <h4 className="text-2xl font-display font-black tracking-tighter uppercase mt-2">{req.userName}</h4>
+                                 <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">TXID: {req.transactionId || 'NOT PROVIDED'}</p>
+                              </div>
+                              <div className="text-right space-y-1">
+                                 <p className="text-3xl font-display font-black tracking-tighter italic">₹ {req.amount}</p>
+                                 <p className={`text-[10px] uppercase font-black tracking-widest ${req.status === 'pending' ? 'text-brand-red' : 'text-green-500'}`}>{req.status}</p>
+                              </div>
+                           </div>
+                           
+                           {req.status === 'pending' ? (
+                              <div className="flex gap-4">
+                                 <Button onClick={() => handleApproveGiftCardRequest(req)} className="flex-1 bg-white text-black hover:bg-blue-500 hover:text-white rounded-2xl h-14 font-black text-xs">MATERIALIZE CODE</Button>
+                                 <Button variant="outline" onClick={async () => await updateDoc(doc(db, 'gift_card_requests', req.id), { status: 'rejected' })} className="px-8 border-white/10 text-white/40 hover:text-white rounded-2xl h-14 font-black text-xs">REJECT</Button>
+                              </div>
+                           ) : req.status === 'approved' && (
+                              <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-center">
+                                 <p className="text-[8px] font-black uppercase text-white/20 mb-2">MATERIALIZED CODE</p>
+                                 <p className="text-xl font-mono font-black text-brand-red tracking-widest">{req.materializedCode}</p>
+                              </div>
+                           )}
+                        </div>
+                     ))}
+                     
+                     {(requests.length === 0 && giftCardRequests.length === 0) && <p className="text-white/10 italic p-20 text-center border-2 border-dashed border-white/5 rounded-[4rem] col-span-full">No payment signals detected.</p>}
+                  </div>
+               </motion.section>
+            )}
+
+            {activeTab === 'support' && (
+               <motion.section key="support" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12">
+                  <header>
+                    <h2 className="text-6xl font-display font-black tracking-tighter uppercase italic">Support</h2>
+                    <p className="text-white/40 font-serif italic text-lg">Active signals from the surface.</p>
+                  </header>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 h-[600px]">
+                     <div className="lg:col-span-1 rounded-[3rem] bg-white/5 border border-white/10 overflow-hidden flex flex-col">
+                        <div className="p-6 bg-white/5 border-b border-white/10 uppercase font-black text-[10px] tracking-widest">Active Channels</div>
+                        <div className="flex-1 overflow-y-auto">
+                           {chats.map(chat => (
+                              <button 
+                                key={chat.id}
+                                onClick={() => setActiveChatId(chat.userId)}
+                                className={`w-full p-6 text-left border-b border-white/5 hover:bg-white/5 transition-all ${activeChatId === chat.userId ? 'bg-white/10 border-r-4 border-r-brand-red' : ''}`}
+                              >
+                                 <p className="font-display font-black uppercase italic leading-none truncate mb-2">{chat.userName || 'Subject'}</p>
+                                 <p className="text-[8px] uppercase font-black text-white/20 tracking-widest truncate">{chat.lastMessage}</p>
+                              </button>
+                           ))}
+                        </div>
+                     </div>
+
+                     <div className="lg:col-span-2 rounded-[4rem] bg-[#0A0A0A] border border-white/10 p-10 flex flex-col">
+                        {activeChatId ? (
+                           <>
+                              <div className="flex-1 overflow-y-auto space-y-6 pb-6">
+                                 {chatMessages.map((msg, i) => (
+                                    <div key={i} className={`flex ${msg.isAdmin ? 'justify-end' : 'justify-start'}`}>
+                                       <div className={`max-w-[70%] p-6 rounded-3xl text-xs font-medium ${msg.isAdmin ? 'bg-brand-red text-white' : 'bg-white/10 text-white'}`}>
+                                          {msg.text}
+                                       </div>
+                                    </div>
+                                 ))}
+                              </div>
+                              <div className="flex gap-4 pt-6 border-t border-white/10">
+                                 <input 
+                                    className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs focus:outline-none focus:border-brand-red transition-all"
+                                    placeholder="Enter Response Signal..."
+                                    value={replyText}
+                                    onChange={e => setReplyText(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleSendChatReply(activeChatId)}
+                                 />
+                                 <Button onClick={() => handleSendChatReply(activeChatId)} className="rounded-2xl bg-white text-black px-8 font-black hover:bg-brand-red hover:text-white transition-all">SEND</Button>
+                              </div>
+                           </>
+                        ) : (
+                           <div className="flex-1 flex flex-col items-center justify-center text-center opacity-20">
+                              <Phone className="w-16 h-16 mb-4" />
+                              <p className="text-[10px] font-black uppercase tracking-widest">Select a channel to begin transmission</p>
+                           </div>
+                        )}
+                     </div>
+                  </div>
+               </motion.section>
+            )}
+
+            {activeTab === 'giftcards' && (
+               <motion.section key="gift" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12">
+                  <header className="flex justify-between items-end">
+                    <div>
+                       <h2 className="text-6xl font-display font-black tracking-tighter uppercase italic">Gift Vouchers</h2>
+                       <p className="text-white/40 font-serif italic text-lg">Value vessels for external entities.</p>
+                    </div>
+                    <Button onClick={handleGenerateGiftCard} className="h-16 rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white px-10 font-black">GENERATE CODE</Button>
+                  </header>
+
+                  <div className="bg-black/40 border border-white/5 rounded-[3rem] overflow-hidden">
+                     <table className="w-full text-left">
+                        <thead className="bg-white/5">
+                           <tr className="text-[10px] uppercase font-black tracking-widest text-white/40">
+                              <th className="p-8">Code Sequence</th>
+                              <th className="p-8">Stored Value</th>
+                              <th className="p-8">Sync Status</th>
+                              <th className="p-8">Materialized At</th>
+                           </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                           {giftCards.map(gc => (
+                              <tr key={gc.id} className="text-sm font-bold">
+                                 <td className="p-8 font-mono text-brand-red tracking-[0.2em]">{gc.code}</td>
+                                 <td className="p-8 italic font-display text-lg">₹ {gc.amount}</td>
+                                 <td className="p-8 uppercase text-[10px] font-black">{gc.status}</td>
+                                 <td className="p-8 text-[10px] opacity-40 uppercase">{gc.createdAt?.toDate().toLocaleDateString()}</td>
+                              </tr>
+                           ))}
+                        </tbody>
+                     </table>
                   </div>
                </motion.section>
             )}
@@ -814,20 +1050,35 @@ export const AdminDashboard = () => {
                                  </td>
                                  <td className="p-8 text-[10px] uppercase font-black opacity-40">{o.paymentMethod}</td>
                                  <td className="p-8">
-                                    <select 
-                                       value={o.status}
-                                       onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
-                                       className={`bg-transparent text-[10px] font-black uppercase tracking-widest focus:outline-none cursor-pointer ${
-                                          o.status === 'pending' ? 'text-orange-500' :
-                                          o.status === 'shipped' ? 'text-blue-500' :
-                                          o.status === 'delivered' ? 'text-green-500' : 'text-red-500'
-                                       }`}
-                                    >
-                                       <option value="pending">PENDING</option>
-                                       <option value="shipped">SHIPPED</option>
-                                       <option value="delivered">DELIVERED</option>
-                                       <option value="cancelled">CANCELLED</option>
-                                    </select>
+                                    <div className="flex flex-col gap-2">
+                                       <select 
+                                          value={o.status}
+                                          onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
+                                          className={`bg-transparent text-[10px] font-black uppercase tracking-widest focus:outline-none cursor-pointer ${
+                                             o.status === 'pending' ? 'text-orange-500' :
+                                             o.status === 'verifying' ? 'text-brand-red' :
+                                             o.status === 'processing' ? 'text-blue-200' :
+                                             o.status === 'shipped' ? 'text-blue-500' :
+                                             o.status === 'delivered' ? 'text-green-500' : 'text-red-500'
+                                          }`}
+                                       >
+                                          <option value="pending">PENDING</option>
+                                          <option value="verifying">VERIFYING</option>
+                                          <option value="processing">PROCESSING</option>
+                                          <option value="shipped">SHIPPED</option>
+                                          <option value="delivered">DELIVERED</option>
+                                          <option value="cancelled">CANCELLED</option>
+                                       </select>
+                                       <button 
+                                         onClick={() => handleUpdateDeliveryTime(o.id)}
+                                         className="text-[8px] uppercase tracking-widest text-white/20 hover:text-white"
+                                       >
+                                          {o.estimatedDelivery || 'SET DELIVERY TIME'}
+                                       </button>
+                                       {o.paymentDetails?.proofImageUrl && (
+                                          <a href={o.paymentDetails.proofImageUrl} target="_blank" rel="noreferrer" className="text-[8px] uppercase tracking-widest text-brand-red underline">VIEW PROOF</a>
+                                       )}
+                                    </div>
                                  </td>
                               </tr>
                            ))}

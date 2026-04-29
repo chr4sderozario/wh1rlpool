@@ -15,7 +15,9 @@ import { ProductDetailPage } from '@/src/pages/ProductDetailPage';
 import { WishlistPage } from '@/src/pages/WishlistPage';
 import { OrdersPage } from '@/src/pages/OrdersPage';
 import { CheckoutPage } from '@/src/pages/CheckoutPage';
+import { GiftCardPage } from '@/src/pages/GiftCardPage';
 import { AuthProvider } from '@/src/context/AuthContext';
+import { ChatWidget } from '@/src/components/ChatWidget';
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -43,6 +45,7 @@ export default function App() {
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/shop" element={<StorePage />} />
                 <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/giftcard" element={<GiftCardPage />} />
                 <Route path="/men" element={<StorePage gender="men" />} />
                 <Route path="/women" element={<StorePage gender="women" />} />
                 <Route path="/sale" element={<StorePage onSale={true} />} />
@@ -53,6 +56,7 @@ export default function App() {
                 <Route path="/product/:id" element={<ProductDetailPage />} />
                 <Route path="/support" element={<SupportPage />} />
               </Routes>
+              <ChatWidget />
             </div>
           )}
         </AnimatePresence>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, addDoc, collection, query, where, getDocs, updateDoc, increment, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/context/AuthContext';
 import { Button } from '@/src/components/ui/Button';
@@ -17,7 +17,9 @@ import {
   ShieldAlert,
   X,
   History,
-  Lock
+  Lock,
+  Gift,
+  Truck
 } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
 
@@ -31,13 +33,22 @@ export const ProfilePage = () => {
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [balanceAmount, setBalanceAmount] = useState('');
+  const [transactionId, setTransactionId] = useState('');
+  const [giftCardCode, setGiftCardCode] = useState('');
+  const [isRedeeming, setIsRedeeming] = useState(false);
 
   const [formData, setFormData] = useState({
     displayName: '',
     phone: '',
     address: '',
     city: '',
+    state: '',
+    zipcode: '',
     country: '',
+    gender: 'unisex',
+    preferredSize: 'L',
+    profileImage: '',
+    preferredPayment: 'online',
   });
 
   useEffect(() => {
@@ -51,12 +62,16 @@ export const ProfilePage = () => {
         phone: profile.phone || '',
         address: profile.address || '',
         city: profile.city || '',
+        state: profile.state || '',
+        zipcode: profile.zipcode || '',
         country: profile.country || '',
+        gender: profile.gender || 'unisex',
+        preferredSize: profile.preferredSize || 'L',
+        profileImage: profile.profileImage || '',
+        preferredPayment: profile.preferredPayment || 'online',
       });
       setLoading(false);
     } else if (!authLoading && user) {
-      // If profile is not loaded but user exists, we might need to wait or handle the empty state
-      // For now, let's allow loading to finish if we have basic user info
       setLoading(false);
     }
   }, [user, authLoading, profile, navigate]);
@@ -87,17 +102,65 @@ export const ProfilePage = () => {
     }
   };
 
+  const handleRedeemGiftCard = async () => {
+    if (!giftCardCode.trim() || !user) return;
+    setIsRedeeming(true);
+    try {
+      // Find the gift card
+      const q = query(collection(db, 'gift_cards'), where('code', '==', giftCardCode.trim().toUpperCase()));
+      const snap = await getDocs(q);
+      
+      if (snap.empty) {
+        alert("INVALID CODE SEQUENCE. AUTHENTICATION FAILED.");
+        setIsRedeeming(false);
+        return;
+      }
+
+      const gcDoc = snap.docs[0];
+      const gcData = gcDoc.data();
+
+      if (gcData.status !== 'active') {
+        alert("CODE ALREADY DEPLOYED OR SYSTEM LOCKED.");
+        setIsRedeeming(false);
+        return;
+      }
+
+      // Atomically update card and user balance
+      // In a real app, use a transaction. Here we'll do sequential updates as it's a demo.
+      await updateDoc(doc(db, 'gift_cards', gcDoc.id), {
+        status: 'redeemed',
+        redeemedBy: user.uid,
+        redeemedAt: serverTimestamp()
+      });
+
+      await updateDoc(doc(db, 'users', user.uid, 'public', 'profile'), {
+        balance: increment(gcData.amount)
+      });
+
+      alert(`SUCCESS: ₹${gcData.amount} INJECTED INTO VOID BALANCE.`);
+      setGiftCardCode('');
+    } catch (err) {
+      console.error(err);
+      alert("SYNC ERROR. TRY AGAIN LATER.");
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
   const handleBalanceRequest = async () => {
-    if (!user || !balanceAmount) return;
+    if (!user || !balanceAmount || !transactionId) {
+      alert("Amount and Transaction ID required.");
+      return;
+    }
     try {
       await addDoc(collection(db, 'balance_requests'), {
         userId: user.uid,
         userName: profile?.displayName || user.email,
         amount: parseFloat(balanceAmount),
+        transactionId,
         status: 'pending',
         createdAt: serverTimestamp()
       });
-      alert("Pay using QR and wait for admin approval.");
+      alert("Request submitted. Wait for admin verification.");
       setIsBalanceModalOpen(false);
     } catch (err) { console.error(err); }
   };
@@ -125,7 +188,7 @@ export const ProfilePage = () => {
               >
                 <div className="absolute inset-0 rounded-full border-2 border-dashed border-white/10 group-hover:border-brand-red group-hover:rotate-180 transition-all duration-1000" />
                 <div className="absolute inset-2 rounded-full overflow-hidden border border-white/10 grayscale group-hover:grayscale-0 transition-all duration-500">
-                  <img src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.uid}`} className="w-full h-full object-cover" />
+                  <img src={formData.profileImage || user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.uid}`} className="w-full h-full object-cover" />
                 </div>
                 <div className="absolute inset-0 rounded-full bg-brand-red/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <Lock className="w-6 h-6 text-white" />
@@ -180,26 +243,75 @@ export const ProfilePage = () => {
                <button onClick={() => navigate('/orders')} className="w-full p-6 text-left rounded-3xl border border-white/5 hover:border-white/20 hover:bg-white/5 transition-all text-sm uppercase font-black tracking-widest flex justify-between items-center group">
                   Active Orders <ArrowLeft className="w-4 h-4 rotate-180 opacity-0 group-hover:opacity-100 transition-all" />
                </button>
-               <button onClick={() => navigate('/wishlist')} className="w-full p-6 text-left rounded-3xl border border-white/5 hover:border-white/20 hover:bg-white/5 transition-all text-sm uppercase font-black tracking-widest flex justify-between items-center group">
-                  Saved Artifacts <ArrowLeft className="w-4 h-4 rotate-180 opacity-0 group-hover:opacity-100 transition-all" />
+               <button onClick={() => navigate('/giftcard')} className="w-full p-6 text-left rounded-3xl border border-brand-red/10 bg-brand-red/5 hover:border-brand-red/30 hover:bg-brand-red/10 transition-all text-sm uppercase font-black tracking-widest flex justify-between items-center group text-brand-red">
+                  Buy Gift Voucher <Gift className="w-4 h-4" />
                </button>
+               <button 
+                onClick={() => {
+                   const code = prompt("ENTER GIFT CARD CODE:");
+                   if(code) {
+                      setGiftCardCode(code);
+                      // Since we handle redeem in a separate function, we might want to call it directly or show a button
+                   }
+                }}
+                className="w-full p-6 text-left rounded-3xl border border-white/5 hover:border-white/20 hover:bg-white/5 transition-all text-sm uppercase font-black tracking-widest flex justify-between items-center group"
+               >
+                  Redeem Gift Card <Globe className="w-4 h-4" />
+               </button>
+               {giftCardCode && (
+                  <div className="p-4 bg-brand-red/10 border border-brand-red/20 rounded-2xl space-y-4">
+                     <p className="text-[8px] font-black uppercase text-brand-red">Active Sequence: {giftCardCode}</p>
+                     <Button 
+                       onClick={handleRedeemGiftCard} 
+                       disabled={isRedeeming}
+                       className="w-full h-10 rounded-xl bg-brand-red text-white text-[8px] font-black"
+                     >
+                       {isRedeeming ? 'VALIDATING...' : 'EXECUTE REDEMPTION'}
+                     </Button>
+                  </div>
+               )}
+               
+               <div className="pt-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <OrderStatusSnippet />
+               </div>
             </div>
           </aside>
 
           {/* Right: Detailed Info */}
           <div className="flex-1 space-y-12">
             <header className="space-y-4 pb-12 border-b border-white/5">
-              <h1 className="text-6xl md:text-8xl font-display font-black tracking-tighter uppercase italic">IDENTITY LOG</h1>
+              <h1 className="text-6xl md:text-8xl font-display font-black tracking-tighter uppercase italic leading-none">IDENTITY LOG</h1>
               <p className="text-white/40 font-serif italic text-lg">Update your transmission coordinates and digital presence.</p>
             </header>
 
             <form onSubmit={handleSubmit} className="space-y-12">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                <InputGroup label="Identity Name">
+               <InputGroup label="Identity Name">
                   <input value={formData.displayName} onChange={e => setFormData({...formData, displayName: e.target.value})} className="input-field" placeholder="Subject Name" />
+                </InputGroup>
+                <InputGroup label="Digital Avatar URL">
+                  <input value={formData.profileImage} onChange={e => setFormData({...formData, profileImage: e.target.value})} className="input-field" placeholder="https://image-url.com" />
                 </InputGroup>
                 <InputGroup label="Terminal Phone">
                   <input value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="input-field" placeholder="+91 0000000000" />
+                </InputGroup>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <InputGroup label="Gender Identification">
+                   <select value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})} className="input-field">
+                      <option value="unisex">Unisex</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                   </select>
+                </InputGroup>
+                <InputGroup label="Standard Pattern (Size)">
+                   <select value={formData.preferredSize} onChange={e => setFormData({...formData, preferredSize: e.target.value})} className="input-field">
+                      <option value="S">Small (S)</option>
+                      <option value="M">Medium (M)</option>
+                      <option value="L">Large (L)</option>
+                      <option value="XL">X-Large (XL)</option>
+                   </select>
                 </InputGroup>
               </div>
 
@@ -208,27 +320,42 @@ export const ProfilePage = () => {
                   value={formData.address} 
                   onChange={e => setFormData({...formData, address: e.target.value})} 
                   className="input-field min-h-[120px] py-6" 
-                  placeholder="Street, City, Sector, Grid Reference" 
+                  placeholder="Street, Locality, Landmark" 
                 />
               </InputGroup>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <InputGroup label="Sector / City">
                   <input value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="input-field" placeholder="City" />
                 </InputGroup>
-                <InputGroup label="Grid / Country">
+                <InputGroup label="State / Zone">
+                  <input value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} className="input-field" placeholder="State" />
+                </InputGroup>
+                <InputGroup label="Zip Code">
+                  <input value={formData.zipcode} onChange={e => setFormData({...formData, zipcode: e.target.value})} className="input-field" placeholder="000000" />
+                </InputGroup>
+                <InputGroup label="Region / Country">
                   <input value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} className="input-field" placeholder="Country" />
                 </InputGroup>
+              </div>
+
+              <div className="space-y-4">
+                  <InputGroup label="Preferred Extraction Method">
+                     <select value={formData.preferredPayment} onChange={e => setFormData({...formData, preferredPayment: e.target.value})} className="input-field uppercase text-[10px] font-black tracking-widest">
+                        <option value="online">Online UPI (0% Fee)</option>
+                        <option value="cod">Cash on Delivery (₹50 Fee)</option>
+                        <option value="balance">Void balance</option>
+                     </select>
+                  </InputGroup>
               </div>
 
               <div className="pt-12">
                 <Button 
                   disabled={saving}
-                  className="w-full h-20 rounded-full bg-brand-red text-white hover:bg-white hover:text-black transition-all duration-700 font-black px-12 group"
+                  className="w-full h-24 rounded-[2rem] bg-brand-red text-white hover:bg-white hover:text-black transition-all duration-700 font-black px-12 group"
                 >
-                  <span className="flex items-center gap-4">
-                    {saving ? 'SYNCHRONIZING...' : success ? 'IDENTITY UPDATED' : 'SAVE CHANGES'}
-                    {success && <CheckCircle className="w-5 h-5" />}
+                  <span className="flex items-center gap-4 text-xl">
+                    {saving ? 'SYNCHRONIZING...' : success ? 'IDENTITY UPDATED ✓' : 'SECURE IDENTITY'}
                   </span>
                 </Button>
               </div>
@@ -334,3 +461,54 @@ const InputGroup = ({ label, children }: { label: string; children: React.ReactN
     {children}
   </div>
 );
+
+const OrderStatusSnippet = () => {
+  const { user } = useAuth();
+  const [lastOrder, setLastOrder] = useState<any>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'orders'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'), limit(1));
+    const unsub = onSnapshot(q, (snap) => {
+      if (!snap.empty) setLastOrder({ id: snap.docs[0].id, ...snap.docs[0].data() });
+    });
+    return unsub;
+  }, [user]);
+
+  if (!lastOrder) return (
+     <div className="p-8 rounded-[2.5rem] bg-white/5 border border-white/5 text-center space-y-2 opacity-50">
+        <p className="text-[8px] font-black uppercase tracking-widest">No Active Sync</p>
+        <p className="text-[10px] font-medium opacity-40">Artifact extraction queue is empty.</p>
+     </div>
+  );
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="p-8 rounded-[2.5rem] bg-brand-red/5 border border-brand-red/20 space-y-6 relative overflow-hidden group/track hover:bg-brand-red/10 transition-all cursor-pointer"
+      onClick={() => navigate('/orders')}
+    >
+       <div className="flex justify-between items-start">
+          <div className="space-y-1">
+             <p className="text-[8px] font-black uppercase tracking-[0.3em] text-brand-red">Live Status</p>
+             <p className="text-xl font-display font-black tracking-tighter uppercase italic truncate">#{lastOrder.id.slice(0, 8)}</p>
+          </div>
+          <Truck className="w-5 h-5 text-brand-red" />
+       </div>
+       <div className="flex justify-between items-end">
+          <div>
+             <p className="text-[10px] font-black uppercase text-white/40 mb-1">Status</p>
+             <p className={`text-[10px] font-black uppercase tracking-widest ${
+                lastOrder.status === 'delivered' ? 'text-green-500' : 'text-brand-red'
+             }`}>{lastOrder.status}</p>
+          </div>
+          <div className="text-right">
+             <p className="text-[10px] font-black uppercase text-white/40 mb-1">ETA</p>
+             <p className="text-[10px] font-black uppercase tracking-widest text-white">{lastOrder.estimatedDelivery || 'APPROX 13d'}</p>
+          </div>
+       </div>
+    </motion.div>
+  );
+};

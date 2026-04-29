@@ -9,7 +9,11 @@ import {
   addDoc, 
   serverTimestamp,
   updateDoc,
-  getDoc
+  getDoc,
+  query,
+  where,
+  orderBy,
+  limit
 } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/context/AuthContext';
@@ -259,6 +263,8 @@ export const CartPage = () => {
                       <p className="text-[8px] font-black uppercase tracking-widest text-white/40">Multi-Chain Pay</p>
                    </div>
                 </div>
+
+                <OrderStatusSnippet />
              </div>
           </aside>
         </div>
@@ -286,3 +292,49 @@ const PaymentMethod = ({ id, label, desc, icon, active, onClick }: { id: string,
     )}
   </button>
 );
+
+const OrderStatusSnippet = () => {
+  const { user } = useAuth();
+  const [lastOrder, setLastOrder] = useState<any>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'orders'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'), limit(1));
+    const unsub = onSnapshot(q, (snap) => {
+      if (!snap.empty) setLastOrder({ id: snap.docs[0].id, ...snap.docs[0].data() });
+    });
+    return unsub;
+  }, [user]);
+
+  if (!lastOrder) return null;
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-8 mt-8 rounded-[2.5rem] bg-brand-red/5 border border-brand-red/20 space-y-6 relative overflow-hidden group hover:bg-brand-red/10 transition-all cursor-pointer"
+      onClick={() => navigate('/orders')}
+    >
+       <div className="absolute top-0 right-0 p-4 opacity-10">
+          <Truck className="w-12 h-12 rotate-[-10deg]" />
+       </div>
+       <div className="space-y-1">
+          <p className="text-[8px] font-black uppercase tracking-[0.3em] text-brand-red">Active Transmission</p>
+          <p className="text-xl font-display font-black tracking-tighter uppercase italic truncate">#{lastOrder.id.slice(0, 8)}</p>
+       </div>
+       <div className="flex justify-between items-end">
+          <div>
+             <p className="text-[10px] font-black uppercase text-white/40 mb-1">Current Sync</p>
+             <p className={`text-xs font-black uppercase tracking-widest ${
+                lastOrder.status === 'delivered' ? 'text-green-500' : 'text-brand-red animate-pulse'
+             }`}>{lastOrder.status}</p>
+          </div>
+          <div className="text-right">
+             <p className="text-[10px] font-black uppercase text-white/40 mb-1">ETA</p>
+             <p className="text-xs font-black uppercase tracking-widest text-white">{lastOrder.estimatedDelivery || 'SYNCING...'}</p>
+          </div>
+       </div>
+    </motion.div>
+  );
+};
