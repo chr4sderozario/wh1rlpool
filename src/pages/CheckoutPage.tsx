@@ -107,10 +107,10 @@ export const CheckoutPage = () => {
         <h1 className="text-4xl font-display font-black tracking-tighter uppercase italic mb-4">
           {paymentMethod === 'online' ? 'Verification Initiated' : 'Transmission Successful'}
         </h1>
-        <p className="text-white/40 mb-12 max-w-md">
+        <p className="text-white/40 mb-12 max-w-sm mx-auto uppercase text-[10px] font-black tracking-widest leading-loose">
           {paymentMethod === 'online' 
-            ? 'Our oracles are currently verifying your transfer. Please allow 1-6 hours for identity confirmation.' 
-            : 'Your artifact has been queued for extraction. You will receive a notification once the courier is dispatched.'}
+            ? 'Oracles are verifying your signature. FOR FASTER VALIDATION, SEND TRANSACTION PROOF TO WHATSAPP: +91 82405 15833.' 
+            : 'Your artifact has been queued. Delivery will commence shortly. Extraction sequence completed.'}
         </p>
         <div className="flex flex-col gap-4">
           <Button onClick={() => navigate('/orders')} className="rounded-full px-12 h-16 bg-white text-black">Track Order</Button>
@@ -249,10 +249,14 @@ export const CheckoutPage = () => {
                     className="p-8 bg-white/5 border border-white/10 rounded-[2.5rem] space-y-6"
                   >
                     <div className="text-center space-y-4">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em]">SCAN & PAY THE TOTAL (₹{finalTotal})</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em]">PAY TO UPI: <span className="text-brand-red">8240515833@fam</span></p>
                       <div className="bg-white p-4 rounded-3xl w-48 h-48 mx-auto">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=WH1RLPOOL_PAYMENT" className="w-full h-full grayscale" />
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=8240515833@fam%26pn=WH1RLPOOL%26cu=INR" className="w-full h-full grayscale" />
                       </div>
+                      <p className="text-[8px] font-black uppercase tracking-widest text-white/30 max-w-[200px] mx-auto italic">
+                        In case of issues, send screenshot to WhatsApp: <br/>
+                        <span className="text-white">+91 82405 15833</span>
+                      </p>
                     </div>
                     
                     <div className="space-y-4">

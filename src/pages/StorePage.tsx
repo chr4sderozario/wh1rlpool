@@ -13,7 +13,7 @@ import {
   SlidersHorizontal,
   ChevronRight
 } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
@@ -318,7 +318,7 @@ export const StorePage = ({ gender, onSale }: StorePageProps) => {
   );
 };
 
-const ProductCard = ({ product }: { product: Product; key?: any }) => {
+const ProductCard = memo(({ product }: { product: Product }) => {
   const navigate = useNavigate();
   return (
     <motion.div
@@ -339,6 +339,7 @@ const ProductCard = ({ product }: { product: Product; key?: any }) => {
           <img 
             src={product.imageUrl} 
             alt={product.name}
+            loading="lazy"
             className="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:scale-105 group-hover:opacity-100 transition-all duration-1000"
             referrerPolicy="no-referrer"
           />
@@ -383,7 +384,9 @@ const ProductCard = ({ product }: { product: Product; key?: any }) => {
       </div>
     </motion.div>
   );
-};
+});
+
+ProductCard.displayName = 'ProductCard';
 
 const ActiveFilter = ({ label, onRemove, isClear }: { label: string; onRemove: () => void; isClear?: boolean }) => (
   <button 

@@ -51,14 +51,14 @@ export const GothicBackground = () => {
       </div>
 
       {/* Red Accents & Liquid Glow */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden will-change-transform">
         <motion.div 
           animate={{
             scale: [1, 1.1, 1],
             opacity: [0.05, 0.1, 0.05],
           }}
           transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[10%] -left-[10%] w-[60%] h-[60%] bg-brand-red/10 blur-[180px] rounded-full" 
+          className="absolute top-[10%] -left-[10%] w-[60%] h-[60%] bg-brand-red/10 blur-[180px] rounded-full translate-z-0" 
         />
         <motion.div 
           animate={{
@@ -66,12 +66,12 @@ export const GothicBackground = () => {
             opacity: [0.03, 0.08, 0.03],
           }}
           transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 5 }}
-          className="absolute -bottom-[10%] -right-[10%] w-[70%] h-[70%] bg-brand-red/5 blur-[200px] rounded-full" 
+          className="absolute -bottom-[10%] -right-[10%] w-[70%] h-[70%] bg-brand-red/5 blur-[200px] rounded-full translate-z-0" 
         />
       </div>
 
-      {/* Floating Particles */}
-      {particles.map((p) => (
+      {/* Floating Particles - Reduced for performance */}
+      {particles.slice(0, 15).map((p) => (
         <motion.div
           key={p.id}
           initial={{ x: `${p.x}%`, y: `${p.y}%`, opacity: 0 }}

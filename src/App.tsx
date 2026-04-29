@@ -1,23 +1,25 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { GothicBackground } from '@/src/components/layout/GothicBackground';
 import { LoadingScreen } from '@/src/components/layout/LoadingScreen';
-import { LandingPage } from '@/src/pages/LandingPage';
-import { LoginPage } from '@/src/pages/LoginPage';
-import { AdminDashboard } from '@/src/pages/AdminDashboard';
-import { StorePage } from '@/src/pages/StorePage';
-import { ProfilePage } from '@/src/pages/ProfilePage';
-import { SupportPage } from '@/src/pages/SupportPage';
 import { Navbar } from '@/src/components/layout/Navbar';
-import { CartPage } from '@/src/pages/CartPage';
-import { ProductDetailPage } from '@/src/pages/ProductDetailPage';
-import { WishlistPage } from '@/src/pages/WishlistPage';
-import { OrdersPage } from '@/src/pages/OrdersPage';
-import { CheckoutPage } from '@/src/pages/CheckoutPage';
-import { GiftCardPage } from '@/src/pages/GiftCardPage';
 import { AuthProvider } from '@/src/context/AuthContext';
 import { ChatWidget } from '@/src/components/ChatWidget';
+
+// Lazy load pages for performance
+const LandingPage = lazy(() => import('@/src/pages/LandingPage').then(m => ({ default: m.LandingPage })));
+const LoginPage = lazy(() => import('@/src/pages/LoginPage').then(m => ({ default: m.LoginPage })));
+const AdminDashboard = lazy(() => import('@/src/pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const StorePage = lazy(() => import('@/src/pages/StorePage').then(m => ({ default: m.StorePage })));
+const ProfilePage = lazy(() => import('@/src/pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const SupportPage = lazy(() => import('@/src/pages/SupportPage').then(m => ({ default: m.SupportPage })));
+const CartPage = lazy(() => import('@/src/pages/CartPage').then(m => ({ default: m.CartPage })));
+const ProductDetailPage = lazy(() => import('@/src/pages/ProductDetailPage').then(m => ({ default: m.ProductDetailPage })));
+const WishlistPage = lazy(() => import('@/src/pages/WishlistPage').then(m => ({ default: m.WishlistPage })));
+const OrdersPage = lazy(() => import('@/src/pages/OrdersPage').then(m => ({ default: m.OrdersPage })));
+const CheckoutPage = lazy(() => import('@/src/pages/CheckoutPage').then(m => ({ default: m.CheckoutPage })));
+const GiftCardPage = lazy(() => import('@/src/pages/GiftCardPage').then(m => ({ default: m.GiftCardPage })));
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -39,23 +41,25 @@ export default function App() {
             <div key="content" className="relative text-white selection:bg-brand-red selection:text-white">
               <GothicBackground />
               <Navbar />
-              <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/shop" element={<StorePage />} />
-                <Route path="/checkout" element={<CheckoutPage />} />
-                <Route path="/giftcard" element={<GiftCardPage />} />
-                <Route path="/men" element={<StorePage gender="men" />} />
-                <Route path="/women" element={<StorePage gender="women" />} />
-                <Route path="/sale" element={<StorePage onSale={true} />} />
-                <Route path="/cart" element={<CartPage />} />
-                <Route path="/wishlist" element={<WishlistPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/orders" element={<OrdersPage />} />
-                <Route path="/product/:id" element={<ProductDetailPage />} />
-                <Route path="/support" element={<SupportPage />} />
-              </Routes>
+              <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center"><div className="w-12 h-12 border-4 border-brand-red border-t-transparent rounded-full animate-spin"></div></div>}>
+                <Routes>
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/shop" element={<StorePage />} />
+                  <Route path="/checkout" element={<CheckoutPage />} />
+                  <Route path="/giftcard" element={<GiftCardPage />} />
+                  <Route path="/men" element={<StorePage gender="men" />} />
+                  <Route path="/women" element={<StorePage gender="women" />} />
+                  <Route path="/sale" element={<StorePage onSale={true} />} />
+                  <Route path="/cart" element={<CartPage />} />
+                  <Route path="/wishlist" element={<WishlistPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/orders" element={<OrdersPage />} />
+                  <Route path="/product/:id" element={<ProductDetailPage />} />
+                  <Route path="/support" element={<SupportPage />} />
+                </Routes>
+              </Suspense>
               <ChatWidget />
             </div>
           )}

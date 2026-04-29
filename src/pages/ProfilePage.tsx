@@ -160,7 +160,7 @@ export const ProfilePage = () => {
         status: 'pending',
         createdAt: serverTimestamp()
       });
-      alert("Request submitted. Wait for admin verification.");
+      alert("REQUEST SUBMITTED. SEND SCREENSHOT TO +91 82405 15833 IN WHATSAPP FOR INSTANT APPROVAL.");
       setIsBalanceModalOpen(false);
     } catch (err) { console.error(err); }
   };
@@ -404,26 +404,38 @@ export const ProfilePage = () => {
                 
                 <div className="text-center space-y-4">
                    <h3 className="text-3xl font-display font-black tracking-tighter uppercase italic">INJECT CREDITS</h3>
-                   <p className="text-[10px] uppercase tracking-widest text-white/40">Manual Deposit Protocol</p>
+                   <p className="text-[10px] font-black uppercase tracking-widest text-brand-red animate-pulse">UPI: 8240515833@fam</p>
                 </div>
 
                 <div className="space-y-8">
                    <div className="aspect-square w-64 mx-auto bg-white p-4 rounded-3xl relative group">
-                      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=WH1RLPOOL_PAYMENT" className="w-full h-full grayscale group-hover:grayscale-0 transition-all duration-1000" alt="QR" />
+                      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=8240515833@fam%26pn=WH1RLPOOL%26cu=INR" className="w-full h-full grayscale group-hover:grayscale-0 transition-all duration-1000" alt="QR" />
                       <div className="absolute inset-0 flex items-center justify-center bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl">
                          <p className="text-[10px] font-black tracking-widest text-white">SCAN TO PAY</p>
                       </div>
                    </div>
                    
                    <div className="space-y-4">
-                      <p className="text-[10px] text-center text-white/40 uppercase tracking-widest leading-loose">Pay using QR above and enter amount below. <br /> Wait for admin verification.</p>
-                      <input 
-                        type="number"
-                        placeholder="AMOUNT (₹)"
-                        value={balanceAmount}
-                        onChange={e => setBalanceAmount(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 px-8 text-center text-xl font-display font-black tracking-widest focus:outline-none focus:border-brand-red transition-all"
-                      />
+                      <p className="text-[9px] text-center text-white/40 uppercase tracking-widest leading-loose font-black italic">
+                         Send screenshot to WhatsApp for verification: <br />
+                         <span className="text-brand-red text-xs">+91 82405 15833</span>
+                      </p>
+                      <div className="space-y-2">
+                         <input 
+                           type="number"
+                           placeholder="AMOUNT (₹)"
+                           value={balanceAmount}
+                           onChange={e => setBalanceAmount(e.target.value)}
+                           className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-8 text-center text-xl font-display font-black tracking-widest focus:outline-none focus:border-brand-red transition-all"
+                         />
+                         <input 
+                           type="text"
+                           placeholder="TRANSACTION ID"
+                           value={transactionId}
+                           onChange={e => setTransactionId(e.target.value)}
+                           className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-8 text-center text-xs font-black tracking-widest focus:outline-none focus:border-brand-red transition-all"
+                         />
+                      </div>
                       <Button onClick={handleBalanceRequest} className="w-full h-16 rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white transition-all font-black">SUBMIT REQUEST</Button>
                    </div>
                 </div>

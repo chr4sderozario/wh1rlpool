@@ -128,11 +128,15 @@ export const GiftCardPage = () => {
                 >
                    <div className="flex flex-col items-center gap-8">
                       <div className="p-8 bg-white rounded-[3rem] shadow-[0_0_50px_rgba(255,255,255,0.1)]">
-                         <QrCode className="w-48 h-48 text-black" />
+                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=8240515833@fam%26pn=WH1RLPOOL%26cu=INR" className="w-48 h-48 grayscale" />
                       </div>
-                      <div className="text-center space-y-2">
+                      <div className="text-center space-y-4">
                          <p className="text-2xl font-display font-black italic tracking-tighter">TOTAL: ₹{amount}</p>
-                         <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Pay using any UPI service</p>
+                         <p className="text-[10px] font-black uppercase tracking-widest text-brand-red">UPI: 8240515833@fam</p>
+                         <p className="text-[9px] font-black uppercase tracking-widest text-white/30 italic max-w-xs mx-auto">
+                            SEND SCREENSHOT TO WHATSAPP FOR QUARTER-SECOND SYNC: <br/>
+                            <span className="text-white">+91 82405 15833</span>
+                         </p>
                       </div>
                    </div>
 
@@ -173,7 +177,7 @@ export const GiftCardPage = () => {
                    </div>
                    <div className="space-y-6">
                       <h2 className="text-4xl font-display font-black tracking-tighter uppercase italic">REQUEST SEALED</h2>
-                      <p className="text-white/40 text-sm max-w-sm mx-auto leading-relaxed uppercase font-black tracking-widest text-[10px]">Your generation request is being verified by the oracles. Once approved, the code will be sent to your terminal (Inbox/Orders).</p>
+                      <p className="text-white/40 text-sm max-w-sm mx-auto leading-relaxed uppercase font-black tracking-widest text-[10px]">Your generation request is being verified. FOR INSTANT SYNC, SEND SCREENSHOT TO +91 82405 15833 IN WHATSAPP. Once approved, the code will be sent to your terminal.</p>
                    </div>
                    <Button onClick={() => navigate('/profile')} className="w-full h-16 rounded-3xl bg-white/5 border border-white/10 font-black hover:bg-white hover:text-black transition-all">RETURN TO TERMINAL</Button>
                 </motion.div>

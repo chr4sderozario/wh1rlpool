@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, Send, X, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/src/context/AuthContext';
 import { db } from '@/src/lib/firebase';
-import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, setDoc, doc, increment } from 'firebase/firestore';
+import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, setDoc, doc, increment, getDoc } from 'firebase/firestore';
 
-export const ChatWidget = () => {
+export const ChatWidgetCount = memo(() => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
@@ -39,6 +39,11 @@ export const ChatWidget = () => {
     setMessage('');
 
     try {
+      // Get display name for session
+      const profileDoc = doc(db, 'users', user.uid, 'public', 'profile');
+      const profileSnap = await getDoc(profileDoc).catch(() => null);
+      const displayName = profileSnap?.exists() ? profileSnap.data()?.displayName : (user.displayName || user.email);
+
       await addDoc(collection(db, 'support_chats'), {
         userId: user.uid,
         senderId: user.uid,
@@ -50,7 +55,7 @@ export const ChatWidget = () => {
       // Update session for admin visibility
       await setDoc(doc(db, 'support_sessions', user.uid), {
         userId: user.uid,
-        userName: profile?.displayName || user.email,
+        userName: displayName,
         lastMessage: text,
         lastMessageAt: serverTimestamp(),
         unreadCount: increment(1)
@@ -80,7 +85,7 @@ export const ChatWidget = () => {
                   <ShieldCheck className="w-4 h-4 text-brand-red" />
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white">ORACLE SUPPORT</h3>
                 </div>
-                <p className="text-[10px] text-white/30 uppercase font-black tracking-widest italic">Direct Encryption Channel</p>
+                <p className="text-[10px] text-white/30 uppercase font-black tracking-widest italic">Direct Encryption Channel | WhatsApp: +91 82405 15833</p>
               </div>
               <button onClick={() => setIsOpen(false)} className="text-white/20 hover:text-white transition-colors">
                 <X className="w-6 h-6" />
@@ -136,4 +141,6 @@ export const ChatWidget = () => {
       </motion.button>
     </div>
   );
-};
+});
+
+export const ChatWidget = ChatWidgetCount;
