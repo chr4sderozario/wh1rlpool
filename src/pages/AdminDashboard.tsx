@@ -9,7 +9,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   collection, addDoc, onSnapshot, query, orderBy, 
-  deleteDoc, doc, serverTimestamp, getDocs, updateDoc, increment, getDoc
+  deleteDoc, doc, serverTimestamp, getDocs, updateDoc, increment, getDoc, where
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/src/lib/firebase';
@@ -456,7 +456,7 @@ export const AdminDashboard = () => {
           stock: 20,
           category: "Official Jerseys",
           description: "The Gunners' core. Simple, bold, iconic.",
-          imageUrl: "https://images.footballfanatics.com/arsenal/arsenal-adidas-home-shirt-2024-25_ss5_p-201016847+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          imageUrl: "https://images.footballfanatics.com/arsenal/official-adidas-arsenal-home-jersey-24-25_ss5_p-201016847+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
           gender: "men",
           club: "ARS",
           isFeatured: true
@@ -484,6 +484,126 @@ export const AdminDashboard = () => {
           gender: "men",
           club: "LIV",
           isFeatured: true
+        },
+        {
+          name: "CHELSEA 24/25 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 30,
+          category: "Official Jerseys",
+          description: "London is Blue. Melting pot of patterns.",
+          imageUrl: "https://images.footballfanatics.com/chelsea/chelsea-nike-home-stadium-shirt-2024-25_ss5_p-201014168+pv-1+v-8e7c1c045b674b0f9485c2f0d61e9381.jpg?_hv=2&w=1200",
+          gender: "men",
+          club: "CHE",
+          isFeatured: false
+        },
+        {
+          name: "BAYERN MUNICH 24/25 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 35,
+          category: "Official Jerseys",
+          description: "Mia San Mia. Three shades of red.",
+          imageUrl: "https://images.footballfanatics.com/bayern-munich/bayern-munich-adidas-home-shirt-2024-25_ss5_p-201016849+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          gender: "men",
+          club: "BAY",
+          isFeatured: false
+        },
+        {
+          name: "PSG 24/25 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 25,
+          category: "Official Jerseys",
+          description: "Parisian Style. Hechter stripe reborn.",
+          imageUrl: "https://images.footballfanatics.com/paris-saint-germain/psg-nike-home-stadium-shirt-2024-25_ss5_p-201014170+pv-1+v-8e7c1c045b674b0f9485c2f0d61e9381.jpg?_hv=2&w=1200",
+          gender: "men",
+          club: "PSG",
+          isFeatured: false
+        },
+        {
+          name: "BRAZIL 1970 RETRO",
+          price: 599,
+          costPrice: 250,
+          stock: 15,
+          category: "Retro Jerseys",
+          description: "Pelé. Magic of Mexico 70. Eternal gold.",
+          imageUrl: "https://images.footballfanatics.com/brazil-national-team/brazil-1970-retro-shirt_ss5_p-200705664+v-7431e780860447be88d3f4415842880c.jpg?_hv=2&w=1200",
+          gender: "men",
+          country: "BRA",
+          isFeatured: true
+        },
+        {
+          name: "ARGENTINA 1986 HOME RETRO",
+          price: 599,
+          costPrice: 250,
+          stock: 20,
+          category: "Retro Jerseys",
+          description: "Maradona. Hand of God. Cosmic success.",
+          imageUrl: "https://images.footballfanatics.com/argentina/argentina-1986-le-coq-sportif-home-shirt_ss5_p-200388940+v-dd692e76f62a420993070cd86b29d10e.jpg?_hv=2&w=1200",
+          gender: "men",
+          country: "ARG",
+          isFeatured: true
+        },
+        {
+          name: "GERMANY 2024 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 45,
+          category: "National Team Jerseys",
+          description: "Die Mannschaft. Flame detail on sleeves.",
+          imageUrl: "https://images.footballfanatics.com/germany-national-team/germany-adidas-home-shirt-2024_ss5_p-201016850+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          gender: "men",
+          country: "GER",
+          isFeatured: false
+        },
+        {
+          name: "FRANCE 2024 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 50,
+          category: "National Team Jerseys",
+          description: "Les Bleus. Giant rooster crest.",
+          imageUrl: "https://images.footballfanatics.com/france-national-team/france-nike-home-stadium-shirt-2024_ss5_p-201014172+pv-1+v-8e7c1c045b674b0f9485c2f0d61e9381.jpg?_hv=2&w=1200",
+          gender: "men",
+          country: "FRA",
+          isFeatured: false
+        },
+        {
+          name: "ITALY 2024 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 30,
+          category: "National Team Jerseys",
+          description: "Azzurri. Re-imagining the classic blue.",
+          imageUrl: "https://images.footballfanatics.com/italy-national-team/italy-adidas-home-shirt-2024_ss5_p-201016851+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          gender: "men",
+          country: "ITA",
+          isFeatured: false
+        },
+        {
+          name: "SPAIN 2024 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 35,
+          category: "National Team Jerseys",
+          description: "La Roja. Carnation flower motif.",
+          imageUrl: "https://images.footballfanatics.com/spain-national-team/spain-adidas-home-shirt-2024_ss5_p-201016852+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          gender: "men",
+          country: "ESP",
+          isFeatured: false
+        },
+        {
+          name: "ENGLAND 2024 HOME",
+          price: 449,
+          costPrice: 200,
+          stock: 55,
+          category: "National Team Jerseys",
+          description: "Three Lions. Modern classic white.",
+          imageUrl: "https://images.footballfanatics.com/england-national-team/england-nike-home-stadium-shirt-2024_ss5_p-201014175+pv-1+v-8e7c1c045b674b0f9485c2f0d61e9381.jpg?_hv=2&w=1200",
+          gender: "men",
+          country: "ENG",
+          isFeatured: false
         }
       ];
 

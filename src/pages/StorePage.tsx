@@ -78,16 +78,45 @@ export const StorePage = ({ gender, onSale }: StorePageProps) => {
       
       // Seed data if needed
       if (data.length === 0) {
-        data.push({
-           id: 'argentina-home-jersey',
-           name: 'Argentina 2024 Home Jersey',
-           price: 449,
-           stock: 50,
-           category: 'National Team Jerseys',
-           imageUrl: 'https://images.footballfanatics.com/argentina-national-team/argentina-adidas-training-jersey-navy_ss5_p-200786938+pv-1+v-142f36d37651474e8929e0689b0b4b2a.jpg',
-           isTrending: true,
-           isNew: true
-        });
+        data.push(
+          {
+            id: 'argentina-home-jersey',
+            name: 'Argentina 2024 Home Jersey',
+            price: 449,
+            stock: 50,
+            category: 'National Team Jerseys',
+            imageUrl: 'https://images.footballfanatics.com/argentina/argentina-adidas-home-authentic-shirt-2024_ss5_p-200388939+u-43e86f874c72473887013898869c9b6b+v-dd692e76f62a420993070cd86b29d10e.jpg?_hv=2&w=1200',
+            isTrending: true,
+            isNew: true
+          },
+          {
+            id: 'real-madrid-home',
+            name: 'Real Madrid 24/25 Home',
+            price: 449,
+            stock: 50,
+            category: 'Official Jerseys',
+            imageUrl: 'https://shop.realmadrid.com/cdn/shop/files/RMCFMS0120-01_1.jpg?v=1717411681',
+            isNew: true
+          },
+          {
+            id: 'man-city-home',
+            name: 'Man City 24/25 Home',
+            price: 449,
+            stock: 45,
+            category: 'Official Jerseys',
+            imageUrl: 'https://images.footballfanatics.com/manchester-city/manchester-city-puma-home-shirt-2024-25_ss5_p-201016847+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200',
+            isTrending: true
+          },
+          {
+            id: 'brazil-retro-1970',
+            name: 'Brazil 1970 Retro',
+            price: 599,
+            stock: 15,
+            category: 'Retro Jerseys',
+            imageUrl: 'https://images.footballfanatics.com/brazil-national-team/brazil-1970-retro-shirt_ss5_p-200705663+u-83605c31751a4f009e5306509a25032a+v-7431e780860447be88d3f4415842880c.jpg?_hv=2&w=1200',
+            isNew: false
+          }
+        );
       }
       setProducts(data);
       setLoading(false);
