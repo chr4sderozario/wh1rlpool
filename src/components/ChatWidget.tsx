@@ -85,7 +85,7 @@ export const ChatWidgetCount = memo(() => {
                   <ShieldCheck className="w-4 h-4 text-brand-red" />
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white">ORACLE SUPPORT</h3>
                 </div>
-                <p className="text-[10px] text-white/30 uppercase font-black tracking-widest italic">Direct Encryption Channel | WhatsApp: +91 82405 15833</p>
+                <p className="text-[10px] text-white/30 uppercase font-black tracking-widest italic">Direct Encryption Channel | Mail: admin.wh1rlpool@gmail.com</p>
               </div>
               <button onClick={() => setIsOpen(false)} className="text-white/20 hover:text-white transition-colors">
                 <X className="w-6 h-6" />

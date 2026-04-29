@@ -112,14 +112,14 @@ export const LandingPage = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5, duration: 0.8 }}
                   >
-                     <span className="text-brand-red font-black tracking-[0.8em] text-[10px] uppercase mb-6 block drop-shadow-glow">SYSTEM//ARCHIVE v2.0</span>
+                     <span className="text-brand-red font-black tracking-[0.8em] text-[10px] uppercase mb-6 block drop-shadow-glow">THE GOTHIC REGISTRY // V3.0</span>
                      <h1 className="text-8xl md:text-9xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-8">WH1RL<br/>POOL</h1>
                      <div className="flex flex-wrap gap-8 items-center">
                         <Button 
                           onClick={() => navigate('/shop')}
                           className="h-14 px-10 rounded-xl bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-display font-black italic uppercase tracking-[0.2em] text-xs"
                         >
-                          EXTRACT ARCHIVE
+                          ENTER THE VOID
                         </Button>
                         <div className="hidden md:block">
                            <p className="text-[8px] font-black uppercase tracking-[0.5em] text-white/20 mb-1 italic">SYSTEM STATUS</p>
@@ -135,8 +135,8 @@ export const LandingPage = () => {
         <section className="mb-32">
            <div className="flex justify-between items-end mb-12">
               <div>
-                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-red mb-2 italic">LIMITED TIME EXTRACTION</p>
-                 <h2 className="text-4xl md:text-6xl font-display font-black tracking-tighter uppercase italic">FLASH DEALS</h2>
+                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-red mb-2 italic">TEMPORAL EXTRACTIONS</p>
+                 <h2 className="text-4xl md:text-6xl font-display font-black tracking-tighter uppercase italic">SHADOW DEALS</h2>
               </div>
               <div className="flex gap-4">
                  <div className="w-12 h-1 bg-white/10 rounded-full overflow-hidden">
@@ -179,7 +179,7 @@ export const LandingPage = () => {
 
         {/* Categorical Bento Grid (The Registry) */}
         <section className="mb-32">
-           <h2 className="text-4xl md:text-5xl font-display font-black tracking-tighter uppercase italic mb-12">THE REGISTRY</h2>
+           <h2 className="text-4xl md:text-5xl font-display font-black tracking-tighter uppercase italic mb-12">THE VOID SECTORS</h2>
            <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-2 h-[800px] gap-6">
               <div className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer" onClick={() => navigate('/shop?category=National Team Jerseys')}>
                  <img src="https://images.footballfanatics.com/argentina/argentina-adidas-training-jersey-navy_ss5_p-200786938+pv-3+v-142f36d37651474e8929e0689b0b4b2a.jpg?_hv=2&w=1200" className="absolute inset-0 w-full h-full object-cover grayscale opacity-10 group-hover:scale-105 group-hover:opacity-30 transition-all duration-1000" alt="" />
@@ -192,7 +192,7 @@ export const LandingPage = () => {
                  <img src="https://images.footballfanatics.com/argentina/argentina-adidas-training-jersey-navy_ss5_p-200786938+pv-2+v-142f36d37651474e8929e0689b0b4b2a.jpg?_hv=2&w=1200" className="absolute inset-0 w-full h-full object-cover grayscale opacity-5 group-hover:scale-105 group-hover:opacity-20 transition-all duration-1000" alt="" />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent to-transparent flex flex-col justify-end p-12">
                     <span className="text-[8px] font-black text-white/20 tracking-[0.6em] uppercase mb-4 italic">SECTOR 05</span>
-                    <h3 className="text-4xl font-display font-black tracking-tighter uppercase italic leading-none group-hover:text-brand-red transition-colors duration-500">RETRO GOTHIC</h3>
+                    <h3 className="text-4xl font-display font-black tracking-tighter uppercase italic leading-none group-hover:text-brand-red transition-colors duration-500">HERITAGE RELICS</h3>
                  </div>
               </div>
               <div className="relative group overflow-hidden rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer" onClick={() => navigate('/shop?category=Limited Edition Jerseys')}>
@@ -250,22 +250,22 @@ export const LandingPage = () => {
            <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
               <div className="space-y-4">
                  <Shield className="w-8 h-8 text-brand-red" />
-                 <h4 className="font-display font-black uppercase italic tracking-wider">VERIFIED ORIGIN</h4>
+                 <h4 className="font-display font-black uppercase italic tracking-wider">SPECTRAL AUTHENTICATION</h4>
                  <p className="text-xs text-white/40 font-medium leading-relaxed">Each transmission is authenticated through dual-layer protocol verification.</p>
               </div>
               <div className="space-y-4">
                  <Globe className="w-8 h-8 text-brand-red" />
-                 <h4 className="font-display font-black uppercase italic tracking-wider">GLOBAL UPLINK</h4>
+                 <h4 className="font-display font-black uppercase italic tracking-wider">VOID LOGISTICS</h4>
                  <p className="text-xs text-white/40 font-medium leading-relaxed">Syncing with logistics sectors in over 190 restricted zones worldwide.</p>
               </div>
               <div className="space-y-4">
                  <Zap className="w-8 h-8 text-brand-red" />
-                 <h4 className="font-display font-black uppercase italic tracking-wider">INSTANT DEPLOY</h4>
+                 <h4 className="font-display font-black uppercase italic tracking-wider">RAPID MATERIALIZATION</h4>
                  <p className="text-xs text-white/40 font-medium leading-relaxed">Priority extraction and deployment within 24 standard cycle hours.</p>
               </div>
               <div className="space-y-4">
-                 <Cpu className="w-8 h-8 text-brand-red" />
-                 <h4 className="font-display font-black uppercase italic tracking-wider">AI ENHANCED</h4>
+                 <Shield className="w-8 h-8 text-brand-red" />
+                 <h4 className="font-display font-black uppercase italic tracking-wider">ORACLE CURATION</h4>
                  <p className="text-xs text-white/40 font-medium leading-relaxed">Automated quality indexing ensures only elite artifacts enter the grid.</p>
               </div>
            </div>

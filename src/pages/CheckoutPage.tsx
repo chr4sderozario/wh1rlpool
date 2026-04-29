@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { Button } from '@/src/components/ui/Button';
 import { useAuth } from '@/src/context/AuthContext';
 import { db } from '@/src/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -84,6 +84,19 @@ export const CheckoutPage = () => {
         estimatedDelivery: 'APPROX 13 DAYS',
         createdAt: serverTimestamp()
       });
+
+      // Update User Profile for Loyalty Program
+      if (user) {
+        const profileRef = doc(db, 'users', user.uid, 'public', 'profile');
+        const pointsEarned = Math.floor(finalTotal / 100);
+        
+        await updateDoc(profileRef, {
+          totalSpending: increment(finalTotal),
+          loyaltyPoints: increment(pointsEarned),
+          wh1rlCoins: increment(Math.floor(finalTotal)),
+          balance: paymentMethod === 'balance' ? increment(-total) : increment(0)
+        });
+      }
 
       setOrderComplete(true);
     } catch (err) {

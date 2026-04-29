@@ -13,6 +13,9 @@ interface UserProfile {
   displayName?: string;
   email?: string;
   balance: number;
+  totalSpending?: number;
+  loyaltyPoints?: number;
+  wh1rlCoins?: number;
   role: 'admin' | 'user';
   phone?: string;
   address?: string;

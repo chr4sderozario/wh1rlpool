@@ -43,7 +43,7 @@ export const SupportPage = () => {
           <div className="space-y-8 pt-8 border-t border-white/5">
              <div className="flex items-center gap-6 opacity-40">
                 <Mail className="w-5 h-5" />
-                <span className="text-xs uppercase font-black tracking-[0.3em]">support@wh1rlpool.in</span>
+                <span className="text-xs uppercase font-black tracking-[0.3em]">admin.wh1rlpool@gmail.com</span>
              </div>
              <div className="flex items-center gap-6 opacity-40">
                 <MapPin className="w-5 h-5" />

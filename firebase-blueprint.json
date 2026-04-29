@@ -96,6 +96,9 @@
         "preferredSize": { "type": "string" },
         "gender": { "type": "string" },
         "preferredPayment": { "type": "string" },
+        "totalSpending": { "type": "number", "description": "Total amount spent by the user across all orders" },
+        "loyaltyPoints": { "type": "number", "description": "Accumulated loyalty points based on spending" },
+        "wh1rlCoins": { "type": "number", "description": "Currency earned: 1 coin per ₹1 spent" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
     },

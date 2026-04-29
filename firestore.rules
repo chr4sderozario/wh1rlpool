@@ -63,6 +63,9 @@ service cloud.firestore {
              (!('displayName' in data) || data.displayName is string) &&
              (!('email' in data) || data.email is string) &&
              (!('balance' in data) || data.balance is number) &&
+             (!('totalSpending' in data) || data.totalSpending is number) &&
+             (!('loyaltyPoints' in data) || data.loyaltyPoints is number) &&
+             (!('wh1rlCoins' in data) || data.wh1rlCoins is number) &&
              (!('phone' in data) || data.phone is string) &&
              (!('address' in data) || data.address is string) &&
              (!('city' in data) || data.city is string) &&
@@ -140,7 +143,7 @@ service cloud.firestore {
         allow create: if isOwner(userId) && isValidUserProfile(incoming()) && (!('balance' in incoming()) || incoming().balance == 0);
         allow update: if (isOwner(userId) && 
                       isValidUserProfile(incoming()) &&
-                      (!incoming().diff(existing()).affectedKeys().hasAny(['role', 'createdAt', 'balance'])))
+                      (!incoming().diff(existing()).affectedKeys().hasAny(['role', 'createdAt'])))
                       || isAdmin();
         allow delete: if false;
       }

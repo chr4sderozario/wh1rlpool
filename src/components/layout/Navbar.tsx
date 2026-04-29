@@ -120,7 +120,10 @@ export const Navbar = () => {
                 <Link to="/profile" className="flex items-center gap-4 group">
                   <div className="text-right hidden md:block">
                     <p className="text-[9px] font-black uppercase tracking-widest text-white/40 group-hover:text-white transition-colors">{profile?.displayName || 'SUBJECT'}</p>
-                    <p className="text-[8px] font-black text-brand-red tracking-wider">CR: {profile?.balance || 0}</p>
+                    <div className="flex items-center gap-3 justify-end">
+                      <p className="text-[8px] font-black text-brand-red tracking-wider">CR: {profile?.balance || 0}</p>
+                      <p className="text-[8px] font-black text-orange-500 tracking-wider">W-COINS: {profile?.wh1rlCoins || 0}</p>
+                    </div>
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-white/[0.02] border border-white/10 flex items-center justify-center group-hover:border-brand-red transition-all overflow-hidden relative p-0.5">
                      <img 

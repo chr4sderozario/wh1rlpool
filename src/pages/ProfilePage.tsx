@@ -19,7 +19,9 @@ import {
   History,
   Lock,
   Gift,
-  Truck
+  Truck,
+  Ghost,
+  Disc
 } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
 
@@ -31,6 +33,9 @@ export const ProfilePage = () => {
   const [success, setSuccess] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
+  const [isSpinModalOpen, setIsSpinModalOpen] = useState(false);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [spinResult, setSpinResult] = useState<string | null>(null);
   const [adminPassword, setAdminPassword] = useState('');
   const [balanceAmount, setBalanceAmount] = useState('');
   const [transactionId, setTransactionId] = useState('');
@@ -146,6 +151,59 @@ export const ProfilePage = () => {
       setIsRedeeming(false);
     }
   };
+  const handleSpinTheWin = async () => {
+    if (!user || (profile?.wh1rlCoins || 0) < 500) {
+      alert("INSUFFICIENT WH1RL COINS. EXTRACT MORE ARTIFACTS.");
+      return;
+    }
+
+    setIsSpinning(true);
+    setSpinResult(null);
+
+    // Simulate spin delay
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    const roll = Math.random();
+    let result = "TRY AGAIN";
+    let rewardType = 'none';
+
+    if (roll < 0.05) {
+      result = "FREE JERSEY VOUCHER (CALL SUPPORT)";
+      rewardType = 'jersey';
+    } else if (roll < 0.20) {
+      result = "25% DISCOUNT CODE (CALL SUPPORT)";
+      rewardType = 'discount';
+    } else if (roll < 0.50) {
+      result = "100 BONUS CREDITS (₹100)";
+      rewardType = 'credits';
+    } else if (roll < 0.80) {
+      result = "500 WH1RL COINS (REFUND)";
+      rewardType = 'coins';
+    }
+
+    try {
+      const profileRef = doc(db, 'users', user.uid, 'public', 'profile');
+      
+      const updates: any = {
+        wh1rlCoins: increment(-500)
+      };
+
+      if (rewardType === 'credits') {
+        updates.balance = increment(100);
+      } else if (rewardType === 'coins') {
+        updates.wh1rlCoins = increment(0); // Effectively a refund of the 500 spent + 500 earned
+      }
+
+      await updateDoc(profileRef, updates);
+      setSpinResult(result);
+    } catch (err) {
+      console.error(err);
+      alert("VOID CONNECTION INTERRUPTED.");
+    } finally {
+      setIsSpinning(false);
+    }
+  };
+
   const handleBalanceRequest = async () => {
     if (!user || !balanceAmount || !transactionId) {
       alert("Amount and Transaction ID required.");
@@ -201,44 +259,65 @@ export const ProfilePage = () => {
               </div>
             </div>
 
-            {/* Wallet Card */}
-            <div className="p-8 rounded-[3rem] bg-[#0A0A0A] border border-white/5 space-y-8 relative overflow-hidden group">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-brand-red/5 blur-3xl -z-10 group-hover:bg-brand-red/10 transition-colors" />
-               <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase tracking-[0.3em] font-black text-white/40">Void Balance</span>
-                  <Wallet className="w-5 h-5 text-brand-red" />
+               {/* Void Balance Card */}
+               <div className="p-8 rounded-[3rem] bg-[#0A0A0A] border border-white/5 space-y-8 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-brand-red/5 blur-3xl -z-10 group-hover:bg-brand-red/10 transition-colors" />
+                  <div className="flex items-center justify-between">
+                     <span className="text-[10px] uppercase tracking-[0.3em] font-black text-white/40">Void Credits (CR)</span>
+                     <Wallet className="w-5 h-5 text-brand-red" />
+                  </div>
+                  <div>
+                     <p className="text-5xl font-display font-black tracking-tighter italic">₹ {profile?.balance?.toFixed(2) || '0.00'}</p>
+                  </div>
+                  <Button 
+                   onClick={() => setIsBalanceModalOpen(true)}
+                   className="w-full rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white transition-all font-black py-4"
+                  >
+                    <Plus className="w-4 h-4 mr-2" /> ADD CREDITS
+                  </Button>
                </div>
-               <div>
-                  <p className="text-5xl font-display font-black tracking-tighter italic">₹ {profile?.balance?.toFixed(2) || '0.00'}</p>
+
+               {/* WH1RL Coins Card */}
+               <div className="p-8 rounded-[3rem] bg-[#0A0A0A] border border-white/5 space-y-8 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl -z-10 group-hover:bg-orange-500/10 transition-colors" />
+                  <div className="flex items-center justify-between">
+                     <span className="text-[10px] uppercase tracking-[0.3em] font-black text-white/40">WH1RL COINS</span>
+                     <Ghost className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <div>
+                     <p className="text-5xl font-display font-black tracking-tighter italic text-orange-500">{profile?.wh1rlCoins || 0}</p>
+                     <p className="text-[8px] uppercase tracking-widest text-white/20 font-black mt-2 italic">Earned: 1 Coin per ₹1 extracted</p>
+                  </div>
+                  <Button 
+                   onClick={() => setIsSpinModalOpen(true)}
+                   className="w-full rounded-2xl bg-orange-500 text-black hover:bg-white transition-all font-black py-4 uppercase italic tracking-widest"
+                  >
+                    SPIN THE WIN (-500)
+                  </Button>
                </div>
                
-               {/* Void Level / Loyalty Badge */}
-               <div className="pt-4 border-t border-white/5 space-y-4">
+               {/* Loyalty Stats */}
+               <div className="p-8 rounded-[3rem] bg-[#0A0A0A] border border-white/5 space-y-4">
+                  <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-[0.4em] text-white/40">
+                    <span>Loyalty Points</span>
+                    <span className="text-brand-red font-black tracking-widest">{profile?.loyaltyPoints || 0} PTS</span>
+                  </div>
+                  
                   <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-[0.4em] text-white/40">
                     <span>Void Level</span>
-                    <span className="text-brand-red">Stage {Math.floor((profile?.balance || 0) / 1000) + 1}</span>
+                    <span className="text-white">Stage {Math.floor((profile?.totalSpending || 0) / 5000) + 1}</span>
                   </div>
+
                   <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(100, ((profile?.balance || 0) % 1000) / 10)}%` }}
+                      animate={{ width: `${Math.min(100, ((profile?.totalSpending || 0) % 5000) / 50)}%` }}
                       className="h-full bg-gradient-to-r from-brand-red to-orange-500"
                     />
                   </div>
-                  <p className="text-[7px] uppercase tracking-widest text-white/20 italic font-black text-center">Inoculate more credits to ascend the hierarchy</p>
+                  <p className="text-[7px] uppercase tracking-widest text-white/20 italic font-black text-center">Protocol efficiency: 1 Point per ₹100 extracted</p>
                </div>
 
-               <Button 
-                onClick={() => setIsBalanceModalOpen(true)}
-                className="w-full rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white transition-all font-black py-4"
-               >
-                 <Plus className="w-4 h-4 mr-2" /> ADD CREDITS
-               </Button>
-               <button className="w-full text-[8px] uppercase tracking-[0.3em] text-white/10 font-bold hover:text-white transition-colors flex items-center justify-center gap-2">
-                 <History className="w-3 h-3" /> Transaction Logs
-               </button>
-            </div>
-            
             <div className="space-y-4">
                <button onClick={() => navigate('/orders')} className="w-full p-6 text-left rounded-3xl border border-white/5 hover:border-white/20 hover:bg-white/5 transition-all text-sm uppercase font-black tracking-widest flex justify-between items-center group">
                   Active Orders <ArrowLeft className="w-4 h-4 rotate-180 opacity-0 group-hover:opacity-100 transition-all" />
@@ -438,6 +517,61 @@ export const ProfilePage = () => {
                       </div>
                       <Button onClick={handleBalanceRequest} className="w-full h-16 rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white transition-all font-black">SUBMIT REQUEST</Button>
                    </div>
+                </div>
+             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Spin the Win Modal */}
+      <AnimatePresence>
+        {isSpinModalOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[120] bg-black/98 backdrop-blur-3xl flex items-center justify-center p-6">
+             <div className="w-full max-w-xl p-12 rounded-[4rem] bg-[#050505] border border-orange-500/20 space-y-12 relative overflow-hidden text-center">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-orange-500/10 blur-[100px] -z-10" />
+                <button onClick={() => setIsSpinModalOpen(false)} className="absolute top-10 right-10 text-white/20 hover:text-white transition-colors"><X /></button>
+
+                <div className="space-y-4">
+                  <h3 className="text-4xl md:text-6xl font-display font-black tracking-tighter uppercase italic leading-none text-orange-500 drop-shadow-orange">SPIN THE WIN</h3>
+                  <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/30">VOID CURRENCY PROTOCOL // 500 W-COINS/SPIN</p>
+                </div>
+
+                <div className="relative aspect-square w-64 mx-auto flex items-center justify-center">
+                   <motion.div 
+                    animate={isSpinning ? { rotate: 360 * 5 } : { rotate: 0 }}
+                    transition={isSpinning ? { duration: 3, ease: "easeInOut" } : { duration: 0.5 }}
+                    className="absolute inset-0 rounded-full border-8 border-dashed border-orange-500/20"
+                   />
+                   <div className="z-10 bg-black p-8 rounded-full border border-orange-500/40 shadow-orange-glow">
+                      <Disc className={`w-16 h-16 text-orange-500 ${isSpinning ? 'animate-spin' : ''}`} />
+                   </div>
+                   
+                   {/* Result display */}
+                   <AnimatePresence>
+                     {spinResult && (
+                       <motion.div 
+                        initial={{ scale: 0, opacity: 0, y: 50 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-full space-y-4"
+                       >
+                          <div className="p-6 bg-orange-500 text-black rounded-2xl font-display font-black uppercase italic tracking-tighter text-xl">
+                            {spinResult}
+                          </div>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-white/40">Outcome recorded in the ghost registry.</p>
+                       </motion.div>
+                     )}
+                   </AnimatePresence>
+                </div>
+
+                <div className="pt-24">
+                  <Button 
+                    disabled={isSpinning || (profile?.wh1rlCoins || 0) < 500}
+                    onClick={handleSpinTheWin}
+                    className="w-full h-20 rounded-3xl bg-orange-500 text-black hover:bg-white transition-all duration-700 font-display font-black italic uppercase tracking-widest text-lg disabled:opacity-20"
+                  >
+                    {isSpinning ? 'SPINNING THE VOID...' : spinResult ? 'SPIN AGAIN (-500)' : 'EXECUTE EXTRACTION'}
+                  </Button>
+                  <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/10 mt-6 italic underline cursor-help" onClick={() => navigate('/support')}>Call Support for Prize Claims</p>
                 </div>
              </div>
           </motion.div>
