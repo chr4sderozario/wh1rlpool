@@ -1,6 +1,6 @@
 {
   "name": "WH1RLPOOL",
   "description": "WH1RLPOOL: The definitive sanctuary for elite football artifacts. A premium marketplace merging dark gothic luxury with heritage football culture.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["camera"],
   "majorCapabilities": []
 }

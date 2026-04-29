@@ -129,20 +129,20 @@ export const CartPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white pt-40 pb-32 px-6 md:px-24">
+    <div className="min-h-screen bg-black text-white pt-24 md:pt-40 pb-32 px-4 md:px-24">
       <div className="max-w-[1800px] mx-auto">
-        <div className="flex flex-col xl:flex-row gap-32">
+        <div className="flex flex-col xl:flex-row gap-12 md:gap-32">
           
           {/* Main List */}
-          <div className="flex-1 space-y-16">
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-white/5 pb-12">
+          <div className="flex-1 space-y-12 md:space-y-16">
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-8 border-b border-white/5 pb-8 md:pb-12">
               <div>
-                <h1 className="text-6xl md:text-8xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-6">THE ARCHIVE</h1>
-                <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/20 italic">ARTIFACT EXTRACTION QUEUE: {items.length} UNITS</p>
+                <h1 className="text-4xl md:text-8xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-4 md:mb-6">THE ARCHIVE</h1>
+                <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/20 italic">ARTIFACT QUEUE: {items.length} UNITS</p>
               </div>
               <button 
                 onClick={() => navigate('/shop')}
-                className="text-[10px] font-black uppercase tracking-widest text-brand-red hover:underline decoration-2 underline-offset-8"
+                className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-brand-red hover:underline decoration-2 underline-offset-8 text-left"
               >
                 CONTINUE ACQUISITION
               </button>
@@ -168,42 +168,42 @@ export const CartPage = () => {
                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                     
-                    <div className="flex-1 flex flex-col justify-between py-4">
+                    <div className="flex-1 flex flex-col justify-between py-2">
                        <div className="space-y-4">
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start gap-4">
                              <div className="space-y-1">
-                                <h3 className="text-2xl md:text-4xl font-display font-black uppercase italic tracking-tight">{item.name}</h3>
-                                <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-white/20">
-                                   <span>Artifact ID: {item.productId.slice(-8)}</span>
-                                   <span className="w-1 h-1 bg-white/10 rounded-full" />
+                                <h3 className="text-xl md:text-4xl font-display font-black uppercase italic tracking-tight leading-tight">{item.name}</h3>
+                                <div className="flex flex-wrap items-center gap-2 md:gap-4 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/20">
+                                   <span>ID: {item.productId.slice(-8)}</span>
+                                   <span className="hidden md:block w-1 h-1 bg-white/10 rounded-full" />
                                    <span className="text-brand-red">Size: {item.size}</span>
                                 </div>
                              </div>
                              <button 
                                onClick={() => removeItem(item.id)}
-                               className="p-4 rounded-2xl bg-white/5 text-white/20 hover:bg-brand-red/10 hover:text-brand-red transition-all"
+                               className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-white/5 text-white/20 hover:bg-brand-red/10 hover:text-brand-red transition-all"
                              >
-                                <Trash2 className="w-6 h-6" />
+                                <Trash2 className="w-5 h-5 md:w-6 md:h-6" />
                              </button>
                           </div>
                        </div>
 
-                       <div className="flex flex-wrap items-center justify-between gap-8 mt-12 bg-black/40 p-6 rounded-3xl border border-white/5">
-                          <div className="flex items-center gap-8">
-                             <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Quantity</p>
-                             <div className="flex items-center gap-6">
-                                <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all">
-                                   <Minus className="w-4 h-4" />
+                       <div className="flex flex-col sm:flex-row flex-wrap items-center justify-between gap-6 md:gap-8 mt-8 md:mt-12 bg-black/40 p-4 md:p-6 rounded-2xl md:rounded-3xl border border-white/5">
+                          <div className="flex items-center justify-between w-full sm:w-auto gap-8">
+                             <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/40">Qty</p>
+                             <div className="flex items-center gap-4 md:gap-6">
+                                <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all">
+                                   <Minus className="w-3 h-3 md:w-4 md:h-4" />
                                 </button>
-                                <span className="text-2xl font-display font-black italic tabular-nums w-8 text-center">{item.quantity}</span>
-                                <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all">
-                                   <Plus className="w-4 h-4" />
+                                <span className="text-xl md:text-2xl font-display font-black italic tabular-nums w-8 text-center">{item.quantity}</span>
+                                <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all">
+                                   <Plus className="w-3 h-3 md:w-4 md:h-4" />
                                 </button>
                              </div>
                           </div>
-                          <div className="text-right">
-                             <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Sub-Total</p>
-                             <p className="text-3xl font-display font-black italic tracking-tighter text-brand-red">₹ {item.price * item.quantity}</p>
+                          <div className="text-right w-full sm:w-auto flex sm:flex-col justify-between items-center sm:items-end">
+                             <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Sub-Total</p>
+                             <p className="text-2xl md:text-3xl font-display font-black italic tracking-tighter text-brand-red">₹ {item.price * item.quantity}</p>
                           </div>
                        </div>
                     </div>
@@ -215,40 +215,40 @@ export const CartPage = () => {
 
           {/* Checkout Summary */}
           <aside className="w-full xl:w-[500px] shrink-0">
-             <div className="sticky top-40 bg-[#080808] border border-white/5 rounded-[4rem] p-12 md:p-16 space-y-12">
-                <h2 className="text-4xl font-display font-black uppercase italic tracking-tighter">SUMMARY</h2>
+             <div className="sticky top-40 bg-[#080808] border border-white/5 rounded-[2.5rem] md:rounded-[4rem] p-8 md:p-16 space-y-10 md:space-y-12">
+                <h2 className="text-3xl md:text-4xl font-display font-black uppercase italic tracking-tighter">SUMMARY</h2>
                 
-                <div className="space-y-6">
-                   <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white/40">
+                <div className="space-y-4 md:space-y-6">
+                   <div className="flex justify-between text-[10px] md:text-xs font-black uppercase tracking-widest text-white/40">
                       <span>Artifact Value</span>
                       <span className="text-white">₹ {subtotal}</span>
                    </div>
-                   <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white/40">
-                      <span>Logistics Tax</span>
-                      <span className="text-green-500">OPTIMIZED</span>
+                   <div className="flex justify-between text-[10px] md:text-xs font-black uppercase tracking-widest text-white/40">
+                      <span>Logistics</span>
+                      <span className="text-green-500 font-bold">FREE</span>
                    </div>
-                   <div className="h-[1px] bg-white/5 my-4" />
+                   <div className="h-[1px] bg-white/5 my-2 md:my-4" />
                    <div className="flex justify-between items-end">
                       <div>
-                         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-red mb-1">TOTAL ACQUISITION</p>
-                         <p className="text-5xl font-display font-black italic tracking-tighter tabular-nums">₹ {total}</p>
+                         <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-brand-red mb-1">TOTAL ACQUISITION</p>
+                         <p className="text-4xl md:text-5xl font-display font-black italic tracking-tighter tabular-nums">₹ {total}</p>
                       </div>
                    </div>
                 </div>
 
-                <div className="space-y-6 pt-8">
+                <div className="space-y-4 md:space-y-6 pt-4 md:pt-8">
                    <Button 
                      onClick={proceedToCheckout}
-                     className="w-full h-24 text-xl rounded-[2.5rem] bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-black group relative overflow-hidden"
+                     className="w-full h-20 md:h-24 text-lg md:text-xl rounded-full md:rounded-[2.5rem] bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-black group relative overflow-hidden"
                    >
                       <div className="relative z-10 flex items-center justify-center gap-4">
-                         PROCEED TO EXTRACTION
-                         <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+                         PROCEED
+                         <ArrowRight className="w-5 h-5 md:w-6 md:h-6 group-hover:translate-x-2 transition-transform" />
                       </div>
                       <div className="absolute inset-0 bg-brand-red translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                    </Button>
-                   <p className="text-center text-[9px] font-black uppercase tracking-[0.3em] text-white/10 px-8">
-                      Secure payment request will be generated at the next step of the protocol.
+                   <p className="text-center text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] text-white/10 px-4 md:px-8">
+                      Secure payment protocol enabled.
                    </p>
                 </div>
 

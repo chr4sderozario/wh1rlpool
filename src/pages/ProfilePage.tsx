@@ -233,15 +233,15 @@ export const ProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white pt-40 pb-32 px-6 md:px-12 relative overflow-hidden">
+    <div className="min-h-screen bg-black text-white pt-24 md:pt-40 pb-32 px-4 md:px-12 relative overflow-hidden">
       <div className="max-w-[1400px] mx-auto">
-        <div className="flex flex-col lg:flex-row gap-24">
+        <div className="flex flex-col lg:flex-row gap-12 md:gap-24">
           
           {/* Left: Summary & Wallet */}
-          <aside className="w-full lg:w-96 space-y-12">
-            <div className="space-y-8">
+          <aside className="w-full lg:w-96 space-y-8 md:space-y-12">
+            <div className="space-y-6 md:space-y-8">
               <div 
-                className="relative w-40 h-40 mx-auto group cursor-pointer"
+                className="relative w-32 h-32 md:w-40 md:h-40 mx-auto group cursor-pointer"
                 onClick={() => setIsAdminModalOpen(true)}
               >
                 <div className="absolute inset-0 rounded-full border-2 border-dashed border-white/10 group-hover:border-brand-red group-hover:rotate-180 transition-all duration-1000" />
@@ -260,39 +260,39 @@ export const ProfilePage = () => {
             </div>
 
                {/* Void Balance Card */}
-               <div className="p-8 rounded-[3rem] bg-[#0A0A0A] border border-white/5 space-y-8 relative overflow-hidden group">
+               <div className="p-6 md:p-8 rounded-[2.5rem] md:rounded-[3rem] bg-[#0A0A0A] border border-white/5 space-y-6 md:space-y-8 relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-brand-red/5 blur-3xl -z-10 group-hover:bg-brand-red/10 transition-colors" />
                   <div className="flex items-center justify-between">
-                     <span className="text-[10px] uppercase tracking-[0.3em] font-black text-white/40">Void Credits (CR)</span>
-                     <Wallet className="w-5 h-5 text-brand-red" />
+                     <span className="text-[9px] md:text-[10px] uppercase tracking-[0.3em] font-black text-white/40">Void Credits</span>
+                     <Wallet className="w-4 h-4 md:w-5 md:h-5 text-brand-red" />
                   </div>
                   <div>
-                     <p className="text-5xl font-display font-black tracking-tighter italic">₹ {profile?.balance?.toFixed(2) || '0.00'}</p>
+                     <p className="text-4xl md:text-5xl font-display font-black tracking-tighter italic">₹ {profile?.balance?.toFixed(2) || '0.00'}</p>
                   </div>
                   <Button 
                    onClick={() => setIsBalanceModalOpen(true)}
-                   className="w-full rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white transition-all font-black py-4"
+                   className="w-full rounded-xl md:rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white transition-all font-black py-4 md:py-4 h-12 md:h-auto text-xs"
                   >
-                    <Plus className="w-4 h-4 mr-2" /> ADD CREDITS
+                    <Plus className="w-3 h-3 md:w-4 md:h-4 mr-2" /> RECHARGE
                   </Button>
                </div>
 
                {/* WH1RL Coins Card */}
-               <div className="p-8 rounded-[3rem] bg-[#0A0A0A] border border-white/5 space-y-8 relative overflow-hidden group">
+               <div className="p-6 md:p-8 rounded-[2.5rem] md:rounded-[3rem] bg-[#0A0A0A] border border-white/5 space-y-6 md:space-y-8 relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl -z-10 group-hover:bg-orange-500/10 transition-colors" />
                   <div className="flex items-center justify-between">
-                     <span className="text-[10px] uppercase tracking-[0.3em] font-black text-white/40">WH1RL COINS</span>
-                     <Ghost className="w-5 h-5 text-orange-500" />
+                     <span className="text-[9px] md:text-[10px] uppercase tracking-[0.3em] font-black text-white/40">W-COINS</span>
+                     <Ghost className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
                   </div>
                   <div>
-                     <p className="text-5xl font-display font-black tracking-tighter italic text-orange-500">{profile?.wh1rlCoins || 0}</p>
-                     <p className="text-[8px] uppercase tracking-widest text-white/20 font-black mt-2 italic">Earned: 1 Coin per ₹1 extracted</p>
+                     <p className="text-4xl md:text-5xl font-display font-black tracking-tighter italic text-orange-500">{profile?.wh1rlCoins || 0}</p>
+                     <p className="text-[7px] md:text-[8px] uppercase tracking-widest text-white/20 font-black mt-2 italic">Extraction points</p>
                   </div>
                   <Button 
                    onClick={() => setIsSpinModalOpen(true)}
-                   className="w-full rounded-2xl bg-orange-500 text-black hover:bg-white transition-all font-black py-4 uppercase italic tracking-widest"
+                   className="w-full rounded-xl md:rounded-2xl bg-orange-500 text-black hover:bg-white transition-all font-black py-4 md:py-4 h-12 md:h-auto text-xs uppercase italic tracking-widest"
                   >
-                    SPIN THE WIN (-500)
+                    SPIN (-500)
                   </Button>
                </div>
                
@@ -357,53 +357,53 @@ export const ProfilePage = () => {
           </aside>
 
           {/* Right: Detailed Info */}
-          <div className="flex-1 space-y-12">
-            <header className="space-y-4 pb-12 border-b border-white/5">
-              <h1 className="text-6xl md:text-8xl font-display font-black tracking-tighter uppercase italic leading-none">IDENTITY LOG</h1>
-              <p className="text-white/40 font-serif italic text-lg">Update your transmission coordinates and digital presence.</p>
+          <div className="flex-1 space-y-8 md:space-y-12">
+            <header className="space-y-4 pb-8 md:pb-12 border-b border-white/5 text-center md:text-left">
+              <h1 className="text-4xl md:text-8xl font-display font-black tracking-tighter uppercase italic leading-none">IDENTITY</h1>
+              <p className="text-white/40 font-serif italic text-base md:text-lg">Update your transmission coordinates.</p>
             </header>
 
-            <form onSubmit={handleSubmit} className="space-y-12">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <form onSubmit={handleSubmit} className="space-y-8 md:space-y-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
                <InputGroup label="Identity Name">
                   <input value={formData.displayName} onChange={e => setFormData({...formData, displayName: e.target.value})} className="input-field" placeholder="Subject Name" />
                 </InputGroup>
-                <InputGroup label="Digital Avatar URL">
+                <InputGroup label="Avatar URL">
                   <input value={formData.profileImage} onChange={e => setFormData({...formData, profileImage: e.target.value})} className="input-field" placeholder="https://image-url.com" />
                 </InputGroup>
                 <InputGroup label="Terminal Phone">
-                  <input value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="input-field" placeholder="+91 0000000000" />
+                  <input value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="input-field" placeholder="+91 00000 00000" />
                 </InputGroup>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                <InputGroup label="Gender Identification">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+                <InputGroup label="Identification">
                    <select value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})} className="input-field">
                       <option value="unisex">Unisex</option>
                       <option value="male">Male</option>
                       <option value="female">Female</option>
                    </select>
                 </InputGroup>
-                <InputGroup label="Standard Pattern (Size)">
+                <InputGroup label="Pattern (Size)">
                    <select value={formData.preferredSize} onChange={e => setFormData({...formData, preferredSize: e.target.value})} className="input-field">
-                      <option value="S">Small (S)</option>
-                      <option value="M">Medium (M)</option>
-                      <option value="L">Large (L)</option>
-                      <option value="XL">X-Large (XL)</option>
+                      <option value="S">S</option>
+                      <option value="M">M</option>
+                      <option value="L">L</option>
+                      <option value="XL">XL</option>
                    </select>
                 </InputGroup>
               </div>
 
-              <InputGroup label="Physical Coordinates (Full Address)">
+              <InputGroup label="Coordinates (Address)">
                 <textarea 
                   value={formData.address} 
                   onChange={e => setFormData({...formData, address: e.target.value})} 
-                  className="input-field min-h-[120px] py-6" 
+                  className="input-field min-h-[100px] md:min-h-[120px] py-4 md:py-6" 
                   placeholder="Street, Locality, Landmark" 
                 />
               </InputGroup>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
                 <InputGroup label="Sector / City">
                   <input value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="input-field" placeholder="City" />
                 </InputGroup>
@@ -413,29 +413,28 @@ export const ProfilePage = () => {
                 <InputGroup label="Zip Code">
                   <input value={formData.zipcode} onChange={e => setFormData({...formData, zipcode: e.target.value})} className="input-field" placeholder="000000" />
                 </InputGroup>
-                <InputGroup label="Region / Country">
-                  <input value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} className="input-field" placeholder="Country" />
-                </InputGroup>
               </div>
+              
+              <InputGroup label="Region / Country">
+                <input value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} className="input-field" placeholder="Country" />
+              </InputGroup>
 
               <div className="space-y-4">
-                  <InputGroup label="Preferred Extraction Method">
-                     <select value={formData.preferredPayment} onChange={e => setFormData({...formData, preferredPayment: e.target.value})} className="input-field uppercase text-[10px] font-black tracking-widest">
-                        <option value="online">Online UPI (0% Fee)</option>
-                        <option value="cod">Cash on Delivery (₹50 Fee)</option>
+                  <InputGroup label="Extraction Protocol">
+                     <select value={formData.preferredPayment} onChange={e => setFormData({...formData, preferredPayment: e.target.value})} className="input-field uppercase text-[9px] md:text-[10px] font-black tracking-widest h-14 md:h-auto">
+                        <option value="online">Online UPI</option>
+                        <option value="cod">Cash on Delivery</option>
                         <option value="balance">Void balance</option>
                      </select>
                   </InputGroup>
               </div>
 
-              <div className="pt-12">
+              <div className="pt-8 md:pt-12">
                 <Button 
                   disabled={saving}
-                  className="w-full h-24 rounded-[2rem] bg-brand-red text-white hover:bg-white hover:text-black transition-all duration-700 font-black px-12 group"
+                  className="w-full h-20 md:h-24 rounded-2xl md:rounded-[2rem] bg-brand-red text-white hover:bg-white hover:text-black transition-all duration-700 font-black px-8 md:px-12 group text-base md:text-xl"
                 >
-                  <span className="flex items-center gap-4 text-xl">
-                    {saving ? 'SYNCHRONIZING...' : success ? 'IDENTITY UPDATED ✓' : 'SECURE IDENTITY'}
-                  </span>
+                    {saving ? 'SYNCING...' : success ? 'UPDATED ✓' : 'SECURE IDENTITY'}
                 </Button>
               </div>
             </form>
@@ -583,11 +582,18 @@ export const ProfilePage = () => {
           width: 100%;
           background: rgba(255, 255, 255, 0.03);
           border: 1px solid rgba(255, 255, 255, 0.05);
-          padding: 1.5rem 2rem;
-          border-radius: 1.5rem;
-          font-size: 1rem;
+          padding: 1rem 1.5rem;
+          border-radius: 1rem;
+          font-size: 0.875rem;
           font-family: 'Inter', sans-serif;
           transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @media (min-width: 768px) {
+          .input-field {
+            padding: 1.5rem 2rem;
+            border-radius: 1.5rem;
+            font-size: 1rem;
+          }
         }
         .input-field:focus {
           outline: none;

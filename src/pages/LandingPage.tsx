@@ -2,25 +2,115 @@ import { motion } from 'motion/react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/src/components/ui/Button';
 import { ArrowRight, ShoppingBag, Zap, Shield, Globe, Cpu } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { collection, query, limit, onSnapshot, where } from 'firebase/firestore';
+import { useState, useEffect, useRef } from 'react';
+import { collection, query, limit, onSnapshot, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
+import { Html5Qrcode } from 'html5-qrcode';
+import { X, Camera, Search, MessageSquare, AlertCircle } from 'lucide-react';
 
 export const LandingPage = () => {
   const navigate = useNavigate();
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [newArrivals, setNewArrivals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'searching' | 'found' | 'error'>('idle');
+  const [scannedResult, setScannedResult] = useState<string>('');
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerId = "void-scanner-region";
+
+  const customerCareNumber = "+91 88888 77777"; 
+
+  useEffect(() => {
+    if (isScannerOpen) {
+      const startScanner = async () => {
+        try {
+          const html5QrCode = new Html5Qrcode(scannerId);
+          scannerRef.current = html5QrCode;
+          setScanStatus('scanning');
+          
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 }
+            },
+            async (decodedText) => {
+              await handleScanSuccess(decodedText);
+            },
+            () => {}
+          );
+        } catch (err) {
+          console.error("Scanner failed to start:", err);
+          setIsScannerOpen(false);
+        }
+      };
+      
+      startScanner();
+    } else {
+      if (scannerRef.current && scannerRef.current.isScanning) {
+        scannerRef.current.stop().catch(e => console.log("Scanner stop error", e));
+      }
+    }
+
+    return () => {
+       if (scannerRef.current && scannerRef.current.isScanning) {
+          scannerRef.current.stop().catch(e => console.log("Cleanup stop error", e));
+       }
+    };
+  }, [isScannerOpen]);
+
+  const handleScanSuccess = async (text: string) => {
+    setScannedResult(text);
+    setScanStatus('searching');
+    
+    if (scannerRef.current) {
+       await scannerRef.current.stop();
+    }
+
+    try {
+      const q = query(collection(db, 'products'));
+      const querySnapshot = await getDocs(q);
+      
+      const match = querySnapshot.docs.find(doc => {
+         const data = doc.data();
+         return data.name.toLowerCase().includes(text.toLowerCase()) || doc.id === text;
+      });
+
+      if (match) {
+        setScanStatus('found');
+        setTimeout(() => {
+           navigate(`/product/${match.id}`);
+           setIsScannerOpen(false);
+           setScanStatus('idle');
+        }, 1500);
+      } else {
+        setScanStatus('error');
+      }
+    } catch (error) {
+      console.error("Search failed:", error);
+      setScanStatus('error');
+    }
+  };
 
   useEffect(() => {
     // Fetch Featured Products for Flash Deals
-    const qFeatured = query(collection(db, 'products'), where('isFeatured', '==', true), limit(2));
+    const qFeatured = query(
+      collection(db, 'products'), 
+      where('isFeatured', '==', true), 
+      orderBy('createdAt', 'desc'),
+      limit(2)
+    );
     const unsubFeatured = onSnapshot(qFeatured, (snap) => {
       setFeaturedProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
     // Fetch New Arrivals
-    const qNew = query(collection(db, 'products'), limit(4));
+    const qNew = query(
+      collection(db, 'products'), 
+      orderBy('createdAt', 'desc'),
+      limit(4)
+    );
     const unsubNew = onSnapshot(qNew, (snap) => {
       setNewArrivals(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
@@ -40,20 +130,20 @@ export const LandingPage = () => {
     }
   }, [loading, featuredProducts, newArrivals]);
 
-  const displayFlashDeals = featuredProducts.length > 0 ? featuredProducts : [
+   const displayFlashDeals = featuredProducts.length > 0 ? featuredProducts : [
     {
       id: 'argentina-retro',
       name: 'Argentina 1994 Retro',
       price: 449,
       discount: 25,
-      imageUrl: 'https://images.footballfanatics.com/argentina-national-team/argentina-adidas-og-1994-away-jersey-blue_ss5_p-200938531+pv-1+v-69c3a3c2672740939f0464c8d50c196f.jpg'
+      imageUrl: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800'
     },
     {
       id: 'real-madrid-2425',
       name: 'Real Madrid Elite 24/25',
       price: 449,
       discount: 15,
-      imageUrl: 'https://shop.realmadrid.com/cdn/shop/files/RMCFMS0120-01_1.jpg'
+      imageUrl: 'https://images.unsplash.com/photo-1614632537423-1e6c2e7a0dca?q=80&w=800'
     }
   ];
 
@@ -62,25 +152,25 @@ export const LandingPage = () => {
        id: 'italy-ren',
        name: 'Italy Renaissance',
        price: 449,
-       imageUrl: 'https://images.footballfanatics.com/italy-national-team/italy-adidas-home-authentic-shirt-2024_ss5_p-200388939+u-43e86f874c72473887013898869c9b6b+v-dd692e76f62a420993070cd86b29d10e.jpg'
+       imageUrl: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800'
     },
     {
        id: 'japan-ops',
        name: 'Japan Special Ops',
        price: 449,
-       imageUrl: 'https://images.footballfanatics.com/japan-national-team/japan-adidas-home-shirt-2024_ss5_p-200786938+pv-1+v-142f36d37651474e8929e0689b0b4b2a.jpg'
+       imageUrl: 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=800'
     },
     {
        id: 'brazil-noir',
        name: 'Brazil Samba Noir',
        price: 449,
-       imageUrl: 'https://images.footballfanatics.com/brazil-national-team/brazil-nike-home-stadium-shirt-2024_ss5_p-200705663+u-83605c31751a4f009e5306509a25032a+v-7431e780860447be88d3f4415842880c.jpg'
+       imageUrl: 'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?q=80&w=800'
     },
     {
        id: 'bayern-stealth',
        name: 'Bayern Munich Stealth',
        price: 449,
-       imageUrl: 'https://images.footballfanatics.com/fc-bayern-munich/fc-bayern-munich-adidas-home-shirt-2024-25_ss5_p-14447477+u-vbtm0086386x80x073f+v-f472f7ed50064560946777329486c0e8.jpg'
+       imageUrl: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=800'
     }
   ];
 
@@ -92,38 +182,38 @@ export const LandingPage = () => {
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-brand-red/5 blur-[120px] rounded-full" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 relative z-10 pt-32 pb-24">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10 pt-24 md:pt-32 pb-24">
         {/* Cinematic Hero */}
-        <section className="mb-32">
+        <section className="mb-20 md:mb-32">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative aspect-[21/9] w-full overflow-hidden rounded-[3rem] border border-white/5 bg-white/[0.02]"
+              className="relative aspect-[3/4] md:aspect-[21/9] w-full overflow-hidden rounded-[2rem] md:rounded-[3rem] border border-white/5 bg-white/[0.02]"
             >
                <img 
-                 src="https://images.footballfanatics.com/argentina/argentina-adidas-training-jersey-navy_ss5_p-200786938+pv-1+v-142f36d37651474e8929e0689b0b4b2a.jpg?_hv=2&w=1200"
+                 src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=1600"
                  className="absolute inset-0 w-full h-full object-cover grayscale opacity-40 hover:grayscale-0 hover:scale-105 transition-all duration-[3s]"
                  alt="Hero"
                />
-               <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent flex flex-col justify-center p-20">
+               <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black via-black/40 to-transparent flex flex-col justify-end md:justify-center p-8 md:p-20">
                   <motion.div
-                    initial={{ opacity: 0, x: -30 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5, duration: 0.8 }}
                   >
-                     <span className="text-brand-red font-black tracking-[0.8em] text-[10px] uppercase mb-6 block drop-shadow-glow">THE GOTHIC REGISTRY // V3.0</span>
-                     <h1 className="text-8xl md:text-9xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-8">WH1RL<br/>POOL</h1>
-                     <div className="flex flex-wrap gap-8 items-center">
+                     <span className="text-brand-red font-black tracking-[0.4em] md:tracking-[0.8em] text-[8px] md:text-[10px] uppercase mb-4 md:mb-6 block drop-shadow-glow">THE GOTHIC REGISTRY // V3.0</span>
+                     <h1 className="text-6xl md:text-9xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-6 md:mb-8">WH1RL<br/>POOL</h1>
+                     <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start md:items-center">
                         <Button 
                           onClick={() => navigate('/shop')}
-                          className="h-14 px-10 rounded-xl bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-display font-black italic uppercase tracking-[0.2em] text-xs"
+                          className="h-14 w-full md:w-auto px-10 rounded-xl bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-display font-black italic uppercase tracking-[0.2em] text-xs"
                         >
                           ENTER THE VOID
                         </Button>
-                        <div className="hidden md:block">
+                        <div className="md:block">
                            <p className="text-[8px] font-black uppercase tracking-[0.5em] text-white/20 mb-1 italic">SYSTEM STATUS</p>
-                           <p className="text-sm font-display font-black tracking-widest italic text-brand-red animate-pulse">OPERATIONAL</p>
+                           <p className="text-xs md:text-sm font-display font-black tracking-widest italic text-brand-red animate-pulse">OPERATIONAL</p>
                         </div>
                      </div>
                   </motion.div>
@@ -178,35 +268,179 @@ export const LandingPage = () => {
         </section>
 
         {/* Categorical Bento Grid (The Registry) */}
-        <section className="mb-32">
-           <h2 className="text-4xl md:text-5xl font-display font-black tracking-tighter uppercase italic mb-12">THE VOID SECTORS</h2>
-           <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-2 h-[800px] gap-6">
-              <div className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer" onClick={() => navigate('/shop?category=National Team Jerseys')}>
-                 <img src="https://images.footballfanatics.com/argentina/argentina-adidas-training-jersey-navy_ss5_p-200786938+pv-3+v-142f36d37651474e8929e0689b0b4b2a.jpg?_hv=2&w=1200" className="absolute inset-0 w-full h-full object-cover grayscale opacity-10 group-hover:scale-105 group-hover:opacity-30 transition-all duration-1000" alt="" />
-                 <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent to-transparent flex flex-col justify-end p-16">
+        <section className="mb-24 md:mb-32">
+           <h2 className="text-3xl md:text-5xl font-display font-black tracking-tighter uppercase italic mb-8 md:mb-12 text-center md:text-left">THE VOID SECTORS</h2>
+           <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-none md:grid-rows-2 h-auto md:h-[800px] gap-4 md:gap-6">
+              <div className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-square md:aspect-auto" onClick={() => navigate('/shop?category=National Team Jerseys')}>
+                 <img src="https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=1200" className="absolute inset-0 w-full h-full object-cover grayscale opacity-10 group-hover:scale-105 group-hover:opacity-30 transition-all duration-1000" alt="" />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent to-transparent flex flex-col justify-end p-8 md:p-16">
                     <span className="text-[8px] font-black text-brand-red tracking-[0.6em] uppercase mb-4 italic">SECTOR 01</span>
-                    <h3 className="text-7xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-0 group-hover:translate-x-4 transition-transform duration-1000">NATIONAL<br />ELITE</h3>
+                    <h3 className="text-5xl md:text-7xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-0 group-hover:translate-x-4 transition-transform duration-1000">NATIONAL<br />ELITE</h3>
                  </div>
               </div>
-              <div className="md:col-span-2 relative group overflow-hidden rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer" onClick={() => navigate('/shop?category=Retro Jerseys')}>
-                 <img src="https://images.footballfanatics.com/argentina/argentina-adidas-training-jersey-navy_ss5_p-200786938+pv-2+v-142f36d37651474e8929e0689b0b4b2a.jpg?_hv=2&w=1200" className="absolute inset-0 w-full h-full object-cover grayscale opacity-5 group-hover:scale-105 group-hover:opacity-20 transition-all duration-1000" alt="" />
-                 <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent to-transparent flex flex-col justify-end p-12">
-                    <span className="text-[8px] font-black text-white/20 tracking-[0.6em] uppercase mb-4 italic">SECTOR 05</span>
-                    <h3 className="text-4xl font-display font-black tracking-tighter uppercase italic leading-none group-hover:text-brand-red transition-colors duration-500">HERITAGE RELICS</h3>
+              <div className="md:col-span-2 relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-[16/9] md:aspect-auto" onClick={() => navigate('/shop?category=Retro Jerseys')}>
+                 <img src="https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=1200" className="absolute inset-0 w-full h-full object-cover grayscale opacity-5 group-hover:scale-105 group-hover:opacity-20 transition-all duration-1000" alt="" />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent to-transparent flex flex-col justify-end p-8 md:p-12">
+                    <span className="text-[8px] font-black text-white/20 tracking-[0.6em] uppercase mb-2 md:mb-4 italic">SECTOR 05</span>
+                    <h3 className="text-3xl md:text-4xl font-display font-black tracking-tighter uppercase italic leading-none group-hover:text-brand-red transition-colors duration-500">HERITAGE RELICS</h3>
                  </div>
               </div>
-              <div className="relative group overflow-hidden rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer" onClick={() => navigate('/shop?category=Limited Edition Jerseys')}>
-                 <div className="absolute inset-0 bg-gradient-to-br from-brand-red/5 to-transparent p-10 flex flex-col justify-end transition-all duration-700 group-hover:bg-brand-red/10">
-                    <h3 className="text-2xl font-display font-black tracking-tighter uppercase italic group-hover:text-brand-red transition-all">LIMITED<br/>UNITS</h3>
+              <div className="relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-video md:aspect-auto" onClick={() => navigate('/shop?category=Limited Edition Jerseys')}>
+                 <div className="absolute inset-0 bg-gradient-to-br from-brand-red/5 to-transparent p-8 md:p-10 flex flex-col justify-end transition-all duration-700 group-hover:bg-brand-red/10">
+                    <h3 className="text-xl md:text-2xl font-display font-black tracking-tighter uppercase italic group-hover:text-brand-red transition-all">LIMITED<br/>UNITS</h3>
                  </div>
               </div>
-              <div className="relative group overflow-hidden rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer" onClick={() => navigate('/shop?category=Training Kits')}>
-                 <div className="absolute inset-0 bg-gradient-to-bl from-white/5 to-transparent p-10 flex flex-col justify-end group-hover:bg-white/10 transition-all duration-700">
-                    <h3 className="text-2xl font-display font-black tracking-tighter uppercase italic group-hover:text-white/60 transition-all">PROTOCOL<br/>KITS</h3>
+              <div className="relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-video md:aspect-auto" onClick={() => navigate('/shop?category=Training Kits')}>
+                 <div className="absolute inset-0 bg-gradient-to-bl from-white/5 to-transparent p-8 md:p-10 flex flex-col justify-end group-hover:bg-white/10 transition-all duration-700">
+                    <h3 className="text-xl md:text-2xl font-display font-black tracking-tighter uppercase italic group-hover:text-white/60 transition-all">PROTOCOL<br/>KITS</h3>
                  </div>
               </div>
            </div>
         </section>
+
+        {/* VOID SCANNER ARTIFACT DISCOVERY */}
+        <section className="mb-24 md:mb-40">
+           <div className="relative overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-gradient-to-br from-brand-red/10 to-transparent border border-white/5 p-8 md:p-20">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-red to-transparent opacity-50" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                 <div className="text-center md:text-left">
+                    <span className="text-brand-red font-black tracking-[0.6em] text-[10px] uppercase mb-4 md:mb-6 block">SYSTEM PROTOCOL // 0x44</span>
+                    <h2 className="text-4xl md:text-6xl font-display font-black tracking-tighter uppercase italic leading-[0.9] mb-6 md:mb-8 text-white">FOUND A PIECE?<br/><span className="text-white/20">SCAN THE VOID</span></h2>
+                    <p className="text-sm text-white/40 font-medium leading-relaxed mb-8 md:mb-10 max-w-md mx-auto md:mx-0">
+                       Spotted a jersey in the physical world? Use the Wh1rlpool Spectral Scanner to identify the artifact and extract it from our digital registry instantly.
+                    </p>
+                    <Button 
+                      onClick={() => setIsScannerOpen(true)}
+                      className="h-14 w-full md:w-auto px-10 rounded-xl bg-brand-red text-white hover:bg-white hover:text-black transition-all duration-500 font-display font-black italic uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-4"
+                    >
+                       <Camera className="w-4 h-4" />
+                       INITIATE SCANNER
+                    </Button>
+                 </div>
+                 <div className="relative aspect-video md:aspect-video rounded-2xl md:rounded-3xl bg-black/40 border border-white/5 flex items-center justify-center overflow-hidden">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,20,20,0.1),transparent)]" />
+                    <Cpu className="w-12 h-12 md:w-20 md:h-20 text-brand-red animate-pulse opacity-20" />
+                    <motion.div 
+                       animate={{ top: ['0%', '100%', '0%'] }}
+                       transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                       className="absolute left-0 w-full h-[1px] bg-brand-red/50 z-10"
+                    />
+                 </div>
+              </div>
+           </div>
+        </section>
+
+        {/* Scanner Overlay UI */}
+        {isScannerOpen && (
+           <motion.div 
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             className="fixed inset-0 z-[100] bg-black/95 flex flex-col p-6 backdrop-blur-xl"
+           >
+              <div className="flex justify-between items-center mb-8">
+                 <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-brand-red flex items-center justify-center rounded-lg">
+                       <Search className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                       <p className="text-[8px] font-black uppercase tracking-widest text-brand-red italic">SPECTRAL SCANNER</p>
+                       <p className="text-lg font-display font-black italic uppercase">ARTIFACT IDENTIFICATION</p>
+                    </div>
+                 </div>
+                 <button 
+                  onClick={() => setIsScannerOpen(false)}
+                  className="w-12 h-12 bg-white/5 hover:bg-brand-red transition-colors rounded-full flex items-center justify-center"
+                 >
+                    <X className="w-6 h-6" />
+                 </button>
+              </div>
+
+              <div className="flex-1 max-w-2xl mx-auto w-full flex flex-col justify-center gap-4 md:gap-8 overflow-y-auto no-scrollbar">
+                 <div className="aspect-[3/4] md:aspect-[4/3] rounded-[2rem] md:rounded-[2.5rem] bg-white/[0.02] border border-white/5 overflow-hidden relative shadow-2xl shadow-brand-red/5">
+                    <div id={scannerId} className="w-full h-full object-cover scale-[1.02]"></div>
+                    
+                    {scanStatus === 'scanning' && (
+                       <div className="absolute inset-0 pointer-events-none border-[40px] border-black/40">
+                          <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-brand-red" />
+                          <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-brand-red" />
+                          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-brand-red" />
+                          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-brand-red" />
+                          <motion.div 
+                             animate={{ top: ['0%', '100%', '0%'] }}
+                             transition={{ duration: 2, repeat: Infinity }}
+                             className="absolute left-0 w-full h-[2px] bg-brand-red shadow-[0_0_15px_rgba(255,0,0,0.8)]"
+                          />
+                       </div>
+                    )}
+
+                    {scanStatus === 'searching' && (
+                       <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-6 backdrop-blur-sm">
+                          <div className="w-16 h-16 border-4 border-brand-red/30 border-t-brand-red rounded-full animate-spin" />
+                          <p className="text-xs font-black uppercase tracking-[0.5em] text-brand-red animate-pulse">QUERYING THE VOID ARCHIVE...</p>
+                       </div>
+                    )}
+
+                    {scanStatus === 'found' && (
+                       <div className="absolute inset-0 bg-brand-red flex flex-col items-center justify-center gap-4">
+                          <Zap className="w-16 h-16 text-white" />
+                          <p className="text-xl font-display font-black italic uppercase leading-none">ARTIFACT LOCATED</p>
+                          <p className="text-[10px] font-black uppercase tracking-widest opacity-60">MATERIALIZING UNITS...</p>
+                       </div>
+                    )}
+
+                    {scanStatus === 'error' && (
+                       <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-12 text-center gap-8">
+                          <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-full flex items-center justify-center mb-4">
+                             <AlertCircle className="w-10 h-10 text-brand-red" />
+                          </div>
+                          <div>
+                             <h3 className="text-2xl font-display font-black italic uppercase mb-4">ARTIFACT NOT RECOGNIZED</h3>
+                             <p className="text-sm text-white/40 font-medium leading-relaxed mb-6">
+                                The unit <span className="text-brand-red font-black">"{scannedResult}"</span> is not indexed in our core registry. 
+                                Transmit this code to our customer care sector to request manual acquisition.
+                             </p>
+                             <div className="bg-white/5 border border-white/10 p-6 rounded-2xl flex flex-col items-center gap-4">
+                                <span className="text-[8px] font-black uppercase tracking-widest text-white/20">CONTACT SECTOR</span>
+                                <p className="text-xl font-display font-black italic text-brand-red tracking-widest">{customerCareNumber}</p>
+                                <Button 
+                                  onClick={() => window.location.href = `https://wa.me/${customerCareNumber.replace(/\D/g,'')}?text=I'm%20looking%20for%20jersey%20code:%20${scannedResult}`}
+                                  className="bg-white text-black hover:bg-brand-red hover:text-white w-full h-12 flex items-center justify-center gap-2 font-display font-black italic uppercase transition-all"
+                                >
+                                   <MessageSquare className="w-4 h-4" />
+                                   MESSAGE CARE
+                                </Button>
+                             </div>
+                             <button 
+                                onClick={() => {
+                                   setIsScannerOpen(false);
+                                   setScanStatus('idle');
+                                }}
+                                className="mt-8 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-colors"
+                             >
+                                ← RETURN TO REGISTRY
+                             </button>
+                          </div>
+                       </div>
+                    )}
+                 </div>
+
+                 <div className="grid grid-cols-3 gap-6">
+                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl text-center">
+                       <p className="text-[10px] font-black text-brand-red mb-1 uppercase tracking-widest">FPS</p>
+                       <p className="text-xl font-display font-black italic">60.00</p>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl text-center">
+                       <p className="text-[10px] font-black text-white/30 mb-1 uppercase tracking-widest">BITRATE</p>
+                       <p className="text-xl font-display font-black italic">12.4G</p>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl text-center">
+                       <p className="text-[10px] font-black text-white/30 mb-1 uppercase tracking-widest">PING</p>
+                       <p className="text-xl font-display font-black italic">1MS</p>
+                    </div>
+                 </div>
+              </div>
+           </motion.div>
+        )}
 
         {/* New Arrivals Product Grid (Amazon Dense Layout) */}
         <section>

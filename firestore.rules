@@ -52,6 +52,9 @@ service cloud.firestore {
              (!('description' in data) || data.description is string) &&
              (!('imageUrl' in data) || data.imageUrl is string) &&
              (!('images' in data) || data.images is list) &&
+             (!('gender' in data) || data.gender is string) &&
+             (!('club' in data) || data.club is string) &&
+             (!('country' in data) || data.country is string) &&
              (!('isFeatured' in data) || data.isFeatured is bool) &&
              (!('isTrending' in data) || data.isTrending is bool) &&
              (!('ratings' in data) || data.ratings is number) &&
@@ -108,7 +111,7 @@ service cloud.firestore {
       allow read: if true; 
       allow create: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
       allow update: if isAdmin() && isValidProduct(incoming()) && (
-        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'price', 'costPrice', 'description', 'imageUrl', 'images', 'category', 'stock', 'isFeatured', 'isTrending', 'ratings'])
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'price', 'costPrice', 'description', 'imageUrl', 'images', 'category', 'stock', 'isFeatured', 'isTrending', 'ratings', 'gender', 'club', 'country'])
       );
       allow delete: if isAdmin();
     }

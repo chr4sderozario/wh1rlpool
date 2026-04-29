@@ -29,6 +29,7 @@ interface Product {
   stock: number;
   category: string;
   imageUrl?: string;
+  images?: string[];
   description?: string;
   isFeatured?: boolean;
 }
@@ -120,6 +121,8 @@ export const AdminDashboard = () => {
     country: '',
     image: null as File | null,
     imagePreview: '',
+    imageUrl: '', // Manual URL input
+    images: [] as string[], // Additional images
     isFeatured: false
   });
 
@@ -322,12 +325,13 @@ export const AdminDashboard = () => {
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploading(true);
-    let imageUrl = newProduct.imagePreview;
+    let finalImageUrl = newProduct.imageUrl || newProduct.imagePreview;
+    
     try {
       if (newProduct.image) {
         const storageRef = ref(storage, `products/${Date.now()}_${newProduct.image.name}`);
         const snapshot = await uploadBytes(storageRef, newProduct.image);
-        imageUrl = await getDownloadURL(snapshot.ref);
+        finalImageUrl = await getDownloadURL(snapshot.ref);
       }
 
       const productData = {
@@ -341,7 +345,8 @@ export const AdminDashboard = () => {
         club: newProduct.club,
         country: newProduct.country,
         isFeatured: newProduct.isFeatured,
-        imageUrl,
+        imageUrl: finalImageUrl,
+        images: newProduct.images,
       };
 
       if (isEditMode && editingId) {
@@ -371,8 +376,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 50,
           category: "Official Jerseys",
-          description: "La Casa Blanca. A spectral masterpiece in ghost white. The fabric of royalty, woven with the whispered echoes of a hundred coronations. La Casa Blanca's eternal glory, now rendered in midnight luxury.",
-          imageUrl: "https://shop.realmadrid.com/cdn/shop/files/RMCFMS0120-01_1.jpg?v=1717411681",
+          description: "La Casa Blanca. A spectral masterpiece in ghost white.",
+          imageUrl: "https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=800",
           gender: "men",
           club: "RMA",
           isFeatured: true
@@ -383,8 +388,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 45,
           category: "Official Jerseys",
-          description: "Manchester's finest. Industrial symphony in celestial blue. A geometric tapestry of the 0161 pulse, where architectural precision meets the dark rhythm of Manchester's dominant legacy.",
-          imageUrl: "https://images.footballfanatics.com/manchester-city/manchester-city-puma-home-shirt-2024-25_ss5_p-201016847+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          description: "Manchester's finest. Industrial symphony in celestial blue.",
+          imageUrl: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800",
           gender: "men",
           club: "MCI",
           isFeatured: true
@@ -395,8 +400,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 35,
           category: "Official Jerseys",
-          description: "The Blaugrana bloodline, 125 years in the making. A dual-toned sigil of Catalan resistance, draped in the heavy velvet of half-forgotten victories and future conquests.",
-          imageUrl: "https://images.footballfanatics.com/fc-barcelona/fc-barcelona-nike-home-stadium-shirt-2024-25_ss5_p-200786938+pv-1+v-142f36d37651474e8929e0689b0b4b2a.jpg?_hv=2&w=1200",
+          description: "The Blaugrana bloodline, 125 years in the making.",
+          imageUrl: "https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=800",
           gender: "men",
           club: "FCB",
           isFeatured: true
@@ -407,8 +412,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 60,
           category: "National Team Jerseys",
-          description: "Champions of the World. Albiceleste transcendence. Three stars forged in celestial fire, marking a legacy written in the stars. The golden armor of the World's chosen successors.",
-          imageUrl: "https://images.footballfanatics.com/argentina/argentina-adidas-home-authentic-shirt-2024_ss5_p-200388939+u-43e86f874c72473887013898869c9b6b+v-dd692e76f62a420993070cd86b29d10e.jpg?_hv=2&w=1200",
+          description: "Champions of the World. Albiceleste transcendence.",
+          imageUrl: "https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800",
           gender: "men",
           country: "ARG",
           isFeatured: true
@@ -419,8 +424,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 40,
           category: "Official Jerseys",
-          description: "The pink heat of Miami. Neon pulse in the velvet dark. A flamingo hue that bleeds into the Florida night, bearing the mark of the GOAT in a realm of high-stakes tropical noir.",
-          imageUrl: "https://images.footballfanatics.com/inter-miami-cf/inter-miami-cf-adidas-home-shirt-24_ss5_p-200388915+u-6p87it1ic0clyjghrck1+v-1f6cc97ac26e47959b85c249bc8f654b.jpg?_hv=2&w=1200",
+          description: "The pink heat of Miami. Neon pulse in the velvet dark.",
+          imageUrl: "https://images.unsplash.com/photo-1614632537423-1e6c2e7a0dca?q=80&w=800",
           gender: "men",
           club: "MIA",
           isFeatured: true
@@ -431,8 +436,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 30,
           category: "National Team Jerseys",
-          description: "Seleção. The Amazonian soul manifested. A complex weave of jungle rhythms and golden light, designed for those who perform rituals of magic on the hallowed green.",
-          imageUrl: "https://images.footballfanatics.com/brazil-national-team/brazil-nike-home-stadium-shirt-2024_ss5_p-200705663+u-83605c31751a4f009e5306509a25032a+v-7431e780860447be88d3f4415842880c.jpg?_hv=2&w=1200",
+          description: "Seleção. The Amazonian soul manifested.",
+          imageUrl: "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?q=80&w=800",
           gender: "men",
           country: "BRA",
           isFeatured: true
@@ -443,8 +448,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 25,
           category: "National Team Jerseys",
-          description: "Navegadores. The Navigator's mantle. Deep crimson reflecting centuries of exploration and the iron will of the Portuguese spirit. A garment of pure, uncompromising identity.",
-          imageUrl: "https://images.footballfanatics.com/portugal-national-team/portugal-nike-home-stadium-shirt-2024_ss5_p-201014167+pv-1+v-8e7c1c045b674b0f9485c2f0d61e9381.jpg?_hv=2&w=1200",
+          description: "Navegadores. The Navigator's mantle.",
+          imageUrl: "https://images.unsplash.com/photo-1510051644265-934cb974e936?q=80&w=800",
           gender: "men",
           country: "POR",
           isFeatured: true
@@ -455,8 +460,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 20,
           category: "Official Jerseys",
-          description: "The Gunners' core. The Gunner's covenant. Cannon-fire red meeting the purity of white. A stark, minimalist construct of North London's relentless tactical precision.",
-          imageUrl: "https://images.footballfanatics.com/arsenal/official-adidas-arsenal-home-jersey-24-25_ss5_p-201016847+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          description: "The Gunners' core. The Gunner's covenant.",
+          imageUrl: "https://images.unsplash.com/photo-1518604666860-9ed391f7644d?q=80&w=800",
           gender: "men",
           club: "ARS",
           isFeatured: true
@@ -467,8 +472,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 35,
           category: "Official Jerseys",
-          description: "The Red Devils. The Red Devil's obsidian gradient. A hellfire red that darkens into the abyss, capturing the theatrical drama of the Theatre of Dreams.",
-          imageUrl: "https://images.footballfanatics.com/manchester-united/manchester-united-adidas-home-shirt-2024-25_ss5_p-201016847+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          description: "The Red Devils. obsidian gradient.",
+          imageUrl: "https://images.unsplash.com/photo-1489945052260-4f21c52268b9?q=80&w=800",
           gender: "men",
           club: "MUN",
           isFeatured: true
@@ -479,8 +484,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 40,
           category: "Official Jerseys",
-          description: "You'll Never Walk Alone. The Anfield oracle. A pinstriped relic that honors the ghosts of the Kop. A deep, soulful red that ensures you never walk alone through the void.",
-          imageUrl: "https://images.footballfanatics.com/liverpool/liverpool-nike-home-stadium-shirt-2024-25_ss5_p-201016847+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          description: "You'll Never Walk Alone. The Anfield oracle.",
+          imageUrl: "https://images.unsplash.com/photo-1552318965-6e6be7484ada?q=80&w=800",
           gender: "men",
           club: "LIV",
           isFeatured: true
@@ -491,8 +496,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 30,
           category: "Official Jerseys",
-          description: "London is Blue. London's liquid blue. A melting pot of chaotic patterns and synthetic brilliance. The armor of the new aristocracy in a digital age.",
-          imageUrl: "https://images.footballfanatics.com/chelsea/chelsea-nike-home-stadium-shirt-2024-25_ss5_p-201014168+pv-1+v-8e7c1c045b674b0f9485c2f0d61e9381.jpg?_hv=2&w=1200",
+          description: "London is Blue. London's liquid blue.",
+          imageUrl: "https://images.unsplash.com/photo-1510567191612-da30737380d7?q=80&w=800",
           gender: "men",
           club: "CHE",
           isFeatured: false
@@ -503,8 +508,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 35,
           category: "Official Jerseys",
-          description: "Mia San Mia. The Bavarian blitz. Three shades of darkness meeting in a scarlet union. Mia San Mia—a motto carved in stone, worn as a warning to the rest of the world.",
-          imageUrl: "https://images.footballfanatics.com/bayern-munich/bayern-munich-adidas-home-shirt-2024-25_ss5_p-201016849+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          description: "Mia San Mia. The Bavarian blitz.",
+          imageUrl: "https://images.unsplash.com/photo-1510567191612-da30737380d7?q=80&w=800",
           gender: "men",
           club: "BAY",
           isFeatured: false
@@ -515,8 +520,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 25,
           category: "Official Jerseys",
-          description: "Parisian Style. Parisian avant-garde. The Hechter stripe reborn as a brushstroke of dark genius. A garment of pure prestige, designed for the lords of the Parc.",
-          imageUrl: "https://images.footballfanatics.com/paris-saint-germain/psg-nike-home-stadium-shirt-2024-25_ss5_p-201014170+pv-1+v-8e7c1c045b674b0f9485c2f0d61e9381.jpg?_hv=2&w=1200",
+          description: "Parisian Style. Parisian avant-garde.",
+          imageUrl: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=800",
           gender: "men",
           club: "PSG",
           isFeatured: false
@@ -527,8 +532,8 @@ export const AdminDashboard = () => {
           costPrice: 250,
           stock: 15,
           category: "Retro Jerseys",
-          description: "Pelé. The Pelé Artifact. Pure 1970s gold, representing the exact moment football achieved spiritual enlightenment. A timeless relic from the pinnacle of the beautiful game.",
-          imageUrl: "https://images.footballfanatics.com/brazil-national-team/brazil-1970-retro-shirt_ss5_p-200705664+v-7431e780860447be88d3f4415842880c.jpg?_hv=2&w=1200",
+          description: "Pelé. The Pelé Artifact. Pure 1970s gold.",
+          imageUrl: "https://images.unsplash.com/photo-1431324155629-1a6eda1eedbc?q=80&w=800",
           gender: "men",
           country: "BRA",
           isFeatured: true
@@ -539,8 +544,8 @@ export const AdminDashboard = () => {
           costPrice: 250,
           stock: 20,
           category: "Retro Jerseys",
-          description: "Maradona. The Cosmic Relic. Adorned with the spirit of the 1986 deity. A light blue and white testament to the Hand of God and the ultimate transcendence.",
-          imageUrl: "https://images.footballfanatics.com/argentina/argentina-1986-le-coq-sportif-home-shirt_ss5_p-200388940+v-dd692e76f62a420993070cd86b29d10e.jpg?_hv=2&w=1200",
+          description: "Maradona. The Cosmic Relic.",
+          imageUrl: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=800",
           gender: "men",
           country: "ARG",
           isFeatured: true
@@ -551,8 +556,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 45,
           category: "National Team Jerseys",
-          description: "Die Mannschaft. The Teutonic flame. Eternal white scorched at the edges with the colors of the empire. Precision-engineered for dominance under the dark European skies.",
-          imageUrl: "https://images.footballfanatics.com/germany-national-team/germany-adidas-home-shirt-2024_ss5_p-201016850+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          description: "Die Mannschaft. The Teutonic flame.",
+          imageUrl: "https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=800",
           gender: "men",
           country: "GER",
           isFeatured: false
@@ -563,8 +568,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 50,
           category: "National Team Jerseys",
-          description: "Les Bleus. The Gallic crest, oversized and imposing. A deep midnight navy that speaks of past empires and future revolts. Elegance in every stitch, power in every thread.",
-          imageUrl: "https://images.footballfanatics.com/france-national-team/france-nike-home-stadium-shirt-2024_ss5_p-201014172+pv-1+v-8e7c1c045b674b0f9485c2f0d61e9381.jpg?_hv=2&w=1200",
+          description: "Les Bleus. The Gallic crest.",
+          imageUrl: "https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800",
           gender: "men",
           country: "FRA",
           isFeatured: false
@@ -575,8 +580,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 30,
           category: "National Team Jerseys",
-          description: "Azzurri. The Azzurri renaissance. A blue so deep it mirrors the Tyrrhenian abyss. A classic silhouette reimagined for a new age of tactical beauty.",
-          imageUrl: "https://images.footballfanatics.com/italy-national-team/italy-adidas-home-shirt-2024_ss5_p-201016851+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          description: "Azzurri. The Azzurri renaissance.",
+          imageUrl: "https://images.unsplash.com/photo-1518331393914-b30904e5784c?q=80&w=800",
           gender: "men",
           country: "ITA",
           isFeatured: false
@@ -587,8 +592,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 35,
           category: "National Team Jerseys",
-          description: "La Roja. La Roja's carnation curse. A vibrant, dangerous red adorned with the subtle flower of memory. A garment of passion, fire, and clinical precision.",
-          imageUrl: "https://images.footballfanatics.com/spain-national-team/spain-adidas-home-shirt-2024_ss5_p-201016852+pv-1+v-c67d3ea96e2740268f7669612ba81519.jpg?_hv=2&w=1200",
+          description: "La Roja. La Roja's carnation curse.",
+          imageUrl: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800",
           gender: "men",
           country: "ESP",
           isFeatured: false
@@ -599,8 +604,8 @@ export const AdminDashboard = () => {
           costPrice: 200,
           stock: 55,
           category: "National Team Jerseys",
-          description: "Three Lions. The Lion's pride. A stark white canvas bearing the weight of a thousand years. Simple, brutal, and undeniably elegant. A modern standard for the English throne.",
-          imageUrl: "https://images.footballfanatics.com/england-national-team/england-nike-home-stadium-shirt-2024_ss5_p-201014175+pv-1+v-8e7c1c045b674b0f9485c2f0d61e9381.jpg?_hv=2&w=1200",
+          description: "The Three Lions. Pure English heritage.",
+          imageUrl: "https://images.unsplash.com/photo-1544441893-675973e31985?q=80&w=800",
           gender: "men",
           country: "ENG",
           isFeatured: false
@@ -651,6 +656,8 @@ export const AdminDashboard = () => {
       country: '',
       image: null,
       imagePreview: '',
+      imageUrl: '',
+      images: [],
       isFeatured: false
     });
     setEditingId(null);
@@ -670,6 +677,8 @@ export const AdminDashboard = () => {
       country: p.country || '',
       image: null,
       imagePreview: p.imageUrl || '',
+      imageUrl: p.imageUrl || '',
+      images: p.images || [],
       isFeatured: p.isFeatured || false
     });
     setEditingId(p.id);
@@ -1292,7 +1301,7 @@ export const AdminDashboard = () => {
                           onClick={() => fileInputRef.current?.click()}
                           className="aspect-[4/5] border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-brand-red group overflow-hidden relative transition-all"
                         >
-                           {newProduct.imagePreview ? <img src={newProduct.imagePreview} className="w-full h-full object-cover" /> : (
+                           {newProduct.imagePreview || newProduct.imageUrl ? <img src={newProduct.imagePreview || newProduct.imageUrl} className="w-full h-full object-cover" /> : (
                               <div className="text-center space-y-4">
                                  <Plus className="w-12 h-12 text-white/10 group-hover:text-brand-red transition-colors mx-auto" />
                                  <p className="text-[10px] uppercase tracking-widest text-white/20 font-black">Upload Visual Artifact</p>
@@ -1302,6 +1311,44 @@ export const AdminDashboard = () => {
                               const f = e.target.files?.[0];
                               if(f) setNewProduct({...newProduct, image: f, imagePreview: URL.createObjectURL(f)});
                            }} />
+                        </div>
+                        <input 
+                          value={newProduct.imageUrl} 
+                          onChange={e => setNewProduct({...newProduct, imageUrl: e.target.value})} 
+                          className="admin-input !text-[10px]" 
+                          placeholder="OR PASTE IMAGE URL" 
+                        />
+                        
+                        <div className="space-y-4 pt-4">
+                           <label className="text-[8px] font-black uppercase tracking-widest text-white/20">SECONDARY ARTIFACTS</label>
+                           <div className="grid grid-cols-4 gap-2">
+                              {newProduct.images.map((img, idx) => (
+                                 <div key={idx} className="aspect-square rounded-xl bg-white/5 border border-white/10 relative group overflow-hidden">
+                                    <img src={img} className="w-full h-full object-cover" />
+                                    <button 
+                                       type="button"
+                                       onClick={() => {
+                                          const next = [...newProduct.images];
+                                          next.splice(idx, 1);
+                                          setNewProduct({...newProduct, images: next});
+                                       }}
+                                       className="absolute inset-0 bg-brand-red/80 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                                    >
+                                       <Trash2 className="w-4 h-4 text-white" />
+                                    </button>
+                                 </div>
+                              ))}
+                              <button 
+                                 type="button"
+                                 onClick={() => {
+                                    const url = prompt("Enter secondary image URL:");
+                                    if(url) setNewProduct({...newProduct, images: [...newProduct.images, url]});
+                                 }}
+                                 className="aspect-square rounded-xl bg-white/5 border-2 border-dashed border-white/10 flex items-center justify-center hover:border-white/20 transition-all text-white/20 hover:text-white"
+                              >
+                                 <Plus className="w-4 h-4" />
+                              </button>
+                           </div>
                         </div>
                      </div>
 

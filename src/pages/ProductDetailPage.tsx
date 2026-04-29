@@ -122,9 +122,9 @@ export const ProductDetailPage = () => {
             price: 449,
             stock: 50,
             category: 'Retro Jerseys',
-            imageUrl: 'https://images.footballfanatics.com/argentina-national-team/argentina-adidas-og-1994-away-jersey-blue_ss5_p-200938531+pv-1+v-69c3a3c2672740939f0464c8d50c196f.jpg',
+            imageUrl: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800',
             images: [
-              'https://images.footballfanatics.com/argentina-national-team/argentina-adidas-og-1994-away-jersey-blue_ss5_p-200938531+pv-1+v-69c3a3c2672740939f0464c8d50c196f.jpg'
+              'https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800'
             ]
           });
         } else if (id === 'real-madrid-2425' || id === '2') {
@@ -135,9 +135,9 @@ export const ProductDetailPage = () => {
             price: 449,
             stock: 100,
             category: 'Official Jerseys',
-            imageUrl: 'https://shop.realmadrid.com/cdn/shop/files/RMCFMS0120-01_1.jpg',
+            imageUrl: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=800',
             images: [
-              'https://shop.realmadrid.com/cdn/shop/files/RMCFMS0120-01_1.jpg'
+              'https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=800'
             ]
           });
         }
@@ -198,18 +198,18 @@ export const ProductDetailPage = () => {
   const allImages = [product.imageUrl, ...(product.images || [])].filter(Boolean) as string[];
 
   return (
-    <div className="min-h-screen bg-black text-white pt-32 pb-32 px-6 md:px-12 selection:bg-brand-red">
+    <div className="min-h-screen bg-black text-white pt-24 md:pt-32 pb-32 px-4 md:px-12 selection:bg-brand-red">
       <div className="max-w-[1700px] mx-auto">
         <motion.button 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           onClick={() => navigate(-1)}
-          className="flex items-center gap-4 text-white/30 hover:text-white transition-all uppercase text-[9px] font-black tracking-[0.4em] mb-16 group"
+          className="flex items-center gap-3 text-white/30 hover:text-white transition-all uppercase text-[8px] md:text-[9px] font-black tracking-[0.4em] mb-8 md:mb-16 group"
         >
           <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center group-hover:border-white transition-all">
             <ArrowLeft className="w-3 h-3" />
           </div>
-          REVERT TO ARCHIVE
+          REVERT
         </motion.button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 xl:gap-32">
@@ -282,35 +282,35 @@ export const ProductDetailPage = () => {
           </div>
 
           {/* Core Info Suite */}
-          <div className="space-y-16">
-            <div className="space-y-8">
-              <div className="flex flex-wrap items-center gap-6">
-                 <span className="px-5 py-2 bg-brand-red/10 border border-brand-red/20 text-brand-red text-[9px] font-black tracking-[0.5em] uppercase rounded-full">
+          <div className="space-y-12 md:space-y-16">
+            <div className="space-y-6 md:space-y-8">
+              <div className="flex flex-wrap items-center gap-4 md:gap-6">
+                 <span className="px-5 py-2 bg-brand-red/10 border border-brand-red/20 text-brand-red text-[8px] md:text-[9px] font-black tracking-[0.5em] uppercase rounded-full">
                     {product.category}
                  </span>
                  <div className="flex items-center gap-2 text-white/40 bg-white/5 px-5 py-2 rounded-full border border-white/10">
                     <Star className="w-3.5 h-3.5 fill-brand-red text-brand-red" />
                     <span className="text-[10px] font-black">{product.ratings || '4.9'}</span>
                     <span className="h-3 w-[1px] bg-white/10 mx-1" />
-                    <span className="text-[10px] font-black">1.2K COPIES EXTRACTED</span>
+                    <span className="text-[10px] font-black">EXTRACTED</span>
                  </div>
               </div>
               
               <div className="space-y-4">
-                <h1 className="text-6xl md:text-8xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-4">
+                <h1 className="text-4xl md:text-8xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-4">
                   {product.name}
                 </h1>
                 <div className="flex items-baseline gap-4">
-                   <p className="text-5xl font-black tracking-tighter text-white tabular-nums">₹{product.price}</p>
-                   <p className="text-xl font-bold text-white/20 uppercase tracking-widest italic">Inventory unit {id?.slice(0, 4)}</p>
+                   <p className="text-4xl md:text-5xl font-black tracking-tighter text-white tabular-nums">₹{product.price}</p>
+                   <p className="text-sm md:text-xl font-bold text-white/20 uppercase tracking-widest italic">Inventory unit {id?.slice(0, 4)}</p>
                 </div>
               </div>
             </div>
 
             <div className="relative">
-              <div className="absolute -left-8 top-0 bottom-0 w-[1.5px] bg-gradient-to-b from-brand-red via-brand-red/20 to-transparent" />
-              <p className="text-xl font-display font-black tracking-tight text-white/40 uppercase italic leading-relaxed max-w-xl">
-                {product.description || "A masterfully crafted legacy artifact. This high-end collective piece features precision embroidery and performance-grade materials for ultimate durability and comfort."}
+              <div className="absolute -left-4 md:-left-8 top-0 bottom-0 w-[1.5px] bg-gradient-to-b from-brand-red via-brand-red/20 to-transparent" />
+              <p className="text-lg md:text-xl font-display font-black tracking-tight text-white/40 uppercase italic leading-relaxed max-w-xl">
+                 {product.description || "A masterfully crafted legacy artifact. This high-end collective piece features precision embroidery and performance-grade materials for ultimate durability and comfort."}
               </p>
             </div>
 
@@ -340,30 +340,30 @@ export const ProductDetailPage = () => {
                 </motion.div>
               )}
             </AnimatePresence>
-
+            
             {/* Tactical Configuration */}
-            <div className="space-y-16 pt-12">
-              <div className="space-y-8">
+            <div className="space-y-12 pt-8 md:pt-12">
+              <div className="space-y-6 md:space-y-8">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-3">
                     <div className="w-1 h-1 bg-brand-red rounded-full" />
-                    <h4 className="text-[10px] uppercase font-black tracking-[0.4em] text-white/40">SELECT DIMENSION</h4>
+                    <h4 className="text-[9px] md:text-[10px] uppercase font-black tracking-[0.4em] text-white/40">SELECT DIMENSION</h4>
                   </div>
                   <button 
                     onClick={() => setShowSizeGuide(true)}
-                    className="flex items-center gap-2 text-[9px] uppercase font-black tracking-widest text-brand-red hover:text-white transition-colors"
+                    className="flex items-center gap-2 text-[8px] md:text-[9px] uppercase font-black tracking-widest text-brand-red hover:text-white transition-colors"
                   >
-                    <Info className="w-4 h-4" /> SIZE PROTOCOL
+                    <Info className="w-3.5 h-3.5 md:w-4 md:h-4" /> SIZE PROTOCOL
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-wrap gap-3 md:gap-4">
                   {['S', 'M', 'L', 'XL', 'XXL'].map(size => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`min-w-[80px] h-[80px] rounded-[1.5rem] flex items-center justify-center font-display font-black text-xl transition-all duration-500 border ${
+                      className={`flex-1 min-w-[60px] md:min-w-[80px] h-14 md:h-20 rounded-xl md:rounded-[1.5rem] flex items-center justify-center font-display font-black text-lg md:text-xl transition-all duration-500 border ${
                         selectedSize === size 
-                        ? 'bg-white text-black border-white shadow-[0_20px_40px_rgba(255,255,255,0.1)] scale-110' 
+                        ? 'bg-white text-black border-white shadow-[0_10px_20px_rgba(255,255,255,0.1)]' 
                         : 'bg-transparent text-white/20 border-white/5 hover:border-white/20 hover:text-white'
                       }`}
                     >
@@ -373,33 +373,33 @@ export const ProductDetailPage = () => {
                 </div>
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-6 md:space-y-8">
                  <div className="flex items-center gap-3">
                     <div className="w-1 h-1 bg-brand-red rounded-full" />
-                    <h4 className="text-[10px] uppercase font-black tracking-[0.4em] text-white/40">QUANTITY MATRIX</h4>
+                    <h4 className="text-[9px] md:text-[10px] uppercase font-black tracking-[0.4em] text-white/40">QUANTITY</h4>
                  </div>
-                 <div className="flex items-center gap-12 bg-white/[0.03] w-fit px-10 py-6 rounded-[2rem] border border-white/5 backdrop-blur-xl">
+                 <div className="flex items-center gap-8 md:gap-12 bg-white/[0.03] w-fit px-8 md:px-10 py-4 md:py-6 rounded-2xl md:rounded-[2rem] border border-white/5 backdrop-blur-xl">
                     <motion.button 
                       whileTap={{ scale: 0.8 }}
                       onClick={() => setQuantity(Math.max(1, quantity - 1))} 
                       className="text-white/20 hover:text-brand-red transition-all"
                     >
-                       <Minus className="w-6 h-6" />
+                       <Minus className="w-5 h-5 md:w-6 md:h-6" />
                     </motion.button>
-                    <span className="text-3xl font-display font-black w-10 text-center italic">{quantity}</span>
+                    <span className="text-2xl md:text-3xl font-display font-black w-10 text-center italic">{quantity}</span>
                     <motion.button 
                       whileTap={{ scale: 0.8 }}
                       onClick={() => setQuantity(quantity + 1)} 
                       className="text-white/20 hover:text-brand-red transition-all"
                     >
-                       <Plus className="w-6 h-6" />
+                       <Plus className="w-5 h-5 md:w-6 md:h-6" />
                     </motion.button>
                  </div>
               </div>
             </div>
 
             {/* Acquisition Protocol */}
-            <div className="flex flex-col gap-6 pt-12 pb-12 border-b border-white/5">
+            <div className="flex flex-col gap-4 md:gap-6 pt-12 pb-12 border-b border-white/5">
                 <Button 
                   onClick={() => {
                     navigate('/checkout', { 
@@ -409,10 +409,10 @@ export const ProductDetailPage = () => {
                       } 
                     });
                   }}
-                  className="w-full h-24 text-xl rounded-full bg-brand-red text-white hover:bg-white hover:text-black transition-all duration-1000 font-display font-black italic uppercase tracking-widest px-12 group shadow-[0_20px_60px_rgba(255,0,0,0.2)]"
+                  className="w-full h-16 md:h-24 text-lg md:text-xl rounded-full bg-brand-red text-white hover:bg-white hover:text-black transition-all duration-1000 font-display font-black italic uppercase tracking-widest px-8 md:px-12 group shadow-[0_20px_60px_rgba(255,0,0,0.2)]"
                 >
                   <span className="flex items-center justify-between w-full">
-                    INITIALIZE PURCHASE <ChevronRight className="w-6 h-6 group-hover:translate-x-3 transition-transform" />
+                    INITIALIZE PURCHASE <ChevronRight className="w-5 h-5 md:w-6 md:h-6 group-hover:translate-x-3 transition-transform" />
                   </span>
                 </Button>
                
@@ -420,19 +420,19 @@ export const ProductDetailPage = () => {
                  <Button 
                   onClick={handleAddToCart}
                   disabled={isAddingToCart || product.stock === 0}
-                  className="flex-1 h-20 text-[10px] rounded-full bg-white/[0.05] border border-white/10 text-white hover:bg-white hover:text-black transition-all duration-700 font-black uppercase tracking-[0.3em] px-10"
+                  className="flex-1 h-14 md:h-20 text-[9px] md:text-[10px] rounded-full bg-white/[0.05] border border-white/10 text-white hover:bg-white hover:text-black transition-all duration-700 font-black uppercase tracking-[0.3em] px-10"
                  >
-                   {product.stock === 0 ? 'OUT OF SYNC' : isAddingToCart ? 'TRANSMITTING...' : 'ADD TO TERMINAL'} 
+                    {product.stock === 0 ? 'OUT OF SYNC' : isAddingToCart ? 'TRANSMITTING...' : 'ADD TO TERMINAL'} 
                  </Button>
                  <motion.button 
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={toggleWishlist}
-                  className={`w-20 h-20 rounded-full border flex items-center justify-center transition-all duration-700 ${
-                    isWishlisted ? 'bg-brand-red border-brand-red text-white shadow-[0_0_30px_rgba(255,0,0,0.3)]' : 'bg-transparent border-white/10 text-white/20 hover:border-white/40'
+                  className={`w-14 h-14 md:w-20 md:h-20 rounded-full border flex items-center justify-center transition-all duration-700 ${
+                    isWishlisted ? 'bg-brand-red border-brand-red text-white' : 'bg-transparent border-white/10 text-white/20 hover:border-white/40'
                   }`}
                  >
-                   <Heart className={`w-8 h-8 ${isWishlisted ? 'fill-current' : ''}`} />
+                    <Heart className={`w-5 h-5 md:w-8 md:h-8 ${isWishlisted ? 'fill-current' : ''}`} />
                  </motion.button>
                </div>
             </div>
