@@ -1,0 +1,181 @@
+{
+  "products": [
+    {
+      "id": "argentina-2425-home",
+      "name": "ARGENTINA 24/25 HOME UNIT",
+      "price": 449,
+      "costPrice": 180,
+      "stock": 50,
+      "category": "National Team Artifacts",
+      "description": "The golden standard. Materials refined from the champions' vault. Pure celestial stripes.",
+      "imageUrl": "https://images.pexels.com/photos/36217787/pexels-photo-36217787.jpeg",
+      "images": [
+        "https://images.pexels.com/photos/36217787/pexels-photo-36217787.jpeg"
+      ],
+      "country": "Argentina",
+      "isFeatured": true,
+      "isTrending": true,
+      "createdAt": "2024-04-30T10:00:00Z"
+    },
+    {
+      "id": "brazil-2425-home",
+      "name": "BRAZIL 24/25 HOME UNIT",
+      "price": 449,
+      "costPrice": 180,
+      "stock": 45,
+      "category": "National Team Artifacts",
+      "description": "The canary rhythm. Engineered for supreme performance and heritage elegance.",
+      "imageUrl": "https://images.pexels.com/photos/31207970/pexels-photo-31207970.jpeg",
+      "images": ["https://images.pexels.com/photos/31207970/pexels-photo-31207970.jpeg"],
+      "country": "Brazil",
+      "isFeatured": true,
+      "createdAt": "2024-04-30T10:01:00Z"
+    },
+    {
+      "id": "france-2425-home",
+      "name": "FRANCE 24/25 HOME UNIT",
+      "price": 449,
+      "costPrice": 180,
+      "stock": 40,
+      "category": "National Team Artifacts",
+      "description": "Royal blue transcendence. A masterpiece of French cultural heritage and athletic precision.",
+      "imageUrl": "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=800",
+      "images": ["https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=800"],
+      "country": "France",
+      "isFeatured": false,
+      "createdAt": "2024-04-30T10:02:00Z"
+    },
+    {
+      "id": "real-madrid-2425-home",
+      "name": "REAL MADRID 24/25 HOME UNIT",
+      "price": 449,
+      "costPrice": 190,
+      "stock": 60,
+      "category": "Elite Club Artifacts",
+      "description": "The pure white aesthetic. A symbol of royalty and unmatched dominance in the football void.",
+      "imageUrl": "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=800",
+      "images": ["https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=800"],
+      "club": "Real Madrid",
+      "isFeatured": true,
+      "isTrending": true,
+      "createdAt": "2024-04-30T10:03:00Z"
+    },
+    {
+      "id": "man-city-2425-home",
+      "name": "MAN CITY 24/25 HOME UNIT",
+      "price": 449,
+      "costPrice": 190,
+      "stock": 35,
+      "category": "Elite Club Artifacts",
+      "description": "Celestial blue rhythm. Inspired by the zero-gravity precision of the sky blue empire.",
+      "imageUrl": "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=800",
+      "images": ["https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=800"],
+      "club": "Manchester City",
+      "isFeatured": false,
+      "createdAt": "2024-04-30T10:04:00Z"
+    },
+    {
+      "id": "arsenal-2425-home",
+      "name": "ARSENAL 24/25 HOME UNIT",
+      "price": 449,
+      "costPrice": 190,
+      "stock": 42,
+      "category": "Elite Club Artifacts",
+      "description": "The cannon protocol. Traditional red and white reimagined for the modern aesthetic movement.",
+      "imageUrl": "https://images.unsplash.com/photo-1623864770284-8848f760f38b?q=80&w=800",
+      "images": ["https://images.unsplash.com/photo-1623864770284-8848f760f38b?q=80&w=800"],
+      "club": "Arsenal",
+      "isFeatured": false,
+      "createdAt": "2024-04-30T10:05:00Z"
+    },
+    {
+      "id": "portugal-2425-home",
+      "name": "PORTUGAL 24/25 HOME UNIT",
+      "price": 449,
+      "costPrice": 180,
+      "stock": 30,
+      "category": "National Team Artifacts",
+      "description": "Greatest of all time lineage. Deep red resonance for the navigators of the football void.",
+      "imageUrl": "https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800",
+      "images": ["https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800"],
+      "country": "Portugal",
+      "isFeatured": true,
+      "createdAt": "2024-04-30T10:06:00Z"
+    },
+    {
+      "id": "germany-2425-home",
+      "name": "GERMANY 24/25 HOME UNIT",
+      "price": 449,
+      "costPrice": 180,
+      "stock": 25,
+      "category": "National Team Artifacts",
+      "description": "Teutonic precision. Architectural white with the spectral fire of the German spirit.",
+      "imageUrl": "https://images.unsplash.com/photo-1550881126-7590ad256236?q=80&w=800",
+      "images": ["https://images.unsplash.com/photo-1550881126-7590ad256236?q=80&w=800"],
+      "country": "Germany",
+      "isFeatured": false,
+      "createdAt": "2024-04-30T10:07:00Z"
+    },
+    {
+      "id": "barcelona-2425-home",
+      "name": "BARCELONA 24/25 HOME UNIT",
+      "price": 449,
+      "costPrice": 190,
+      "stock": 48,
+      "category": "Elite Club Artifacts",
+      "description": "Blaugrana identity. More than an artifact. A deep structural connection to football history.",
+      "imageUrl": "https://images.unsplash.com/photo-1518000411333-e99c43a406b2?q=80&w=800",
+      "images": ["https://images.unsplash.com/photo-1518000411333-e99c43a406b2?q=80&w=800"],
+      "club": "Barcelona",
+      "isFeatured": true,
+      "createdAt": "2024-04-30T10:08:00Z"
+    }
+  ],
+  "orders": [],
+  "site_config": {
+    "musicUrl": "https://p.scdn.co/mp3-preview/a91f53d1000bb5d2bf61033b9347898516d0391d?cid=null",
+    "songTitle": "Espresso - Sabrina Carpenter"
+  },
+  "users": [
+    {
+      "id": "admin",
+      "displayName": "Administrator",
+      "email": "johnchristianorozario@gmail.com",
+      "role": "admin",
+      "balance": 100000,
+      "createdAt": "2024-04-30T00:00:00Z"
+    }
+  ],
+  "balance_requests": [],
+  "gift_cards": [],
+  "store_reviews": [
+    {
+      "id": "rev_001",
+      "author": "Xenon-7",
+      "tag": "VOID RESIDENT",
+      "text": "The Argentina unit is pure architectural perfection. Extracted successfully.",
+      "createdAt": "2024-04-30T09:00:00Z"
+    },
+    {
+      "id": "rev_002",
+      "author": "Neon-Soul",
+      "tag": "ELITE SUBJECT",
+      "text": "Real Madrid artifact received. The white is blinding. High integrity delivery.",
+      "createdAt": "2024-04-30T09:15:00Z"
+    }
+  ],
+  "support_sessions": [],
+  "support_chats": [],
+  "settings": {
+    "system": {
+      "customerCareNumber": "918073809618",
+      "customerCareEmail": "support@wh1rlpool.com",
+      "isCareOnline": true,
+      "paymentMethods": {
+        "upi": "whirlpool@upi",
+        "bankTransfer": "A/C: 123456789, IFSC: SBIN0001",
+        "cod": true
+      }
+    }
+  }
+}

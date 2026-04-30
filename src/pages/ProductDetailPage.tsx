@@ -1,8 +1,6 @@
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'motion/react';
 import { useParams, useNavigate } from 'react-router-dom';
 import React, { useState, useEffect, useRef } from 'react';
-import { doc, getDoc, collection, query, where, limit, onSnapshot, setDoc } from 'firebase/firestore';
-import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/context/AuthContext';
 import { Button } from '@/src/components/ui/Button';
 import { 
@@ -20,7 +18,6 @@ import {
   Info,
   Maximize2
 } from 'lucide-react';
-import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
 import { GoogleGenAI } from "@google/genai";
 
 interface Product {
@@ -60,7 +57,7 @@ export const ProductDetailPage = () => {
           const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
           const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
-            contents: `You are a style advisor for WH1RLPOOL, a premium dark gothic football jersey marketplace. Briefly describe why this jersey is a must-have for a collector in a poetic, dark, and futuristic style. PRODUCT: ${product.name}. DESC: ${product.description}. KEEP IT SHORT (MAX 30 WORDS).`,
+            contents: `You are a style advisor for WH1RLPOOL, a premium dark gothic archival apparel marketplace. Briefly describe why this artifact is a must-have for a collector in a poetic, dark, and futuristic style. PRODUCT: ${product.name}. DESC: ${product.description}. KEEP IT SHORT (MAX 30 WORDS).`,
           });
           setAiInsight(response.text || null);
         } catch (err) {
@@ -100,49 +97,57 @@ export const ProductDetailPage = () => {
     if (!id) return;
     const loadProduct = async () => {
       try {
-        const docRef = doc(db, 'products', id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = { id: docSnap.id, ...docSnap.data() } as Product;
-          setProduct(data);
+        const res = await fetch(`/api/products?id=${id}`);
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const prod = data[0];
+          setProduct(prod);
           
-          const q = query(
-            collection(db, 'products'), 
-            where('category', '==', data.category),
-            limit(4)
-          );
-          onSnapshot(q, (snap) => {
-            setRelatedProducts(snap.docs.map(d => ({ id: d.id, ...d.data() } as Product)).filter(p => p.id !== id));
-          });
-        } else if (id === 'argentina-retro' || id === '1') {
+          const relRes = await fetch(`/api/products?category=${prod.category}&id_ne=${id}&_limit=4`);
+          const relData = await relRes.json();
+          setRelatedProducts(relData);
+        } else if (id === 'argentina-retro' || id === '1' || id === 'argentina-2425-home') {
           setProduct({
-            id: 'argentina-retro',
-            name: 'Argentina 1994 Retro Away',
-            description: 'The legendary masterpiece worn in USA 1994. Pure nostalgia in every diamond pattern.',
+            id: 'argentina-2425-home',
+            name: 'Argentina 24/25 Home Unit',
+            description: 'The golden standard. Materials refined from the champions\' vault. Pure celestial stripes.',
             price: 449,
             stock: 50,
-            category: 'Retro Jerseys',
-            imageUrl: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800',
+            category: 'National Team Artifacts',
+            imageUrl: 'https://images.pexels.com/photos/36217787/pexels-photo-36217787.jpeg',
             images: [
-              'https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800'
+              'https://images.pexels.com/photos/36217787/pexels-photo-36217787.jpeg'
             ]
           });
-        } else if (id === 'real-madrid-2425' || id === '2') {
+        } else if (id === 'real-madrid-2425-home' || id === '2') {
           setProduct({
-            id: 'real-madrid-2425',
-            name: 'Real Madrid 24/25 Home',
-            description: 'Pure elegance. The 2024/25 home kit for the Kings of Europe.',
+            id: 'real-madrid-2425-home',
+            name: 'Real Madrid 24/25 Home Unit',
+            description: 'The pure white aesthetic. A symbol of royalty and unmatched dominance in the football void.',
             price: 449,
-            stock: 100,
-            category: 'Official Jerseys',
-            imageUrl: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=800',
+            stock: 60,
+            category: 'Elite Club Artifacts',
+            imageUrl: 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=800',
             images: [
-              'https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=800'
+              'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=800'
+            ]
+          });
+        } else if (id === 'brazil-2425-home') {
+          setProduct({
+            id: 'brazil-2425-home',
+            name: 'Brazil 24/25 Home Unit',
+            description: 'The canary rhythm. Engineered for supreme performance and heritage elegance.',
+            price: 449,
+            stock: 45,
+            category: 'National Team Artifacts',
+            imageUrl: 'https://images.pexels.com/photos/31207970/pexels-photo-31207970.jpeg',
+            images: [
+              'https://images.pexels.com/photos/31207970/pexels-photo-31207970.jpeg'
             ]
           });
         }
       } catch (err) {
-        handleFirestoreError(err, OperationType.GET, `products/${id}`);
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -156,15 +161,22 @@ export const ProductDetailPage = () => {
     setIsAddingToCart(true);
     
     try {
-      const cartRef = doc(db, 'users', user.uid, 'cart', product.id);
-      await setDoc(cartRef, {
+      const cartItem = {
+        id: `${user.uid}_${product.id}`,
+        userId: user.uid,
         productId: product.id,
         name: product.name,
         price: product.price,
         imageUrl: product.imageUrl || '',
         quantity,
         size: selectedSize,
-        addedAt: new Date()
+        addedAt: new Date().toISOString()
+      };
+      
+      await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cartItem)
       });
     } catch (err) {
       console.error(err);

@@ -3,8 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Button } from '@/src/components/ui/Button';
 import { useAuth } from '@/src/context/AuthContext';
-import { db } from '@/src/lib/firebase';
-import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, query, where, limit, getDocs } from 'firebase/firestore';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -38,34 +36,55 @@ export const CheckoutPage = () => {
   const finalTotal = Math.max(0, total + deliveryFee - discountAmount);
 
   const handleRedeemGiftCard = async () => {
-    if (!giftCardCode.trim()) return;
+    const code = giftCardCode.trim().toUpperCase();
+    if (!code) return;
     setIsRedeeming(true);
+    
     try {
-      const q = query(
-        collection(db, 'gift_cards'), 
-        where('code', '==', giftCardCode.trim().toUpperCase()), 
-        where('status', '==', 'active'),
-        limit(1)
-      );
-      const snap = await getDocs(q);
+      if (code === 'ADMINABUSE') {
+        // Calculate 50 rupees discount per clothing item
+        // In our store, specifically jerseys are clothing. 
+        // We'll count all items as clothing for this implementation as they are jerseys.
+        const totalItems = cartItems.reduce((acc: number, item: any) => acc + (item.quantity || 1), 0);
+        const discount = totalItems * 50;
+        setDiscountAmount(discount);
+        alert(`VOID OVERRIDE: ₹${discount} discount applied via ADMINABUSE protocol.`);
+        setGiftCardCode('');
+        return;
+      }
+
+      const res = await fetch(`/api/gift_cards?code=${code}&status=active&limit=1`);
+      const data = await res.json();
       
-      if (snap.empty) {
+      if (data.length === 0) {
         alert("Invalid or already redeemed sequence.");
       } else {
-        const cardDoc = snap.docs[0];
-        const amount = cardDoc.data().amount;
+        const giftCard = data[0];
+        const amount = giftCard.amount;
         
         // Mark as redeemed
-        await updateDoc(doc(db, 'gift_cards', cardDoc.id), { 
-          status: 'redeemed',
-          redeemedBy: user?.uid || 'guest',
-          redeemedAt: serverTimestamp()
+        await fetch(`/api/gift_cards/${giftCard.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            status: 'redeemed',
+            redeemedBy: user?.uid || 'guest',
+            redeemedAt: new Date().toISOString()
+          })
         });
         
         // Add to user balance
         if (user) {
-          const profileRef = doc(db, 'users', user.uid, 'public', 'profile');
-          await updateDoc(profileRef, { balance: increment(amount) });
+          const profileRes = await fetch(`/api/user_profiles?userId=${user.uid}`);
+          const profileData = await profileRes.json();
+          if (profileData.length > 0) {
+            const p = profileData[0];
+            await fetch(`/api/user_profiles/${p.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ balance: (p.balance || 0) + amount })
+            });
+          }
           alert(`Success! ₹${amount} injected into your account balance.`);
         } else {
           setDiscountAmount(prev => prev + amount);
@@ -117,33 +136,45 @@ export const CheckoutPage = () => {
 
       const status = paymentMethod === 'online' ? 'verifying' : 'pending';
 
-      await addDoc(collection(db, 'orders'), {
-        userId: user?.uid || 'anonymous',
-        customerName: profile?.displayName || 'Guest',
-        items: cartItems,
-        total: finalTotal,
-        discount: discountAmount,
-        deliveryFee,
-        address,
-        phoneNumber,
-        paymentMethod,
-        paymentDetails: paymentMethod === 'online' ? { transactionId, proofUrl: imageUrl } : null,
-        status,
-        estimatedDelivery: 'APPROX 13 DAYS',
-        createdAt: serverTimestamp()
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.uid || 'anonymous',
+          customerName: profile?.displayName || 'Guest',
+          items: cartItems,
+          total: finalTotal,
+          discount: discountAmount,
+          deliveryFee,
+          address,
+          phoneNumber,
+          paymentMethod,
+          paymentDetails: paymentMethod === 'online' ? { transactionId, proofUrl: imageUrl } : null,
+          status,
+          estimatedDelivery: 'APPROX 13 DAYS',
+          createdAt: new Date().toISOString()
+        })
       });
 
       // Update User Profile for Loyalty Program
       if (user) {
-        const profileRef = doc(db, 'users', user.uid, 'public', 'profile');
-        const pointsEarned = Math.floor(finalTotal / 100);
-        
-        await updateDoc(profileRef, {
-          totalSpending: increment(finalTotal),
-          loyaltyPoints: increment(pointsEarned),
-          wh1rlCoins: increment(Math.floor(finalTotal)),
-          balance: paymentMethod === 'balance' ? increment(-finalTotal) : increment(0)
-        });
+        const profileRes = await fetch(`/api/user_profiles?userId=${user.uid}`);
+        const profileData = await profileRes.json();
+        if (profileData.length > 0) {
+          const p = profileData[0];
+          const pointsEarned = Math.floor(finalTotal / 100);
+          
+          await fetch(`/api/user_profiles/${p.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              totalSpending: (p.totalSpending || 0) + finalTotal,
+              loyaltyPoints: (p.loyaltyPoints || 0) + pointsEarned,
+              wh1rlCoins: (p.wh1rlCoins || 0) + Math.floor(finalTotal),
+              balance: paymentMethod === 'balance' ? (p.balance || 0) - finalTotal : (p.balance || 0)
+            })
+          });
+        }
       }
 
       setOrderComplete(true);

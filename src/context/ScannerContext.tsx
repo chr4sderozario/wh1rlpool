@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, getDocs, doc, getDoc } from 'firebase/firestore';
-import { db } from '@/src/lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Search, Zap, AlertCircle, MessageSquare, Camera, Loader2 } from 'lucide-react';
 import { Button } from '@/src/components/ui/Button';
@@ -83,19 +81,14 @@ export const ScannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     try {
       // First try by ID
-      const docRef = doc(db, 'products', text);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
+      const res = await fetch(`/api/products/${text}`);
+      if (res.ok) {
         handleMatch(text);
       } else {
         // Search by name
-        const q = query(collection(db, 'products'));
-        const querySnapshot = await getDocs(q);
-        const match = querySnapshot.docs.find(doc => {
-           const data = doc.data();
-           return data.name.toLowerCase().includes(text.toLowerCase());
-        });
+        const prodRes = await fetch('/api/products');
+        const products = await prodRes.json();
+        const match = products.find((p: any) => p.name.toLowerCase().includes(text.toLowerCase()));
 
         if (match) {
           handleMatch(match.id);
@@ -195,7 +188,7 @@ export const ScannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
                             <span className="text-[8px] font-black uppercase tracking-widest text-white/20">CONTACT SECTOR</span>
                             <p className="text-lg md:text-xl font-display font-black italic text-brand-red tracking-widest">{customerCareNumber}</p>
                             <Button 
-                              onClick={() => window.location.href = `https://wa.me/${customerCareNumber.replace(/\D/g,'')}?text=I'm%20looking%20for%20jersey%20code:%20${scannedResult}`}
+                              onClick={() => window.location.href = `https://wa.me/${customerCareNumber.replace(/\D/g,'')}?text=I'm%20looking%20for%20artifact%20code:%20${scannedResult}`}
                               className="bg-white text-black hover:bg-brand-red hover:text-white w-full h-12 flex items-center justify-center gap-2 font-display font-black italic uppercase transition-all text-[10px]"
                             >
                                <MessageSquare className="w-4 h-4" />

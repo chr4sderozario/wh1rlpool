@@ -5,22 +5,22 @@ import { Send, Bot, User, Sparkles, Ghost, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/src/components/ui/Button';
 
-const SYSTEM_INSTRUCTION = `You are "WH1RL AI", the specialized oracle of the WH1RLPOOL football jersey archive. 
+const SYSTEM_INSTRUCTION = `You are "WH1RL AI", the specialized oracle of the WH1RLPOOL artifact archive. 
 Your primary directive is to assist users with questions EXCLUSIVELY related to:
-1. Football Jerseys (Retro, Official, Player Edition, Club, National Team).
-2. Football products (Kits, Shorts, Socks).
-3. Sizing advice for jerseys.
-4. History of specific football kits or designs.
-5. Suggestions based on their favorite team or style.
+1. Premium Apparel & Artifacts (Retro, Official, Elite Editions, Club-specific relics).
+2. Curated Material (Kits, Accessories, Limited drops).
+3. Sizing advice for artifacts.
+4. History of specific designs or archival pieces.
+5. Suggestions based on their favored aesthetic or style profile.
 
-STRICT CONSTRAINT: If a user asks a question UNRELATED to football jerseys or products, politely decline and steer them back to the archive. Never provide general information outside this niche. 
+STRICT CONSTRAINT: If a user asks a question UNRELATED to archival apparel or products, politely decline and steer them back to the archive. Never provide general information outside this niche. 
 
 Maintain a "Cyber-Gothic" and "Technical" tone. Use terms like "Void", "Archive", "Extraction", "Matrix", and "Subject".
 Keep responses concise, professional, and helpful.`;
 
 export const Wh1rlAI = () => {
     const [messages, setMessages] = useState<{ role: 'user' | 'bot'; text: string }[]>([
-        { role: 'bot', text: 'VOID PROTOCOL ACTIVE. I AM WH1RL AI. STATE YOUR JERSEY EXTRACTION REQUIREMENTS.' }
+        { role: 'bot', text: 'VOID PROTOCOL ACTIVE. I AM WH1RL AI. STATE YOUR EXTRACTION REQUIREMENTS.' }
     ]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -42,18 +42,15 @@ export const Wh1rlAI = () => {
         setIsLoading(true);
 
         try {
-            const apiKey = process.env.GEMINI_API_KEY;
-            if (!apiKey) throw new Error("API KEY MISSING");
-
-            const genAI = new GoogleGenAI(apiKey);
-            const model = genAI.getGenerativeModel({ 
-                model: "gemini-1.5-flash",
-                systemInstruction: SYSTEM_INSTRUCTION
+            const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+            const response = await ai.models.generateContent({
+                model: "gemini-3-flash-preview",
+                contents: userMsg,
+                config: {
+                    systemInstruction: SYSTEM_INSTRUCTION
+                }
             });
-
-            const result = await model.generateContent(userMsg);
-            const response = await result.response;
-            const botMsg = response.text() || "SIGNAL LOST. TRY AGAIN.";
+            const botMsg = response.text || "SIGNAL LOST. TRY AGAIN.";
             setMessages(prev => [...prev, { role: 'bot', text: botMsg }]);
         } catch (err) {
             console.error(err);
@@ -73,7 +70,7 @@ export const Wh1rlAI = () => {
                         </button>
                         <div>
                            <h1 className="text-4xl font-display font-black tracking-tighter uppercase italic">WH1RL <span className="text-brand-red">AI</span></h1>
-                           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">JERSEY ORACLE PROTOCOL</p>
+                           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">ARTIFACT ORACLE PROTOCOL</p>
                         </div>
                     </div>
                     <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-brand-red/5 border border-brand-red/20 rounded-full">
@@ -124,7 +121,7 @@ export const Wh1rlAI = () => {
                               value={input}
                               onChange={e => setInput(e.target.value)}
                               onKeyDown={e => e.key === 'ENTER' || e.key === 'Enter' ? handleSend() : null}
-                              placeholder="INQUIRE ABOUT JERSEYS..."
+                              placeholder="INQUIRE ABOUT ARTIFACTS..."
                               className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 px-8 pr-20 text-sm font-black uppercase tracking-widest focus:outline-none focus:border-brand-red transition-all"
                            />
                            <button 
@@ -135,7 +132,7 @@ export const Wh1rlAI = () => {
                               <Send className="w-5 h-5" />
                            </button>
                        </div>
-                       <p className="mt-4 text-[8px] text-center font-black text-white/10 tracking-[0.5em] uppercase italic">REPLIES ARE GENAI GENERATED AND LIMITED TO JERSEYS</p>
+                       <p className="mt-4 text-[8px] text-center font-black text-white/10 tracking-[0.5em] uppercase italic">REPLIES ARE GENAI GENERATED AND LIMITED TO ARTIFACTS</p>
                    </div>
                 </div>
             </div>

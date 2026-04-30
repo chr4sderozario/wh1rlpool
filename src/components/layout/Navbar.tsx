@@ -38,6 +38,7 @@ export const Navbar = () => {
     { name: 'ARCHIVE', path: '/' },
     { name: 'REGISTRY', path: '/store' },
     { name: 'LOYALTY', path: '/loyalty' },
+    { name: 'TRACKING', path: '/track-order' },
     { name: 'WH1RL AI', path: '/ai' },
     { name: 'SUPPORT', path: '/support' },
   ];

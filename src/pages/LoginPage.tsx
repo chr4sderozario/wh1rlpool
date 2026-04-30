@@ -3,8 +3,7 @@ import { motion } from 'motion/react';
 import { Button } from '@/src/components/ui/Button';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, ChevronLeft, Chrome } from 'lucide-react';
-import { auth, signInWithGoogle } from '@/src/lib/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useAuth } from '@/src/context/AuthContext';
 import { GothicBackground } from '@/src/components/layout/GothicBackground';
 
 export const LoginPage = () => {
@@ -14,19 +13,17 @@ export const LoginPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
+  const { login } = useAuth();
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
     
     try {
-      // In AI Studio, Email/Password might need to be enabled in Firebase Console.
-      // But we follow user instructions for the UI and logic.
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      const adminEmails = ['sohanbiswas@chr4s', 'johnrozario@chr4s', 'sohanbiswas@chr4s.com', 'johnrozario@chr4s.com'];
-      if (adminEmails.some(e => user.email?.toLowerCase() === e.toLowerCase() || user.email?.toLowerCase().startsWith(e.toLowerCase() + '@'))) {
+      await login(email);
+      const adminEmails = ['sohanbiswas@chr4s', 'johnrozario@chr4s', 'sohanbiswas@chr4s.com', 'johnrozario@chr4s.com', 'johnchristianorozario@gmail.com'];
+      if (adminEmails.some(e => email.toLowerCase() === e.toLowerCase() || email.toLowerCase().startsWith(e.toLowerCase() + '@'))) {
         localStorage.setItem('admin_session', 'true');
         navigate('/admin');
       } else {
@@ -34,45 +31,15 @@ export const LoginPage = () => {
       }
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/operation-not-allowed') {
-        setError("AUTHENTICATION BLOCKED: Please enable Email/Password and Google sign-in methods in your Firebase Console (Authentication > Sign-in method).");
-      } else {
-        setError("Identification failed. Please ensure your credentials are correct or authentication is enabled.");
-      }
-      
-      const adminEmails = ['sohanbiswas@chr4s', 'johnrozario@chr4s', 'sohanbiswas@chr4s.com', 'johnrozario@chr4s.com'];
-      const isAdminEmail = adminEmails.some(e => email.toLowerCase() === e.toLowerCase() || email.toLowerCase().startsWith(e.toLowerCase() + '@'));
-      const adminPassword = 'adminwhirlpool1002919402';
-
-      if (isAdminEmail && password === adminPassword) {
-        localStorage.setItem('admin_session', 'true');
-        navigate('/admin');
-      } else if (email && password) {
-         navigate('/shop');
-      }
+      setError("Identification failed.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    try {
-      const user = await signInWithGoogle();
-      const adminEmails = ['sohanbiswas@chr4s', 'johnrozario@chr4s', 'sohanbiswas@chr4s.com', 'johnrozario@chr4s.com'];
-      if (adminEmails.some(e => user.email?.toLowerCase() === e.toLowerCase() || user.email?.toLowerCase().startsWith(e.toLowerCase() + '@'))) {
-        localStorage.setItem('admin_session', 'true');
-        navigate('/admin');
-      } else {
-        navigate('/shop');
-      }
-    } catch (err: any) {
-      console.error(err);
-      if (err.code === 'auth/operation-not-allowed') {
-        setError("GOOGLE BLOCKED: Enable Google provider in Firebase Console (Authentication > Sign-in method).");
-      } else {
-        setError("Google Authentication failed.");
-      }
-    }
+    // Simulated Google login
+    handleLogin({ preventDefault: () => {} } as any);
   };
 
   return (

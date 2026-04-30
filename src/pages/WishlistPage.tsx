@@ -1,8 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
-import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/context/AuthContext';
 import { Heart, Trash2, ArrowRight, ShoppingCart } from 'lucide-react';
 import { Button } from '@/src/components/ui/Button';
@@ -10,6 +8,7 @@ import { Button } from '@/src/components/ui/Button';
 interface WishlistItem {
   id: string;
   productId: string;
+  userId: string;
   name: string;
   price: number;
   imageUrl: string;
@@ -26,16 +25,32 @@ export const WishlistPage = () => {
       setLoading(false);
       return;
     }
-    const unsub = onSnapshot(collection(db, 'users', user.uid, 'wishlist'), (snap) => {
-      setItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as WishlistItem)));
-      setLoading(false);
-    });
-    return unsub;
+    const fetchWishlist = async () => {
+      try {
+        const res = await fetch(`/api/wishlist?userId=${user.uid}`);
+        if (res.ok) {
+          const data = await res.json();
+          setItems(data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWishlist();
+    const interval = setInterval(fetchWishlist, 10000);
+    return () => clearInterval(interval);
   }, [user]);
 
   const removeItem = async (id: string) => {
     if (!user) return;
-    await deleteDoc(doc(db, 'users', user.uid, 'wishlist', id));
+    try {
+      await fetch(`/api/wishlist/${id}`, { method: 'DELETE' });
+      setItems(items.filter(i => i.id !== id));
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   if (loading) return null;

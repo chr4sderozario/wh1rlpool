@@ -1,21 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { 
-  collection, 
-  onSnapshot, 
-  deleteDoc, 
-  doc, 
-  addDoc, 
-  serverTimestamp,
-  updateDoc,
-  getDoc,
-  query,
-  where,
-  orderBy,
-  limit
-} from 'firebase/firestore';
-import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/context/AuthContext';
 import { Button } from '@/src/components/ui/Button';
 import { 
@@ -33,6 +18,7 @@ import {
 
 interface CartItem {
   id: string;
+  userId: string;
   productId: string;
   name: string;
   price: number;
@@ -52,26 +38,36 @@ export const CartPage = () => {
       setLoading(false);
       return;
     }
-    const cartRef = collection(db, 'users', user.uid, 'cart');
-    const unsub = onSnapshot(cartRef, (snap) => {
-      setItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as CartItem)));
-      setLoading(false);
-    });
-    return unsub;
+    const fetchCart = async () => {
+      try {
+        const res = await fetch(`/api/cart?userId=${user.uid}`);
+        const data = await res.json();
+        setItems(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCart();
   }, [user]);
 
   const updateQuantity = async (id: string, newQty: number) => {
     if (newQty < 1) return;
     try {
-      const itemRef = doc(db, 'users', user!.uid, 'cart', id);
-      await updateDoc(itemRef, { quantity: newQty });
+      await fetch(`/api/cart/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: newQty })
+      });
+      setItems(items.map(item => item.id === id ? { ...item, quantity: newQty } : item));
     } catch (err) { console.error(err); }
   };
 
   const removeItem = async (id: string) => {
     try {
-      const itemRef = doc(db, 'users', user!.uid, 'cart', id);
-      await deleteDoc(itemRef);
+      await fetch(`/api/cart/${id}`, { method: 'DELETE' });
+      setItems(items.filter(item => item.id !== id));
     } catch (err) { console.error(err); }
   };
 
@@ -300,11 +296,16 @@ const OrderStatusSnippet = () => {
 
   useEffect(() => {
     if (!user) return;
-    const q = query(collection(db, 'orders'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'), limit(1));
-    const unsub = onSnapshot(q, (snap) => {
-      if (!snap.empty) setLastOrder({ id: snap.docs[0].id, ...snap.docs[0].data() });
-    });
-    return unsub;
+    const fetchLastOrder = async () => {
+      try {
+        const res = await fetch(`/api/orders?userId=${user.uid}&_sort=createdAt&_order=desc&_limit=1`);
+        const data = await res.json();
+        if (data && data.length > 0) setLastOrder(data[0]);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchLastOrder();
   }, [user]);
 
   if (!lastOrder) return null;

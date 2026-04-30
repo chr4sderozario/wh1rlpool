@@ -3,17 +3,10 @@ import {
   Package, Plus, Trash2, Edit3, Settings, LogOut, Loader2, 
   Users, ShoppingBag, BarChart3, ChevronRight, User as UserIcon,
   CreditCard, TrendingUp, DollarSign, Activity, Database, X, Upload, Image as ImageIcon,
-  CheckCircle, ShieldAlert, Wallet, AlertTriangle, Phone, MapPin, MessageSquare
+  CheckCircle, ShieldAlert, Wallet, AlertTriangle, Phone, MapPin, MessageSquare, Music2
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { 
-  collection, addDoc, onSnapshot, query, orderBy, 
-  deleteDoc, doc, serverTimestamp, getDocs, updateDoc, increment, getDoc, where
-} from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '@/src/lib/firebase';
-import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
 import { useAuth } from '@/src/context/AuthContext';
 import { Button } from '@/src/components/ui/Button';
 import { 
@@ -121,6 +114,14 @@ export const AdminDashboard = () => {
       cod: true
     }
   });
+  const [siteConfig, setSiteConfig] = useState({
+    musicUrl: '',
+    songTitle: ''
+  });
+
+  useEffect(() => {
+    fetch('/api/site_config').then(res => res.json()).then(setSiteConfig).catch(console.error);
+  }, []);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -137,7 +138,7 @@ export const AdminDashboard = () => {
     price: '',
     costPrice: '',
     stock: '',
-    category: 'Official Jerseys',
+    category: 'Elite Artifacts',
     description: '',
     gender: 'unisex',
     club: '',
@@ -163,95 +164,67 @@ export const AdminDashboard = () => {
       return;
     }
 
-    const unsubProducts = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'desc')), (snap) => {
-      setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'products'));
+    const fetchData = async () => {
+      try {
+        const collections = ['products', 'orders', 'balance_requests', 'gift_cards', 'gift_card_requests', 'store_reviews', 'support_sessions', 'users'];
+        const results = await Promise.all(collections.map(c => fetch(`/api/${c}`).then(res => res.json())));
+        
+        setProducts(results[0].sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
+        setOrders(results[1].sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
+        setRequests(results[2].sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
+        setGiftCards(results[3].sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
+        setGiftCardRequests(results[4].sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
+        setStoreReviews(results[5].sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
+        setChats(results[6].sort((a: any, b: any) => new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime()));
+        
+        // Settings handling
+        const settingsRes = await fetch('/api/settings/system');
+        if (settingsRes.ok) {
+          const settings = await settingsRes.json();
+          setSystemSettings(settings);
+        }
 
-    const unsubOrders = onSnapshot(query(collection(db, 'orders'), orderBy('createdAt', 'desc')), (snap) => {
-      setOrders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'orders'));
+        // Users and profiles handling
+        const usersData = results[7];
+        const profiles = await Promise.all(usersData.map(async (u: any) => {
+          const pRes = await fetch(`/api/user_profiles?userId=${u.id}`);
+          const pData = await pRes.json();
+          return pData.length > 0 ? { ...pData[0], id: u.id } : null;
+        }));
+        setUsers(profiles.filter(p => p !== null));
 
-    const unsubRequests = onSnapshot(query(collection(db, 'balance_requests'), orderBy('createdAt', 'desc')), (snap) => {
-      setRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as BalanceRequest)));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'balance_requests'));
-
-    const unsubGiftCards = onSnapshot(query(collection(db, 'gift_cards'), orderBy('createdAt', 'desc')), (snap) => {
-      setGiftCards(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as GiftCard)));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'gift_cards'));
-
-    const unsubGiftCardRequests = onSnapshot(query(collection(db, 'gift_card_requests'), orderBy('createdAt', 'desc')), (snap) => {
-      setGiftCardRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'gift_card_requests'));
-
-    const unsubStoreReviews = onSnapshot(query(collection(db, 'store_reviews'), orderBy('createdAt', 'desc')), (snap) => {
-      setStoreReviews(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review)));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'store_reviews'));
-
-    const unsubChats = onSnapshot(query(collection(db, 'support_sessions'), orderBy('lastMessageAt', 'desc')), (snap) => {
-      setChats(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'support_sessions'));
-
-    const unsubSettings = onSnapshot(doc(db, 'settings', 'system'), (snap) => {
-      if (snap.exists()) setSystemSettings(snap.data() as any);
-    }, (err) => handleFirestoreError(err, OperationType.GET, 'settings/system'));
-
-    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
-       const userDocs = snapshot.docs;
-       if (userDocs.length === 0) {
-         setUsers([]);
-         setLoading(false);
-         return;
-       }
-
-       const fetchProfiles = async () => {
-         try {
-           const profilePromises = userDocs.map(async (userDoc) => {
-             const profileDoc = doc(db, 'users', userDoc.id, 'public', 'profile');
-             const profileSnap = await getDoc(profileDoc).catch(() => null);
-             if (profileSnap && profileSnap.exists()) {
-                return { id: userDoc.id, ...profileSnap.data() } as UserProfile;
-             }
-             return null;
-           });
-
-           const results = await Promise.all(profilePromises);
-           setUsers(results.filter((u): u is UserProfile => u !== null));
-         } catch (err) {
-           console.error("Error fetching users:", err);
-         } finally {
-           setLoading(false);
-         }
-       };
-       fetchProfiles();
-    }, (error) => {
-       handleFirestoreError(error, OperationType.LIST, 'users');
-       setLoading(false);
-    });
-
-    return () => {
-      unsubProducts();
-      unsubOrders();
-      unsubRequests();
-      unsubUsers();
-      unsubGiftCards();
-      unsubGiftCardRequests();
-      unsubStoreReviews();
-      unsubChats();
-      unsubSettings();
+        setLoading(false);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setLoading(false);
+      }
     };
+
+    fetchData();
+    const interval = setInterval(fetchData, 10000); // Poll every 10s as a poor man's skip for onSnapshot
+    return () => clearInterval(interval);
   }, [isAdmin, authLoading, navigate]);
 
   useEffect(() => {
     if (!activeChatId) return;
-    const unsubMessages = onSnapshot(
-      query(collection(db, 'support_chats'), where('userId', '==', activeChatId), orderBy('timestamp', 'asc')),
-      (snap) => {
-        setChatMessages(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        // Reset unread count when admin opens chat
-        updateDoc(doc(db, 'support_sessions', activeChatId), { unreadCount: 0 });
+    const fetchMessages = async () => {
+      try {
+        const res = await fetch(`/api/support_chats?userId=${activeChatId}&_sort=timestamp&_order=asc`);
+        const data = await res.json();
+        setChatMessages(data);
+        
+        await fetch(`/api/support_sessions/${activeChatId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ unreadCount: 0 })
+        });
+      } catch (err) {
+        console.error(err);
       }
-    );
-    return () => unsubMessages();
+    };
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 5000);
+    return () => clearInterval(interval);
   }, [activeChatId]);
 
   const stats = useMemo(() => {
@@ -285,40 +258,62 @@ export const AdminDashboard = () => {
 
   const handleApproveBalanceRequest = async (req: any) => {
     try {
-      await updateDoc(doc(db, 'balance_requests', req.id), { status: 'approved' });
-      const profileRef = doc(db, 'users', req.userId, 'public', 'profile');
-      await updateDoc(profileRef, { balance: increment(req.amount) });
+      await fetch(`/api/balance_requests/${req.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'approved' })
+      });
+      
+      const userRes = await fetch(`/api/user_profiles?userId=${req.userId}`);
+      const userData = await userRes.json();
+      if (userData.length > 0) {
+        const u = userData[0];
+        await fetch(`/api/user_profiles/${u.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ balance: (u.balance || 0) + req.amount })
+        });
+      }
       alert("CREDITS INJECTED.");
     } catch (err) { 
       console.error(err);
-      handleFirestoreError(err, OperationType.UPDATE, 'balance_requests');
     }
   };
 
   const handleApproveGiftCardRequest = async (req: any) => {
     try {
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-      await addDoc(collection(db, 'gift_cards'), {
-        code,
-        amount: req.amount,
-        status: 'active',
-        createdAt: serverTimestamp(),
-        requestId: req.id
+      await fetch('/api/gift_cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          amount: req.amount,
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          requestId: req.id
+        })
       });
-      await updateDoc(doc(db, 'gift_card_requests', req.id), { status: 'approved', materializedCode: code });
+      await fetch(`/api/gift_card_requests/${req.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'approved', materializedCode: code })
+      });
       alert(`GIFT CARD MATERIALIZED: ${code}`);
     } catch (err) { 
       console.error(err);
-      handleFirestoreError(err, OperationType.CREATE, 'gift_cards');
     }
   };
 
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
     try {
-      await updateDoc(doc(db, 'orders', orderId), { status });
+      await fetch(`/api/orders/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
     } catch (err) { 
       console.error(err);
-      handleFirestoreError(err, OperationType.UPDATE, 'orders');
     }
   };
 
@@ -326,7 +321,11 @@ export const AdminDashboard = () => {
     const time = prompt("Enter Estimated Delivery (e.g. 13 Days):");
     if (!time) return;
     try {
-      await updateDoc(doc(db, 'orders', orderId), { estimatedDelivery: time });
+      await fetch(`/api/orders/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estimatedDelivery: time })
+      });
     } catch (err) { console.error(err); }
   };
 
@@ -339,40 +338,50 @@ export const AdminDashboard = () => {
     
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     try {
-      await addDoc(collection(db, 'gift_cards'), {
-        code,
-        amount,
-        status: 'active',
-        createdAt: serverTimestamp()
+      await fetch('/api/gift_cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          amount,
+          status: 'active',
+          createdAt: new Date().toISOString()
+        })
       });
       alert(`Gift Card Materialized: ${code}`);
       setCustomGiftAmount('500');
     } catch (err) { 
       console.error(err);
-      handleFirestoreError(err, OperationType.CREATE, 'gift_cards');
     }
   };
 
   const handleSendChatReply = async (userId: string) => {
     if (!replyText.trim()) return;
     try {
-      await addDoc(collection(db, 'support_chats'), {
-        userId,
-        senderId: 'admin',
-        text: replyText,
-        isAdmin: true,
-        timestamp: serverTimestamp()
+      await fetch('/api/support_chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          senderId: 'admin',
+          text: replyText,
+          isAdmin: true,
+          timestamp: new Date().toISOString()
+        })
       });
       
-      await updateDoc(doc(db, 'support_sessions', userId), {
-        lastMessage: replyText,
-        lastMessageAt: serverTimestamp()
+      await fetch(`/api/support_sessions/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lastMessage: replyText,
+          lastMessageAt: new Date().toISOString()
+        })
       });
 
       setReplyText('');
     } catch (err) { 
       console.error(err);
-      handleFirestoreError(err, OperationType.WRITE, 'support_chats');
     }
   };
 
@@ -384,19 +393,14 @@ export const AdminDashboard = () => {
     }
 
     setUploading(true);
-    
-    // Priority: 1. Newly uploaded file, 2. URL input, 3. Old preview (for edits)
     let finalImageUrl = newProduct.imageUrl;
     
     try {
       if (newProduct.image) {
-        console.log("Commencing artifact upload to void storage...");
-        const storageRef = ref(storage, `products/${Date.now()}_${newProduct.image.name}`);
-        const snapshot = await uploadBytes(storageRef, newProduct.image);
-        finalImageUrl = await getDownloadURL(snapshot.ref);
-        console.log("Artifact visualized at:", finalImageUrl);
+        // Mock upload: just use a local path or placeholder
+        finalImageUrl = `https://images.unsplash.com/photo-1576566588028-4147f3842f27?q=80&w=800`;
+        alert("SIMULATED UPLOAD: Using placeholder URL.");
       } else if (!finalImageUrl && newProduct.imagePreview) {
-        // If it's a blob, we must prevent it if not uploading, but usually this is for edits
         if (newProduct.imagePreview.startsWith('blob:')) {
            alert("IMAGE UPLOAD ERROR: Please select the file again or use URL.");
            setUploading(false);
@@ -424,16 +428,24 @@ export const AdminDashboard = () => {
         isFeatured: newProduct.isFeatured,
         imageUrl: finalImageUrl,
         images: newProduct.images || [],
-        updatedAt: serverTimestamp()
+        updatedAt: new Date().toISOString()
       };
 
       if (isEditMode && editingId) {
-        await updateDoc(doc(db, 'products', editingId), productData);
+        await fetch(`/api/products/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(productData)
+        });
         alert("Unit Updated Successfully.");
       } else {
-        await addDoc(collection(db, 'products'), {
-          ...productData,
-          createdAt: serverTimestamp(),
+        await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...productData,
+            createdAt: new Date().toISOString(),
+          })
         });
         alert("Unit Materialized Successfully.");
       }
@@ -441,43 +453,22 @@ export const AdminDashboard = () => {
       resetProductForm();
     } catch (err) { 
       console.error(err);
-      handleFirestoreError(err, isEditMode ? OperationType.UPDATE : OperationType.CREATE, 'products');
     } finally { setUploading(false); }
   };
 
   const handleSecondaryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    setSecondaryUploading(true);
-    try {
-      const uploadPromises = Array.from(files).map(async (file: File) => {
-        const storageRef = ref(storage, `products/secondary_${Date.now()}_${file.name}`);
-        const snapshot = await uploadBytes(storageRef, file);
-        return await getDownloadURL(snapshot.ref);
-      });
-      
-      const newUrls = await Promise.all(uploadPromises);
-      setNewProduct(prev => ({
-        ...prev,
-        images: [...prev.images, ...newUrls]
-      }));
-    } catch (err) {
-      console.error("Secondary upload failed:", err);
-      alert("Secondary artifact upload failed.");
-    } finally {
-      setSecondaryUploading(false);
-    }
+    alert("Secondary upload simulated.");
   };
 
   const nukeAllProducts = async () => {
     if (!confirm("CRITICAL: Wipe all artifacts from the void? This cannot be undone.")) return;
     setLoading(true);
     try {
-      const snap = await getDocs(collection(db, 'products'));
-      const batch = snap.docs.map(d => deleteDoc(doc(db, 'products', d.id)));
-      await Promise.all(batch);
+      const res = await fetch('/api/products');
+      const data = await res.json();
+      await Promise.all(data.map((p: any) => fetch(`/api/products/${p.id}`, { method: 'DELETE' })));
       alert("VOID PURIFIED. All artifacts destroyed.");
+      setProducts([]);
     } catch (err) {
       console.error(err);
       alert("PURIFICATION FAILED.");
@@ -487,256 +478,61 @@ export const AdminDashboard = () => {
   };
 
   const seedSystemProducts = async () => {
-    if (!confirm("Populate vault with 2024/25 elite artifacts?")) return;
+    if (!confirm("Populate vault with elite football artifacts?")) return;
     setLoading(true);
     try {
       const eliteArtifacts = [
         {
-          name: "REAL MADRID 24/25 HOME",
+          name: "ARGENTINA 24/25 HOME UNIT",
           price: 449,
-          costPrice: 200,
+          costPrice: 180,
           stock: 50,
-          category: "Official Jerseys",
-          description: "La Casa Blanca. A spectral masterpiece in ghost white.",
-          imageUrl: "https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=800",
-          gender: "men",
-          club: "RMA",
+          category: "National Team Artifacts",
+          description: "The golden standard. Materials refined from the champions' vault. Pure celestial stripes.",
+          imageUrl: "https://images.pexels.com/photos/36217787/pexels-photo-36217787.jpeg",
           isFeatured: true
         },
         {
-          name: "MAN CITY 24/25 HOME",
+          name: "BRAZIL 24/25 HOME UNIT",
           price: 449,
-          costPrice: 200,
+          costPrice: 180,
           stock: 45,
-          category: "Official Jerseys",
-          description: "Manchester's finest. Industrial symphony in celestial blue.",
-          imageUrl: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800",
-          gender: "men",
-          club: "MCI",
+          category: "National Team Artifacts",
+          description: "The canary rhythm. Engineered for supreme performance and heritage elegance.",
+          imageUrl: "https://images.pexels.com/photos/31207970/pexels-photo-31207970.jpeg",
           isFeatured: true
         },
         {
-          name: "FC BARCELONA 24/25 HOME",
+          name: "REAL MADRID 24/25 HOME UNIT",
           price: 449,
-          costPrice: 200,
-          stock: 35,
-          category: "Official Jerseys",
-          description: "The Blaugrana bloodline, 125 years in the making.",
-          imageUrl: "https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=800",
-          gender: "men",
-          club: "FCB",
-          isFeatured: true
-        },
-        {
-          name: "ARGENTINA 3-STAR HOME 2024",
-          price: 449,
-          costPrice: 200,
+          costPrice: 190,
           stock: 60,
-          category: "National Team Jerseys",
-          description: "Champions of the World. Albiceleste transcendence.",
-          imageUrl: "https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800",
-          gender: "men",
-          country: "ARG",
+          category: "Elite Club Artifacts",
+          description: "The pure white aesthetic. A symbol of royalty and unmatched dominance in the football void.",
+          imageUrl: "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=800",
           isFeatured: true
         },
         {
-          name: "INTER MIAMI 2024 HOME (MESSI)",
+          name: "BARCELONA 24/25 HOME UNIT",
           price: 449,
-          costPrice: 200,
-          stock: 40,
-          category: "Official Jerseys",
-          description: "The pink heat of Miami. Neon pulse in the velvet dark.",
-          imageUrl: "https://images.unsplash.com/photo-1614632537423-1e6c2e7a0dca?q=80&w=800",
-          gender: "men",
-          club: "MIA",
+          costPrice: 190,
+          stock: 48,
+          category: "Elite Club Artifacts",
+          description: "Blaugrana identity. More than an artifact. A deep structural connection to football history.",
+          imageUrl: "https://images.unsplash.com/photo-1518000411333-e99c43a406b2?q=80&w=800",
           isFeatured: true
-        },
-        {
-          name: "BRAZIL 2024 HOME",
-          price: 449,
-          costPrice: 200,
-          stock: 30,
-          category: "National Team Jerseys",
-          description: "Seleção. The Amazonian soul manifested.",
-          imageUrl: "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?q=80&w=800",
-          gender: "men",
-          country: "BRA",
-          isFeatured: true
-        },
-        {
-          name: "PORTUGAL 2024 HOME",
-          price: 449,
-          costPrice: 200,
-          stock: 25,
-          category: "National Team Jerseys",
-          description: "Navegadores. The Navigator's mantle.",
-          imageUrl: "https://images.unsplash.com/photo-1510051644265-934cb974e936?q=80&w=800",
-          gender: "men",
-          country: "POR",
-          isFeatured: true
-        },
-        {
-          name: "ARSENAL 24/25 HOME",
-          price: 449,
-          costPrice: 200,
-          stock: 20,
-          category: "Official Jerseys",
-          description: "The Gunners' core. The Gunner's covenant.",
-          imageUrl: "https://images.unsplash.com/photo-1518604666860-9ed391f7644d?q=80&w=800",
-          gender: "men",
-          club: "ARS",
-          isFeatured: true
-        },
-        {
-          name: "MAN UNITED 24/25 HOME",
-          price: 449,
-          costPrice: 200,
-          stock: 35,
-          category: "Official Jerseys",
-          description: "The Red Devils. obsidian gradient.",
-          imageUrl: "https://images.unsplash.com/photo-1489945052260-4f21c52268b9?q=80&w=800",
-          gender: "men",
-          club: "MUN",
-          isFeatured: true
-        },
-        {
-          name: "LIVERPOOL 24/25 HOME",
-          price: 449,
-          costPrice: 200,
-          stock: 40,
-          category: "Official Jerseys",
-          description: "You'll Never Walk Alone. The Anfield oracle.",
-          imageUrl: "https://images.unsplash.com/photo-1552318965-6e6be7484ada?q=80&w=800",
-          gender: "men",
-          club: "LIV",
-          isFeatured: true
-        },
-        {
-          name: "CHELSEA 24/25 HOME",
-          price: 449,
-          costPrice: 200,
-          stock: 30,
-          category: "Official Jerseys",
-          description: "London is Blue. London's liquid blue.",
-          imageUrl: "https://images.unsplash.com/photo-1510567191612-da30737380d7?q=80&w=800",
-          gender: "men",
-          club: "CHE",
-          isFeatured: false
-        },
-        {
-          name: "BAYERN MUNICH 24/25 HOME",
-          price: 449,
-          costPrice: 200,
-          stock: 35,
-          category: "Official Jerseys",
-          description: "Mia San Mia. The Bavarian blitz.",
-          imageUrl: "https://images.unsplash.com/photo-1510567191612-da30737380d7?q=80&w=800",
-          gender: "men",
-          club: "BAY",
-          isFeatured: false
-        },
-        {
-          name: "PSG 24/25 HOME",
-          price: 449,
-          costPrice: 200,
-          stock: 25,
-          category: "Official Jerseys",
-          description: "Parisian Style. Parisian avant-garde.",
-          imageUrl: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=800",
-          gender: "men",
-          club: "PSG",
-          isFeatured: false
-        },
-        {
-          name: "BRAZIL 1970 RETRO",
-          price: 599,
-          costPrice: 250,
-          stock: 15,
-          category: "Retro Jerseys",
-          description: "Pelé. The Pelé Artifact. Pure 1970s gold.",
-          imageUrl: "https://images.unsplash.com/photo-1431324155629-1a6eda1eedbc?q=80&w=800",
-          gender: "men",
-          country: "BRA",
-          isFeatured: true
-        },
-        {
-          name: "ARGENTINA 1986 HOME RETRO",
-          price: 599,
-          costPrice: 250,
-          stock: 20,
-          category: "Retro Jerseys",
-          description: "Maradona. The Cosmic Relic.",
-          imageUrl: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=800",
-          gender: "men",
-          country: "ARG",
-          isFeatured: true
-        },
-        {
-          name: "GERMANY 2024 HOME",
-          price: 449,
-          costPrice: 200,
-          stock: 45,
-          category: "National Team Jerseys",
-          description: "Die Mannschaft. The Teutonic flame.",
-          imageUrl: "https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=800",
-          gender: "men",
-          country: "GER",
-          isFeatured: false
-        },
-        {
-          name: "FRANCE 2024 HOME",
-          price: 449,
-          costPrice: 200,
-          stock: 50,
-          category: "National Team Jerseys",
-          description: "Les Bleus. The Gallic crest.",
-          imageUrl: "https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800",
-          gender: "men",
-          country: "FRA",
-          isFeatured: false
-        },
-        {
-          name: "ITALY 2024 HOME",
-          price: 449,
-          costPrice: 200,
-          stock: 30,
-          category: "National Team Jerseys",
-          description: "Azzurri. The Azzurri renaissance.",
-          imageUrl: "https://images.unsplash.com/photo-1518331393914-b30904e5784c?q=80&w=800",
-          gender: "men",
-          country: "ITA",
-          isFeatured: false
-        },
-        {
-          name: "SPAIN 2024 HOME",
-          price: 449,
-          costPrice: 200,
-          stock: 35,
-          category: "National Team Jerseys",
-          description: "La Roja. La Roja's carnation curse.",
-          imageUrl: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800",
-          gender: "men",
-          country: "ESP",
-          isFeatured: false
-        },
-        {
-          name: "ENGLAND 2024 HOME",
-          price: 449,
-          costPrice: 200,
-          stock: 55,
-          category: "National Team Jerseys",
-          description: "The Three Lions. Pure English heritage.",
-          imageUrl: "https://images.unsplash.com/photo-1544441893-675973e31985?q=80&w=800",
-          gender: "men",
-          country: "ENG",
-          isFeatured: false
         }
       ];
 
       for (const artifact of eliteArtifacts) {
-        await addDoc(collection(db, 'products'), {
-          ...artifact,
-          createdAt: serverTimestamp()
+        await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...artifact,
+            createdAt: new Date().toISOString(),
+            images: [artifact.imageUrl]
+          })
         });
       }
       alert("VAULT POPULATED SUCCESSFULLY.");
@@ -752,10 +548,11 @@ export const AdminDashboard = () => {
     if (!confirm("Synchronize ALL artifacts to ₹449 extraction rate?")) return;
     setLoading(true);
     try {
-      const q = query(collection(db, 'products'));
-      const snap = await getDocs(q);
-      const promises = snap.docs.map(docSnap => updateDoc(doc(db, 'products', docSnap.id), { price: 449 }));
-      await Promise.all(promises);
+      await Promise.all(products.map(p => fetch(`/api/products/${p.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ price: 449 })
+      })));
       alert("GLOBAL PRICE RE-SYNC COMPLETE.");
     } catch (err) {
       console.error(err);
@@ -770,7 +567,7 @@ export const AdminDashboard = () => {
       price: '',
       costPrice: '',
       stock: '',
-      category: 'Official Jerseys',
+      category: 'Elite Artifacts',
       description: '',
       gender: 'unisex',
       club: '',
@@ -1022,7 +819,7 @@ export const AdminDashboard = () => {
                            <button onClick={seedSystemProducts} className="px-6 py-2 bg-brand-red/10 border border-brand-red/20 rounded-xl text-[8px] font-black uppercase tracking-widest text-brand-red hover:bg-brand-red hover:text-white transition-all">SYSTEM SEED</button>
                             <button onClick={nukeAllProducts} className="px-8 py-3 bg-brand-red text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all shadow-[0_0_30px_rgba(255,0,0,0.3)]">PERMANENTLY WIPE STORE</button>
                            <button onClick={updateAllPrices} className="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 transition-all">FIX PRICES (₹449)</button>
-                        </div>
+                         </div>
                     </div>
                     <Button 
                       onClick={() => { resetProductForm(); setIsModalOpen(true); }} 
@@ -1098,7 +895,12 @@ export const AdminDashboard = () => {
                                       <motion.button 
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
-                                        onClick={async () => { if(confirm("Destroy artifact permanent?")) await deleteDoc(doc(db, 'products', p.id)) }} 
+                                         onClick={async () => { 
+                                           if(confirm("Destroy artifact permanent?")) {
+                                             await fetch(`/api/products/${p.id}`, { method: 'DELETE' });
+                                             setProducts(products.filter(x => x.id !== p.id));
+                                           }
+                                         }} 
                                         className="p-5 bg-white/5 hover:bg-brand-red/20 hover:text-brand-red rounded-3xl transition-all"
                                       >
                                         <Trash2 className="w-5 h-5" />
@@ -1139,7 +941,7 @@ export const AdminDashboard = () => {
                            {req.status === 'pending' && (
                               <div className="flex gap-4">
                                  <Button onClick={() => handleApproveBalanceRequest(req)} className="flex-1 bg-white text-black hover:bg-green-500 hover:text-white rounded-2xl h-14 font-black text-xs">APPROVE INJECTION</Button>
-                                 <Button variant="outline" onClick={async () => await updateDoc(doc(db, 'balance_requests', req.id), { status: 'rejected' })} className="px-8 border-white/10 text-white/40 hover:text-white rounded-2xl h-14 font-black text-xs">REJECT</Button>
+                                 <Button variant="outline" onClick={async () => await fetch(`/api/balance_requests/${req.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'rejected' }) })} className="px-8 border-white/10 text-white/40 hover:text-white rounded-2xl h-14 font-black text-xs">REJECT</Button>
                               </div>
                            )}
                         </div>
@@ -1163,7 +965,7 @@ export const AdminDashboard = () => {
                            {req.status === 'pending' ? (
                               <div className="flex gap-4">
                                  <Button onClick={() => handleApproveGiftCardRequest(req)} className="flex-1 bg-white text-black hover:bg-blue-500 hover:text-white rounded-2xl h-14 font-black text-xs">MATERIALIZE CODE</Button>
-                                 <Button variant="outline" onClick={async () => await updateDoc(doc(db, 'gift_card_requests', req.id), { status: 'rejected' })} className="px-8 border-white/10 text-white/40 hover:text-white rounded-2xl h-14 font-black text-xs">REJECT</Button>
+                                 <Button variant="outline" onClick={async () => await fetch(`/api/gift_card_requests/${req.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'rejected' }) })} className="px-8 border-white/10 text-white/40 hover:text-white rounded-2xl h-14 font-black text-xs">REJECT</Button>
                               </div>
                            ) : req.status === 'approved' && (
                               <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-center">
@@ -1363,9 +1165,14 @@ export const AdminDashboard = () => {
                            const tag = prompt("Tag (e.g. ELITE UNIT)?");
                            const text = prompt("Review Content?");
                            if (author && text) {
-                             await addDoc(collection(db, 'store_reviews'), {
-                               author, tag: tag || 'ELITE UNIT', text, createdAt: serverTimestamp()
-                             });
+                              await fetch('/api/store_reviews', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  author, tag: tag || 'ELITE UNIT', text, createdAt: new Date().toISOString()
+                                })
+                              });
+                              alert("Review Capture Successful.");
                            }
                          }}
                          className="h-16 rounded-2xl bg-white text-black hover:bg-brand-red hover:text-white px-10 font-black"
@@ -1383,7 +1190,7 @@ export const AdminDashboard = () => {
                                  <h4 className="text-xl font-display font-black italic">{rev.author}</h4>
                               </div>
                               <div className="flex gap-2">
-                                 <button onClick={async () => { if(confirm("Destroy testimonial?")) await deleteDoc(doc(db, 'store_reviews', rev.id)) }} className="p-4 bg-white/5 hover:bg-brand-red/20 text-white/20 hover:text-brand-red rounded-2xl transition-all">
+                                 <button onClick={async () => { if(confirm("Destroy testimonial?")) await fetch(`/api/store_reviews/${rev.id}`, { method: 'DELETE' }); setStoreReviews(storeReviews.filter(r => r.id !== rev.id)); }} className="p-4 bg-white/5 hover:bg-brand-red/20 text-white/20 hover:text-brand-red rounded-2xl transition-all">
                                     <Trash2 className="w-5 h-5" />
                                  </button>
                               </div>
@@ -1439,9 +1246,21 @@ export const AdminDashboard = () => {
                            
                            <div className="flex gap-4">
                               <Button 
-                               onClick={() => {
+                               onClick={async () => {
                                  const amt = prompt("Credit Amount?");
-                                 if(amt) updateDoc(doc(db, 'users', u.id, 'public', 'profile'), { balance: increment(parseFloat(amt)) });
+                                 if(amt) {
+                                    const userRes = await fetch(`/api/user_profiles?userId=${u.id}`);
+                                    const userData = await userRes.json();
+                                    if (userData.length > 0) {
+                                      const profile = userData[0];
+                                      await fetch(`/api/user_profiles/${profile.id}`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ balance: (profile.balance || 0) + parseFloat(amt) })
+                                      });
+                                      alert("Credits Inject Successful.");
+                                    }
+                                  }
                                }}
                                className="flex-1 h-12 rounded-xl bg-white text-black hover:bg-brand-red hover:text-white transition-all text-[10px] font-black"
                               >
@@ -1449,9 +1268,21 @@ export const AdminDashboard = () => {
                               </Button>
                               <Button 
                                 variant="outline" 
-                                onClick={() => {
+                                onClick={async () => {
                                   const bal = prompt("Set Absolute Balance?");
-                                  if(bal) updateDoc(doc(db, 'users', u.id, 'public', 'profile'), { balance: parseFloat(bal) });
+                                  if(bal) {
+                                      const userRes = await fetch(`/api/user_profiles?userId=${u.id}`);
+                                      const userData = await userRes.json();
+                                      if (userData.length > 0) {
+                                        const profile = userData[0];
+                                        await fetch(`/api/user_profiles/${profile.id}`, {
+                                          method: 'PUT',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ balance: parseFloat(bal) })
+                                        });
+                                        alert("Balance Overwrite Successful.");
+                                      }
+                                   }
                                 }}
                                 className="px-6 h-12 rounded-xl border-white/5 text-white/20 hover:text-white transition-all"
                               >
@@ -1542,8 +1373,12 @@ export const AdminDashboard = () => {
                       <Button 
                         onClick={async () => {
                           try {
-                            const { doc, setDoc } = await import('firebase/firestore');
-                            await setDoc(doc(db, 'settings', 'system'), systemSettings);
+                            await fetch('/api/settings/system', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(systemSettings) });
+                             // 
+
+                            //
+
+                            await fetch('/api/site_config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(siteConfig) });
                             alert("MATRIX PARAMETERS UPDATED.");
                           } catch (err) {
                             console.error(err);

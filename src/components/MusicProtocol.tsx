@@ -6,12 +6,23 @@ export const MusicProtocol = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
+  const [currentSong, setCurrentSong] = useState({ title: 'Espresso - Sabrina Carpenter', url: 'https://p.scdn.co/mp3-preview/a91f53d1000bb5d2bf61033b9347898516d0391d?cid=null' });
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Espresso by Sabrina Carpenter - using a public stream URL if possible or placeholder
-    // Since we can't reliably use a copyrighted MP3 URL, we'll use a YouTube-like interface 
-    // or a prompt-based start for user interaction
+    fetch('/api/site_config')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.musicUrl) {
+          setCurrentSong({
+            title: data.songTitle || 'VOID FREQUENCY',
+            url: data.musicUrl
+          });
+        }
+      });
+  }, []);
+
+  useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = 0.3;
     }
@@ -50,7 +61,7 @@ export const MusicProtocol = () => {
             </div>
             <div>
                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-red mb-1">CURRENT FREQUENCY</p>
-               <p className="text-sm font-display font-black italic uppercase text-white">Espresso - Sabrina Carpenter</p>
+               <p className="text-sm font-display font-black italic uppercase text-white">{currentSong.title}</p>
             </div>
             <div className="flex items-center gap-4 border-l border-white/10 pl-6">
                <button onClick={togglePlay} className="text-white hover:text-brand-red transition-colors">
@@ -74,9 +85,10 @@ export const MusicProtocol = () => {
       {/* Since we can't host the file, we use a hidden video or public URL if available */}
       {/* For this demo, we'll try a common public URL or just show the UI for the user to understand */}
       <audio 
+        key={currentSong.url}
         ref={audioRef}
         loop
-        src="https://p.scdn.co/mp3-preview/a91f53d1000bb5d2bf61033b9347898516d0391d?cid=null" 
+        src={currentSong.url} 
       />
       
       <style>{`

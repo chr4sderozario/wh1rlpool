@@ -3,9 +3,6 @@ import { Button } from '@/src/components/ui/Button';
 import { ArrowRight, ShoppingBag, Zap, Shield, Globe, Cpu } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { collection, query, limit, onSnapshot, where, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '@/src/lib/firebase';
-import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
 import { useScanner } from '@/src/context/ScannerContext';
 import { X, Camera, Search, MessageSquare, AlertCircle, Star, Ghost } from 'lucide-react';
 
@@ -19,87 +16,58 @@ export const LandingPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [jerseyOfTheDay, setJerseyOfTheDay] = useState<any | null>(null);
+  const [artifactOfTheDay, setArtifactOfTheDay] = useState<any | null>(null);
 
   useEffect(() => {
-    // Fetch Jersey of the Day
-    const fetchJOD = async () => {
-      const q = query(collection(db, 'products'), where('isFeatured', '==', true), limit(1));
-      const snap = await getDocs(q);
-      if (!snap.empty) setJerseyOfTheDay({ id: snap.docs[0].id, ...snap.docs[0].data() });
+    const fetchData = async () => {
+      try {
+        const [productsRes, reviewsRes] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/store_reviews')
+        ]);
+        const products = await productsRes.json();
+        const storeReviews = await reviewsRes.json();
+
+        setReviews(storeReviews.slice(0, 10));
+        
+        const featured = products.filter((p: any) => p.isFeatured).slice(0, 2);
+        setFeaturedProducts(featured);
+
+        const sorted = [...products].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        setNewArrivals(sorted.slice(0, 4));
+
+        if (products.length > 0) {
+          const randomIndex = Math.floor(Math.random() * products.length);
+          setArtifactOfTheDay(products[randomIndex]);
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
     };
-    fetchJOD();
+    fetchData();
   }, []);
 
   useEffect(() => {
     if (searchQuery.trim().length > 2) {
       setIsSearching(true);
       const timer = setTimeout(async () => {
-        const q = query(
-          collection(db, 'products'),
-          where('name', '>=', searchQuery.toUpperCase()),
-          where('name', '<=', searchQuery.toUpperCase() + '\uf8ff'),
-          limit(5)
-        );
-        const snap = await getDocs(q);
-        setSearchResults(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        setIsSearching(false);
+        try {
+          const res = await fetch(`/api/products?name_like=${searchQuery}`);
+          const data = await res.json();
+          setSearchResults(data.slice(0, 5));
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setIsSearching(false);
+        }
       }, 500);
       return () => clearTimeout(timer);
     } else {
       setSearchResults([]);
     }
   }, [searchQuery]);
-
-  useEffect(() => {
-    // Fetch store reviews
-    const qReviews = query(collection(db, 'store_reviews'), orderBy('createdAt', 'desc'), limit(10));
-    const unsubReviews = onSnapshot(qReviews, (snap) => {
-      setReviews(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'store_reviews'));
-
-    // Pick a random product for 'Jersey of the Day'
-    const fetchRandomJersey = async () => {
-      const q = query(collection(db, 'products'), limit(20));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        const randomIndex = Math.floor(Math.random() * snap.docs.length);
-        const randomDoc = snap.docs[randomIndex];
-        setJerseyOfTheDay({ id: randomDoc.id, ...randomDoc.data() });
-      }
-    };
-    fetchRandomJersey();
-    // Fetch Featured Products for Flash Deals
-    const qFeatured = query(
-      collection(db, 'products'), 
-      where('isFeatured', '==', true), 
-      orderBy('createdAt', 'desc'),
-      limit(2)
-    );
-    const unsubFeatured = onSnapshot(qFeatured, (snap) => {
-      setFeaturedProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'products'));
-
-    // Fetch New Arrivals
-    const qNew = query(
-      collection(db, 'products'), 
-      orderBy('createdAt', 'desc'),
-      limit(4)
-    );
-    const unsubNew = onSnapshot(qNew, (snap) => {
-      setNewArrivals(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'products');
-      setLoading(false);
-    });
-
-    return () => {
-      unsubFeatured();
-      unsubNew();
-      unsubReviews();
-    };
-  }, []);
 
   // Auto-seed if empty (only for basic layout items)
   useEffect(() => {
@@ -255,8 +223,8 @@ export const LandingPage = () => {
            </div>
         </section>
 
-        {/* Jersey of the Day (Spotlight) */}
-        {jerseyOfTheDay && (
+        {/* Artifact of the Day (Spotlight) */}
+        {artifactOfTheDay && (
            <section className="mb-32">
               <div className="p-8 md:p-20 rounded-[3rem] md:rounded-[5rem] bg-[#0A0A0A] border border-brand-red/10 overflow-hidden relative group">
                  <div className="absolute top-0 right-0 w-[50%] h-full bg-brand-red/10 blur-[150px] -z-10 group-hover:bg-brand-red/20 transition-all duration-1000" />
@@ -264,16 +232,16 @@ export const LandingPage = () => {
                     <div className="lg:w-1/2 space-y-8 md:space-y-12">
                        <div className="inline-block px-6 py-2 bg-brand-red text-white text-[10px] font-black uppercase tracking-[0.5em] rounded-full animate-pulse italic shadow-lg shadow-brand-red/30">ARTIFACT OF THE DAY</div>
                        <h2 className="text-6xl md:text-[10rem] font-display font-black tracking-tighter uppercase italic leading-[0.85] text-transparent bg-clip-text bg-gradient-to-br from-white to-white/40">
-                          {jerseyOfTheDay.name?.split(' ')[0] || 'VOID'}<br />{jerseyOfTheDay.name?.split(' ')[1] || 'UNIT'}
+                          {artifactOfTheDay.name?.split(' ')[0] || 'VOID'}<br />{artifactOfTheDay.name?.split(' ')[1] || 'UNIT'}
                        </h2>
-                       <p className="text-lg md:text-2xl font-serif italic text-white/40 leading-relaxed uppercase tracking-widest max-w-xl">{jerseyOfTheDay.description}</p>
+                       <p className="text-lg md:text-2xl font-serif italic text-white/40 leading-relaxed uppercase tracking-widest max-w-xl">{artifactOfTheDay.description}</p>
                        <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center pt-8">
                           <div className="space-y-1">
                              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 italic">EXTRACTION UNIT</p>
-                             <div className="text-5xl font-display font-black tracking-tighter italic">₹ {jerseyOfTheDay.price}</div>
+                             <div className="text-5xl font-display font-black tracking-tighter italic">₹ {artifactOfTheDay.price}</div>
                           </div>
                           <Button 
-                             onClick={() => navigate(`/product/${jerseyOfTheDay.id}`)}
+                             onClick={() => navigate(`/product/${artifactOfTheDay.id}`)}
                              className="px-16 h-20 rounded-[2rem] bg-white text-black hover:bg-brand-red hover:text-white transition-all duration-700 font-display font-black uppercase italic tracking-[0.2em] shadow-2xl"
                           >
                              ACQUIRE NOW
@@ -282,7 +250,7 @@ export const LandingPage = () => {
                     </div>
                     <div className="lg:w-1/2 relative group-hover:scale-110 transition-transform duration-1000">
                        <div className="absolute inset-0 bg-brand-red/20 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                       <img src={jerseyOfTheDay.imageUrl} className="w-full aspect-square object-contain drop-shadow-[0_0_100px_rgba(255,20,20,0.2)]" alt={jerseyOfTheDay.name} />
+                       <img src={artifactOfTheDay.imageUrl} className="w-full aspect-square object-contain drop-shadow-[0_0_100px_rgba(255,20,20,0.2)]" alt={artifactOfTheDay.name} />
                     </div>
                  </div>
               </div>
@@ -291,28 +259,28 @@ export const LandingPage = () => {
         <section className="mb-24 md:mb-32">
            <h2 className="text-3xl md:text-5xl font-display font-black tracking-tighter uppercase italic mb-8 md:mb-12 text-center md:text-left">THE VOID SECTORS</h2>
            <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-none md:grid-rows-2 h-auto md:h-[800px] gap-4 md:gap-6">
-              <div className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-square md:aspect-auto" onClick={() => navigate('/shop')}>
+              <div className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-square md:aspect-auto" onClick={() => navigate('/shop?category=National Team Artifacts')}>
                  <img src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1200" className="absolute inset-0 w-full h-full object-cover grayscale opacity-5 group-hover:opacity-10 transition-all duration-1000" alt="" />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent to-transparent flex flex-col justify-end p-8 md:p-16">
                     <span className="text-[8px] font-black text-brand-red tracking-[0.6em] uppercase mb-4 italic">SECTOR 01</span>
-                    <h3 className="text-5xl md:text-7xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-0 group-hover:translate-x-4 transition-transform duration-1000">ELITE<br />ARCHIVE</h3>
+                    <h3 className="text-5xl md:text-7xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-0 group-hover:translate-x-4 transition-transform duration-1000">NATIONAL<br />UNITS</h3>
                  </div>
               </div>
-              <div className="md:col-span-2 relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-[16/9] md:aspect-auto" onClick={() => navigate('/shop')}>
+              <div className="md:col-span-2 relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-[16/9] md:aspect-auto" onClick={() => navigate('/shop?category=Elite Club Artifacts')}>
                  <img src="https://images.unsplash.com/photo-1501691223387-dd0500403074?q=80&w=1200" className="absolute inset-0 w-full h-full object-cover grayscale opacity-5 group-hover:opacity-10 transition-all duration-1000" alt="" />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent to-transparent flex flex-col justify-end p-8 md:p-12">
                     <span className="text-[8px] font-black text-white/20 tracking-[0.6em] uppercase mb-2 md:mb-4 italic">SECTOR 05</span>
-                    <h3 className="text-3xl md:text-4xl font-display font-black tracking-tighter uppercase italic leading-none group-hover:text-brand-red transition-colors duration-500">VOYAGE RELICS</h3>
+                    <h3 className="text-3xl md:text-4xl font-display font-black tracking-tighter uppercase italic leading-none group-hover:text-brand-red transition-colors duration-500">CLUB LEGENDS</h3>
                  </div>
               </div>
-              <div className="relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-video md:aspect-auto" onClick={() => navigate('/shop')}>
+              <div className="relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-video md:aspect-auto" onClick={() => navigate('/shop?category=Limited Edition Artifacts')}>
                  <div className="absolute inset-0 bg-gradient-to-br from-brand-red/5 to-transparent p-8 md:p-10 flex flex-col justify-end transition-all duration-700 group-hover:bg-brand-red/10">
-                    <h3 className="text-xl md:text-2xl font-display font-black tracking-tighter uppercase italic group-hover:text-brand-red transition-all">LIMITED<br/>UNITS</h3>
+                    <h3 className="text-xl md:text-2xl font-display font-black tracking-tighter uppercase italic group-hover:text-brand-red transition-all">SPECIAL<br/>ELITE</h3>
                  </div>
               </div>
-              <div className="relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-video md:aspect-auto" onClick={() => navigate('/shop')}>
+              <div className="relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-video md:aspect-auto" onClick={() => navigate('/shop?category=Training Units')}>
                  <div className="absolute inset-0 bg-gradient-to-bl from-white/5 to-transparent p-8 md:p-10 flex flex-col justify-end group-hover:bg-white/10 transition-all duration-700">
-                    <h3 className="text-xl md:text-2xl font-display font-black tracking-tighter uppercase italic group-hover:text-white/60 transition-all">PROTOCOL<br/>UNITS</h3>
+                    <h3 className="text-xl md:text-2xl font-display font-black tracking-tighter uppercase italic group-hover:text-white/60 transition-all">TRAINING<br/>ARTIFACTS</h3>
                  </div>
               </div>
            </div>
@@ -327,7 +295,7 @@ export const LandingPage = () => {
                     <span className="text-brand-red font-black tracking-[0.6em] text-[10px] uppercase mb-4 md:mb-6 block">SYSTEM PROTOCOL // 0x44</span>
                     <h2 className="text-4xl md:text-6xl font-display font-black tracking-tighter uppercase italic leading-[0.9] mb-6 md:mb-8 text-white">FOUND A PIECE?<br/><span className="text-white/20">SCAN THE VOID</span></h2>
                     <p className="text-sm text-white/40 font-medium leading-relaxed mb-8 md:mb-10 max-w-md mx-auto md:mx-0">
-                       Spotted a jersey in the physical world? Use the Wh1rlpool Spectral Scanner to identify the artifact and extract it from our digital registry instantly.
+                       Spotted a relic in the physical world? Use the Wh1rlpool Spectral Scanner to identify the artifact and extract it from our digital registry instantly.
                     </p>
                     <Button 
                       onClick={openScanner}

@@ -20,6 +20,7 @@ const CartPage = lazy(() => import('@/src/pages/CartPage').then(m => ({ default:
 const ProductDetailPage = lazy(() => import('@/src/pages/ProductDetailPage').then(m => ({ default: m.ProductDetailPage })));
 const WishlistPage = lazy(() => import('@/src/pages/WishlistPage').then(m => ({ default: m.WishlistPage })));
 const OrdersPage = lazy(() => import('@/src/pages/OrdersPage').then(m => ({ default: m.OrdersPage })));
+const OrderTrackingPage = lazy(() => import('@/src/pages/OrderTrackingPage').then(m => ({ default: m.OrderTrackingPage })));
 const CheckoutPage = lazy(() => import('@/src/pages/CheckoutPage').then(m => ({ default: m.CheckoutPage })));
 const GiftCardPage = lazy(() => import('@/src/pages/GiftCardPage').then(m => ({ default: m.GiftCardPage })));
 const LoyaltyPage = lazy(() => import('@/src/pages/LoyaltyPage').then(m => ({ default: m.LoyaltyPage })));
@@ -59,6 +60,7 @@ export default function App() {
                 <Route path="/wishlist" element={<WishlistPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/track-order" element={<OrderTrackingPage />} />
                 <Route path="/product/:id" element={<ProductDetailPage />} />
                 <Route path="/support" element={<SupportPage />} />
               </Routes>

@@ -14,9 +14,6 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useState, useEffect, useMemo, memo } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '@/src/lib/firebase';
-import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
 
 interface Product {
   id: string;
@@ -34,19 +31,15 @@ interface Product {
 
 const CATEGORIES = [
   'All Artifacts',
-  'Official Jerseys',
-  'Retro Jerseys',
-  'Embroidery Jerseys',
-  'High Quality Jerseys',
-  'Sale Jerseys',
-  'Limited Edition Jerseys',
-  'Player Edition Jerseys',
-  'Club Jerseys',
-  'National Team Jerseys',
-  'Custom Name Jerseys',
-  'Training Kits',
-  'Shorts',
-  'Socks'
+  'National Team Artifacts',
+  'Elite Club Artifacts',
+  'Retro Artifacts',
+  'Player Edition Artifacts',
+  'Limited Edition Artifacts',
+  'Training Units',
+  'Special Protocol Units',
+  'Custom Artifacts',
+  'Sale Artifacts'
 ];
 
 interface StorePageProps {
@@ -73,14 +66,18 @@ export const StorePage = ({ gender, onSale }: StorePageProps) => {
   const [inStockOnly, setInStockOnly] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-      
-      // Seed data if needed
-      setProducts(data);
-      setLoading(false);
-    });
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch('/api/products');
+        const data = await res.json();
+        setProducts(data);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
 
     // Parse URL params for category
     const searchParams = new URLSearchParams(location.search);
@@ -88,8 +85,6 @@ export const StorePage = ({ gender, onSale }: StorePageProps) => {
     if (catParam && CATEGORIES.includes(catParam)) {
       setSelectedCategory(catParam);
     }
-
-    return unsubscribe;
   }, [location.search]);
 
   const filteredProducts = useMemo(() => {
@@ -98,7 +93,7 @@ export const StorePage = ({ gender, onSale }: StorePageProps) => {
                              p.category.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === 'All Artifacts' || p.category === selectedCategory;
       const matchesGender = !gender || p.gender === gender || p.gender === 'unisex';
-      const matchesSale = !onSale || p.category === 'Sale Jerseys';
+      const matchesSale = !onSale || p.category === 'Sale Artifacts';
       const matchesPrice = p.price >= priceRange[0] && p.price <= priceRange[1];
       const matchesClub = selectedClub === 'All' || p.club === selectedClub;
       const matchesCountry = selectedCountry === 'All' || p.country === selectedCountry;

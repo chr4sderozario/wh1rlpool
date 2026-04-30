@@ -1,10 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/context/AuthContext';
-import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
 import { ShoppingBag, Truck, Package, CheckCircle, Clock, XCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/src/components/ui/Button';
 
@@ -14,7 +11,7 @@ interface Order {
   total: number;
   status: string;
   paymentMethod: string;
-  createdAt: any;
+  createdAt: string;
 }
 
 export const OrdersPage = () => {
@@ -29,19 +26,22 @@ export const OrdersPage = () => {
       setLoading(false);
       return;
     }
-    const q = query(
-      collection(db, 'orders'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    );
-    const unsub = onSnapshot(q, (snap) => {
-      setOrders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'orders');
-      setLoading(false);
-    });
-    return unsub;
+    const fetchOrders = async () => {
+      try {
+        const res = await fetch(`/api/orders?userId=${user.uid}&_sort=createdAt&_order=desc`);
+        if (res.ok) {
+          const data = await res.json();
+          setOrders(data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 10000);
+    return () => clearInterval(interval);
   }, [user]);
 
   if (loading) return null;
@@ -89,7 +89,7 @@ export const OrdersPage = () => {
                     <div className="flex gap-8 md:gap-12">
                        <div className="space-y-1">
                           <p className="text-[9px] md:text-[10px] uppercase font-black tracking-widest text-white/40">Sync Date</p>
-                          <p className="text-xs md:text-sm font-bold">{order.createdAt?.toDate().toLocaleDateString()}</p>
+                          <p className="text-xs md:text-sm font-bold">{new Date(order.createdAt).toLocaleDateString()}</p>
                        </div>
                        <div className="space-y-1">
                           <p className="text-[9px] md:text-[10px] uppercase font-black tracking-widest text-white/40">Total</p>

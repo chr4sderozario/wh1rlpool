@@ -2,12 +2,9 @@ import React, { useState, useEffect, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, Send, X, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/src/context/AuthContext';
-import { db } from '@/src/lib/firebase';
-import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, setDoc, doc, increment, getDoc } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
 
 export const ChatWidgetCount = memo(() => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
@@ -16,22 +13,24 @@ export const ChatWidgetCount = memo(() => {
   useEffect(() => {
     if (!user || !isOpen) return;
 
-    const q = query(
-      collection(db, 'support_chats'),
-      where('userId', '==', user.uid),
-      orderBy('timestamp', 'asc')
-    );
+    const fetchMessages = async () => {
+      try {
+        const res = await fetch(`/api/support_chats?userId=${user.uid}&_sort=timestamp&_order=asc`);
+        if (res.ok) {
+          const data = await res.json();
+          setMessages(data);
+          setTimeout(() => {
+            scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+          }, 100);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
 
-    const unsubscribe = onSnapshot(q, (snap) => {
-      setMessages(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setTimeout(() => {
-        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-      }, 100);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'support_chats');
-    });
-
-    return unsubscribe;
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 5000);
+    return () => clearInterval(interval);
   }, [user, isOpen]);
 
   const handleSend = async (e: React.FormEvent) => {
@@ -42,27 +41,49 @@ export const ChatWidgetCount = memo(() => {
     setMessage('');
 
     try {
-      // Get display name for session
-      const profileDoc = doc(db, 'users', user.uid, 'public', 'profile');
-      const profileSnap = await getDoc(profileDoc).catch(() => null);
-      const displayName = profileSnap?.exists() ? profileSnap.data()?.displayName : (user.displayName || user.email);
+      const displayName = profile?.displayName || user.email;
 
-      await addDoc(collection(db, 'support_chats'), {
-        userId: user.uid,
-        senderId: user.uid,
-        text,
-        isAdmin: false,
-        timestamp: serverTimestamp()
+      await fetch('/api/support_chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          senderId: user.uid,
+          text,
+          isAdmin: false,
+          timestamp: new Date().toISOString()
+        })
       });
 
       // Update session for admin visibility
-      await setDoc(doc(db, 'support_sessions', user.uid), {
-        userId: user.uid,
-        userName: displayName,
-        lastMessage: text,
-        lastMessageAt: serverTimestamp(),
-        unreadCount: increment(1)
-      }, { merge: true });
+      const sessionRes = await fetch(`/api/support_sessions/${user.uid}`);
+      if (sessionRes.ok) {
+        const sessionData = await sessionRes.json();
+        await fetch(`/api/support_sessions/${user.uid}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.uid,
+            userName: displayName,
+            lastMessage: text,
+            lastMessageAt: new Date().toISOString(),
+            unreadCount: (sessionData.unreadCount || 0) + 1
+          })
+        });
+      } else {
+        await fetch(`/api/support_sessions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: user.uid,
+            userId: user.uid,
+            userName: displayName,
+            lastMessage: text,
+            lastMessageAt: new Date().toISOString(),
+            unreadCount: 1
+          })
+        });
+      }
 
     } catch (err) {
       console.error(err);

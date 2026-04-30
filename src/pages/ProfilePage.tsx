@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc, setDoc, serverTimestamp, addDoc, collection, query, where, getDocs, updateDoc, increment, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/context/AuthContext';
 import { Button } from '@/src/components/ui/Button';
 import { 
@@ -23,7 +21,6 @@ import {
   Ghost,
   Disc
 } from 'lucide-react';
-import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
 
 export const ProfilePage = () => {
   const { user, profile, loading: authLoading } = useAuth();
@@ -86,14 +83,33 @@ export const ProfilePage = () => {
     if (!user) return;
     setSaving(true);
     try {
-      await setDoc(doc(db, 'users', user.uid, 'public', 'profile'), {
-        ...formData,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
+      const res = await fetch(`/api/user_profiles?userId=${user.uid}`);
+      const data = await res.json();
+      
+      if (data.length > 0) {
+        await fetch(`/api/user_profiles/${data[0].id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...formData,
+            updatedAt: new Date().toISOString(),
+          })
+        });
+      } else {
+        await fetch('/api/user_profiles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.uid,
+            ...formData,
+            updatedAt: new Date().toISOString(),
+          })
+        });
+      }
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}/public/profile`);
+      console.error(error);
     } finally {
       setSaving(false);
     }
@@ -112,37 +128,45 @@ export const ProfilePage = () => {
     setIsRedeeming(true);
     try {
       // Find the gift card
-      const q = query(collection(db, 'gift_cards'), where('code', '==', giftCardCode.trim().toUpperCase()));
-      const snap = await getDocs(q);
+      const res = await fetch(`/api/gift_cards?code=${giftCardCode.trim().toUpperCase()}`);
+      const data = await res.json();
       
-      if (snap.empty) {
+      if (data.length === 0) {
         alert("INVALID CODE SEQUENCE. AUTHENTICATION FAILED.");
         setIsRedeeming(false);
         return;
       }
 
-      const gcDoc = snap.docs[0];
-      const gcData = gcDoc.data();
+      const gc = data[0];
 
-      if (gcData.status !== 'active') {
+      if (gc.status !== 'active') {
         alert("CODE ALREADY DEPLOYED OR SYSTEM LOCKED.");
         setIsRedeeming(false);
         return;
       }
 
-      // Atomically update card and user balance
-      // In a real app, use a transaction. Here we'll do sequential updates as it's a demo.
-      await updateDoc(doc(db, 'gift_cards', gcDoc.id), {
-        status: 'redeemed',
-        redeemedBy: user.uid,
-        redeemedAt: serverTimestamp()
+      await fetch(`/api/gift_cards/${gc.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'redeemed',
+          redeemedBy: user.uid,
+          redeemedAt: new Date().toISOString()
+        })
       });
 
-      await updateDoc(doc(db, 'users', user.uid, 'public', 'profile'), {
-        balance: increment(gcData.amount)
-      });
+      const userRes = await fetch(`/api/user_profiles?userId=${user.uid}`);
+      const userData = await userRes.json();
+      if (userData.length > 0) {
+        const u = userData[0];
+        await fetch(`/api/user_profiles/${u.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ balance: (u.balance || 0) + gc.amount })
+        });
+      }
 
-      alert(`SUCCESS: ₹${gcData.amount} INJECTED INTO VOID BALANCE.`);
+      alert(`SUCCESS: ₹${gc.amount} INJECTED INTO VOID BALANCE.`);
       setGiftCardCode('');
     } catch (err) {
       console.error(err);
@@ -168,8 +192,8 @@ export const ProfilePage = () => {
     let rewardType = 'none';
 
     if (roll < 0.05) {
-      result = "FREE JERSEY VOUCHER (CALL SUPPORT)";
-      rewardType = 'jersey';
+      result = "FREE ARTIFACT VOUCHER (CALL SUPPORT)";
+      rewardType = 'artifact';
     } else if (roll < 0.20) {
       result = "25% DISCOUNT CODE (CALL SUPPORT)";
       rewardType = 'discount';
@@ -182,20 +206,27 @@ export const ProfilePage = () => {
     }
 
     try {
-      const profileRef = doc(db, 'users', user.uid, 'public', 'profile');
-      
-      const updates: any = {
-        wh1rlCoins: increment(-500)
-      };
+      const res = await fetch(`/api/user_profiles?userId=${user.uid}`);
+      const userData = await res.json();
+      if (userData.length > 0) {
+        const profileData = userData[0];
+        const updates: any = {
+          wh1rlCoins: (profileData.wh1rlCoins || 0) - 500
+        };
 
-      if (rewardType === 'credits') {
-        updates.balance = increment(100);
-      } else if (rewardType === 'coins') {
-        updates.wh1rlCoins = increment(0); // Effectively a refund of the 500 spent + 500 earned
+        if (rewardType === 'credits') {
+          updates.balance = (profileData.balance || 0) + 100;
+        } else if (rewardType === 'coins') {
+          updates.wh1rlCoins = (profileData.wh1rlCoins || 0); // Effectively a refund
+        }
+
+        await fetch(`/api/user_profiles/${profileData.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        });
+        setSpinResult(result);
       }
-
-      await updateDoc(profileRef, updates);
-      setSpinResult(result);
     } catch (err) {
       console.error(err);
       alert("VOID CONNECTION INTERRUPTED.");
@@ -210,13 +241,17 @@ export const ProfilePage = () => {
       return;
     }
     try {
-      await addDoc(collection(db, 'balance_requests'), {
-        userId: user.uid,
-        userName: profile?.displayName || user.email,
-        amount: parseFloat(balanceAmount),
-        transactionId,
-        status: 'pending',
-        createdAt: serverTimestamp()
+      await fetch('/api/balance_requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          userName: profile?.displayName || user.email,
+          amount: parseFloat(balanceAmount),
+          transactionId,
+          status: 'pending',
+          createdAt: new Date().toISOString()
+        })
       });
       alert("REQUEST SUBMITTED. SEND SCREENSHOT TO +91 82405 15833 IN WHATSAPP FOR INSTANT APPROVAL.");
       setIsBalanceModalOpen(false);
@@ -636,11 +671,18 @@ const OrderStatusSnippet = () => {
 
   useEffect(() => {
     if (!user) return;
-    const q = query(collection(db, 'orders'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'), limit(1));
-    const unsub = onSnapshot(q, (snap) => {
-      if (!snap.empty) setLastOrder({ id: snap.docs[0].id, ...snap.docs[0].data() });
-    });
-    return unsub;
+    const fetchLastOrder = async () => {
+      try {
+        const res = await fetch(`/api/orders?userId=${user.uid}&limit=1&_sort=createdAt&_order=desc`);
+        const data = await res.json();
+        if (data && data.length > 0) setLastOrder(data[0]);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchLastOrder();
+    const interval = setInterval(fetchLastOrder, 10000);
+    return () => clearInterval(interval);
   }, [user]);
 
   if (!lastOrder) return (

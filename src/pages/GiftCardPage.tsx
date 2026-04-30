@@ -13,8 +13,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/src/context/AuthContext';
 import { Button } from '@/src/components/ui/Button';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/src/lib/firebase';
 
 export const GiftCardPage = () => {
   const navigate = useNavigate();
@@ -43,13 +41,17 @@ export const GiftCardPage = () => {
     try {
       // In this specialized flow, we create a balance request specifically for a gift card
       // Or we can just create a 'gift_card_request'
-      await addDoc(collection(db, 'gift_card_requests'), {
-        userId: user?.uid,
-        userName: user?.displayName || user?.email,
-        amount: parseFloat(amount),
-        transactionId,
-        status: 'pending',
-        createdAt: serverTimestamp()
+      await fetch('/api/gift_card_requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.uid,
+          userName: user?.displayName || user?.email,
+          amount: parseFloat(amount),
+          transactionId,
+          status: 'pending',
+          createdAt: new Date().toISOString()
+        })
       });
       
       setStep(3);
