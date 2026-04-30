@@ -27,8 +27,6 @@ export const Wh1rlAI = () => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -44,15 +42,18 @@ export const Wh1rlAI = () => {
         setIsLoading(true);
 
         try {
-            const response = await ai.models.generateContent({
-                model: "gemini-3-flash-preview",
-                contents: userMsg,
-                config: {
-                    systemInstruction: SYSTEM_INSTRUCTION,
-                },
+            const apiKey = process.env.GEMINI_API_KEY;
+            if (!apiKey) throw new Error("API KEY MISSING");
+
+            const genAI = new GoogleGenAI(apiKey);
+            const model = genAI.getGenerativeModel({ 
+                model: "gemini-1.5-flash",
+                systemInstruction: SYSTEM_INSTRUCTION
             });
 
-            const botMsg = response.text || "SIGNAL LOST. TRY AGAIN.";
+            const result = await model.generateContent(userMsg);
+            const response = await result.response;
+            const botMsg = response.text() || "SIGNAL LOST. TRY AGAIN.";
             setMessages(prev => [...prev, { role: 'bot', text: botMsg }]);
         } catch (err) {
             console.error(err);

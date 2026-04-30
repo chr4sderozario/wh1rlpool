@@ -1,12 +1,12 @@
-import { motion } from 'motion/react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/src/components/ui/Button';
 import { ArrowRight, ShoppingBag, Zap, Shield, Globe, Cpu } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { collection, query, limit, onSnapshot, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { useScanner } from '@/src/context/ScannerContext';
-import { X, Camera, Search, MessageSquare, AlertCircle } from 'lucide-react';
+import { X, Camera, Search, MessageSquare, AlertCircle, Star, Ghost } from 'lucide-react';
 
 export const LandingPage = () => {
   const navigate = useNavigate();
@@ -62,8 +62,9 @@ export const LandingPage = () => {
       const q = query(collection(db, 'products'), limit(20));
       const snap = await getDocs(q);
       if (!snap.empty) {
-        const randomProduct = snap.docs[Math.floor(Math.random() * snap.docs.length)].data();
-        setJerseyOfTheDay({ id: snap.docs[0].id, ...randomProduct });
+        const randomIndex = Math.floor(Math.random() * snap.docs.length);
+        const randomDoc = snap.docs[randomIndex];
+        setJerseyOfTheDay({ id: randomDoc.id, ...randomDoc.data() });
       }
     };
     fetchRandomJersey();
@@ -299,7 +300,9 @@ export const LandingPage = () => {
                  <div className="flex flex-col lg:flex-row items-center gap-12 md:gap-24">
                     <div className="lg:w-1/2 space-y-8 md:space-y-12">
                        <div className="inline-block px-6 py-2 bg-brand-red text-white text-[10px] font-black uppercase tracking-[0.5em] rounded-full animate-pulse italic shadow-lg shadow-brand-red/30">ARTIFACT OF THE DAY</div>
-                       <h2 className="text-6xl md:text-[10rem] font-display font-black tracking-tighter uppercase italic leading-[0.85] text-transparent bg-clip-text bg-gradient-to-br from-white to-white/40">{jerseyOfTheDay.name.split(' ')[0]}<br />{jerseyOfTheDay.name.split(' ')[1] || 'VOID'}</h2>
+                       <h2 className="text-6xl md:text-[10rem] font-display font-black tracking-tighter uppercase italic leading-[0.85] text-transparent bg-clip-text bg-gradient-to-br from-white to-white/40">
+                          {jerseyOfTheDay.name?.split(' ')[0] || 'VOID'}<br />{jerseyOfTheDay.name?.split(' ')[1] || 'UNIT'}
+                       </h2>
                        <p className="text-lg md:text-2xl font-serif italic text-white/40 leading-relaxed uppercase tracking-widest max-w-xl">{jerseyOfTheDay.description}</p>
                        <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center pt-8">
                           <div className="space-y-1">
