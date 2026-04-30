@@ -91,7 +91,7 @@ export const StorePage = ({ gender, onSale }: StorePageProps) => {
             price: 449,
             stock: 50,
             category: 'National Team Jerseys',
-            imageUrl: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800',
+            imageUrl: 'argentina',
             isTrending: true,
             isNew: true
           },
