@@ -91,7 +91,7 @@ export const StorePage = ({ gender, onSale }: StorePageProps) => {
             price: 449,
             stock: 50,
             category: 'National Team Jerseys',
-            imageUrl: 'argentina',
+            imageUrl: argentina,
             isTrending: true,
             isNew: true
           },
