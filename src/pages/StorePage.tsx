@@ -86,7 +86,7 @@ export const StorePage = ({ gender, onSale }: StorePageProps) => {
             price: 449,
             stock: 50,
             category: 'National Team Jerseys',
-            imageUrl: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800',
+            imageUrl: 'https://i.postimg.cc/zfVS1Rdp/rn-image-picker-lib-temp-9df97e78-f684-4469-b0cc-4e215d00423a.png',
             isTrending: true,
             isNew: true
           },
