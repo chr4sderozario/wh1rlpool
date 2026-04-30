@@ -98,10 +98,10 @@ export const StorePage = ({ gender, onSale }: StorePageProps) => {
           {
             id: 'real-madrid-home',
             name: 'Real Madrid 24/25 Home',
-            price: 449,
+            price: 549,
             stock: 50,
             category: 'Official Jerseys',
-            imageUrl: 'https://images.unsplash.com/photo-1614632537423-1e6c2e7a0dca?q=80&w=800',
+            imageUrl: realmadrid, 
             isNew: true
           },
           {
