@@ -34,10 +34,10 @@ export const StorePage = () => {
       {
         id: 'argentina',
         name: 'Argentina Home Jersey',
-        price: 500,
-        stock: 50,
+        price: 499,
+        stock: 5000,
         category: 'National Team Jerseys',
-        imageUrl: 'https://i.imgur.com/8Km9tLL.jpg',
+        imageUrl: 'https://i.postimg.cc/zfVS1Rdp/rn-image-picker-lib-temp-9df97e78-f684-4469-b0cc-4e215d00423a.png',
         isTrending: true
       },
       {
