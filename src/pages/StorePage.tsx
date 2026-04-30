@@ -1,3 +1,8 @@
+import argentina from "../assets/argentina.jpg";
+import brazil from "../assets/brazil.jpg";
+import madrid from "../assets/madrid.jpg";
+import barcelona from "../assets/barcelona.jpg";
+
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/src/components/ui/Button';
