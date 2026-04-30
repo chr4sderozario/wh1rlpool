@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { collection, query, limit, onSnapshot, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
+import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
 import { useScanner } from '@/src/context/ScannerContext';
 import { X, Camera, Search, MessageSquare, AlertCircle, Star, Ghost } from 'lucide-react';
 
@@ -55,7 +56,7 @@ export const LandingPage = () => {
     const qReviews = query(collection(db, 'store_reviews'), orderBy('createdAt', 'desc'), limit(10));
     const unsubReviews = onSnapshot(qReviews, (snap) => {
       setReviews(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'store_reviews'));
 
     // Pick a random product for 'Jersey of the Day'
     const fetchRandomJersey = async () => {
@@ -77,7 +78,7 @@ export const LandingPage = () => {
     );
     const unsubFeatured = onSnapshot(qFeatured, (snap) => {
       setFeaturedProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'products'));
 
     // Fetch New Arrivals
     const qNew = query(
@@ -87,6 +88,9 @@ export const LandingPage = () => {
     );
     const unsubNew = onSnapshot(qNew, (snap) => {
       setNewArrivals(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'products');
       setLoading(false);
     });
 
@@ -105,49 +109,8 @@ export const LandingPage = () => {
     }
   }, [loading, featuredProducts, newArrivals]);
 
-   const displayFlashDeals = featuredProducts.length > 0 ? featuredProducts : [
-    {
-      id: 'argentina-retro',
-      name: 'Argentina 1994 Retro',
-      price: 449,
-      discount: 25,
-      imageUrl: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800'
-    },
-    {
-      id: 'real-madrid-2425',
-      name: 'Real Madrid Elite 24/25',
-      price: 449,
-      discount: 15,
-      imageUrl: 'https://images.unsplash.com/photo-1614632537423-1e6c2e7a0dca?q=80&w=800'
-    }
-  ];
-
-  const displayNewArrivals = newArrivals.length > 0 ? newArrivals : [
-    {
-       id: 'italy-ren',
-       name: 'Italy Renaissance',
-       price: 449,
-       imageUrl: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800'
-    },
-    {
-       id: 'japan-ops',
-       name: 'Japan Special Ops',
-       price: 449,
-       imageUrl: 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=800'
-    },
-    {
-       id: 'brazil-noir',
-       name: 'Brazil Samba Noir',
-       price: 449,
-       imageUrl: 'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?q=80&w=800'
-    },
-    {
-       id: 'bayern-stealth',
-       name: 'Bayern Munich Stealth',
-       price: 449,
-       imageUrl: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=800'
-    }
-  ];
+   const displayFlashDeals = featuredProducts;
+   const displayNewArrivals = newArrivals;
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
@@ -167,9 +130,9 @@ export const LandingPage = () => {
               className="relative aspect-[3/4] md:aspect-[21/9] w-full overflow-hidden rounded-[2rem] md:rounded-[3rem] border border-white/5 bg-white/[0.02]"
             >
                <img 
-                 src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=1600"
-                 className="absolute inset-0 w-full h-full object-cover grayscale opacity-40 hover:grayscale-0 hover:scale-105 transition-all duration-[3s]"
-                 alt="Hero"
+                 src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1600"
+                 className="absolute inset-0 w-full h-full object-cover opacity-20 grayscale"
+                 alt="Gothic Void"
                />
                <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black via-black/40 to-transparent flex flex-col justify-end md:justify-center p-8 md:p-20">
                   <motion.div
@@ -328,28 +291,28 @@ export const LandingPage = () => {
         <section className="mb-24 md:mb-32">
            <h2 className="text-3xl md:text-5xl font-display font-black tracking-tighter uppercase italic mb-8 md:mb-12 text-center md:text-left">THE VOID SECTORS</h2>
            <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-none md:grid-rows-2 h-auto md:h-[800px] gap-4 md:gap-6">
-              <div className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-square md:aspect-auto" onClick={() => navigate('/shop?category=National Team Jerseys')}>
-                 <img src="https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=1200" className="absolute inset-0 w-full h-full object-cover grayscale opacity-10 group-hover:scale-105 group-hover:opacity-30 transition-all duration-1000" alt="" />
+              <div className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-square md:aspect-auto" onClick={() => navigate('/shop')}>
+                 <img src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1200" className="absolute inset-0 w-full h-full object-cover grayscale opacity-5 group-hover:opacity-10 transition-all duration-1000" alt="" />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent to-transparent flex flex-col justify-end p-8 md:p-16">
                     <span className="text-[8px] font-black text-brand-red tracking-[0.6em] uppercase mb-4 italic">SECTOR 01</span>
-                    <h3 className="text-5xl md:text-7xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-0 group-hover:translate-x-4 transition-transform duration-1000">NATIONAL<br />ELITE</h3>
+                    <h3 className="text-5xl md:text-7xl font-display font-black tracking-tighter uppercase italic leading-[0.8] mb-0 group-hover:translate-x-4 transition-transform duration-1000">ELITE<br />ARCHIVE</h3>
                  </div>
               </div>
-              <div className="md:col-span-2 relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-[16/9] md:aspect-auto" onClick={() => navigate('/shop?category=Retro Jerseys')}>
-                 <img src="https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=1200" className="absolute inset-0 w-full h-full object-cover grayscale opacity-5 group-hover:scale-105 group-hover:opacity-20 transition-all duration-1000" alt="" />
+              <div className="md:col-span-2 relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-[16/9] md:aspect-auto" onClick={() => navigate('/shop')}>
+                 <img src="https://images.unsplash.com/photo-1501691223387-dd0500403074?q=80&w=1200" className="absolute inset-0 w-full h-full object-cover grayscale opacity-5 group-hover:opacity-10 transition-all duration-1000" alt="" />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent to-transparent flex flex-col justify-end p-8 md:p-12">
                     <span className="text-[8px] font-black text-white/20 tracking-[0.6em] uppercase mb-2 md:mb-4 italic">SECTOR 05</span>
-                    <h3 className="text-3xl md:text-4xl font-display font-black tracking-tighter uppercase italic leading-none group-hover:text-brand-red transition-colors duration-500">HERITAGE RELICS</h3>
+                    <h3 className="text-3xl md:text-4xl font-display font-black tracking-tighter uppercase italic leading-none group-hover:text-brand-red transition-colors duration-500">VOYAGE RELICS</h3>
                  </div>
               </div>
-              <div className="relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-video md:aspect-auto" onClick={() => navigate('/shop?category=Limited Edition Jerseys')}>
+              <div className="relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-video md:aspect-auto" onClick={() => navigate('/shop')}>
                  <div className="absolute inset-0 bg-gradient-to-br from-brand-red/5 to-transparent p-8 md:p-10 flex flex-col justify-end transition-all duration-700 group-hover:bg-brand-red/10">
                     <h3 className="text-xl md:text-2xl font-display font-black tracking-tighter uppercase italic group-hover:text-brand-red transition-all">LIMITED<br/>UNITS</h3>
                  </div>
               </div>
-              <div className="relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-video md:aspect-auto" onClick={() => navigate('/shop?category=Training Kits')}>
+              <div className="relative group overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white/[0.01] border border-white/5 cursor-pointer aspect-video md:aspect-auto" onClick={() => navigate('/shop')}>
                  <div className="absolute inset-0 bg-gradient-to-bl from-white/5 to-transparent p-8 md:p-10 flex flex-col justify-end group-hover:bg-white/10 transition-all duration-700">
-                    <h3 className="text-xl md:text-2xl font-display font-black tracking-tighter uppercase italic group-hover:text-white/60 transition-all">PROTOCOL<br/>KITS</h3>
+                    <h3 className="text-xl md:text-2xl font-display font-black tracking-tighter uppercase italic group-hover:text-white/60 transition-all">PROTOCOL<br/>UNITS</h3>
                  </div>
               </div>
            </div>

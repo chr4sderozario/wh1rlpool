@@ -4,6 +4,7 @@ import { MessageCircle, Send, X, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/src/context/AuthContext';
 import { db } from '@/src/lib/firebase';
 import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, setDoc, doc, increment, getDoc } from 'firebase/firestore';
+import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
 
 export const ChatWidgetCount = memo(() => {
   const { user } = useAuth();
@@ -26,6 +27,8 @@ export const ChatWidgetCount = memo(() => {
       setTimeout(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
       }, 100);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'support_chats');
     });
 
     return unsubscribe;

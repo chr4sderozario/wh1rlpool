@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/context/AuthContext';
+import { handleFirestoreError, OperationType } from '@/src/lib/firebaseUtils';
 import { ShoppingBag, Truck, Package, CheckCircle, Clock, XCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/src/components/ui/Button';
 
@@ -35,6 +36,9 @@ export const OrdersPage = () => {
     );
     const unsub = onSnapshot(q, (snap) => {
       setOrders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'orders');
       setLoading(false);
     });
     return unsub;

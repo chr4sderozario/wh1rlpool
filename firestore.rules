@@ -131,6 +131,22 @@ service cloud.firestore {
               (!('stripeId' in data) || data.stripeId is string);
     }
 
+    function isValidChat(data) {
+      return data.keys().hasAll(['userId', 'senderId', 'text', 'isAdmin', 'timestamp']) &&
+             data.userId is string && data.senderId is string &&
+             data.text is string && data.text.size() > 0 &&
+             data.isAdmin is bool &&
+             (data.timestamp is timestamp || data.timestamp == null);
+    }
+
+    function isValidSession(data) {
+      return data.keys().hasAll(['userId', 'userName', 'lastMessage', 'lastMessageAt', 'unreadCount']) &&
+             data.userId is string && data.userName is string &&
+             data.lastMessage is string &&
+             (data.lastMessageAt is timestamp || data.lastMessageAt == null) &&
+             data.unreadCount is number;
+    }
+
     // --- Collection Rules ---
 
     match /products/{productId} {
@@ -140,6 +156,21 @@ service cloud.firestore {
         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'price', 'costPrice', 'description', 'imageUrl', 'images', 'category', 'stock', 'isFeatured', 'isTrending', 'ratings', 'gender', 'club', 'country'])
       );
       allow delete: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /support_sessions/{sessionId} {
+      allow get, update, create: if isOwner(sessionId) || isAdmin();
+      allow list: if isAdmin();
+    }
+
+    match /support_chats/{chatId} {
+      allow read: if (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid)) || isAdmin();
+      allow create: if isSignedIn() && (incoming().userId == request.auth.uid || isAdmin()) && isValidChat(incoming());
     }
 
     match /orders/{orderId} {
@@ -165,6 +196,9 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+
       match /public/profile {
         allow get: if isSignedIn();
         allow list: if isAdmin() || (isSignedIn() && resource.data.role == 'user');

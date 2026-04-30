@@ -165,35 +165,35 @@ export const AdminDashboard = () => {
 
     const unsubProducts = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'desc')), (snap) => {
       setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
-    }, (err) => console.error("Products Snapshot Error:", err));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'products'));
 
     const unsubOrders = onSnapshot(query(collection(db, 'orders'), orderBy('createdAt', 'desc')), (snap) => {
       setOrders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
-    }, (err) => console.error("Orders Snapshot Error:", err));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'orders'));
 
     const unsubRequests = onSnapshot(query(collection(db, 'balance_requests'), orderBy('createdAt', 'desc')), (snap) => {
       setRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as BalanceRequest)));
-    }, (err) => console.error("Requests Snapshot Error:", err));
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'balance_requests'));
 
     const unsubGiftCards = onSnapshot(query(collection(db, 'gift_cards'), orderBy('createdAt', 'desc')), (snap) => {
       setGiftCards(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as GiftCard)));
-    });
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'gift_cards'));
 
     const unsubGiftCardRequests = onSnapshot(query(collection(db, 'gift_card_requests'), orderBy('createdAt', 'desc')), (snap) => {
       setGiftCardRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'gift_card_requests'));
 
     const unsubStoreReviews = onSnapshot(query(collection(db, 'store_reviews'), orderBy('createdAt', 'desc')), (snap) => {
       setStoreReviews(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review)));
-    });
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'store_reviews'));
 
     const unsubChats = onSnapshot(query(collection(db, 'support_sessions'), orderBy('lastMessageAt', 'desc')), (snap) => {
       setChats(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'support_sessions'));
 
     const unsubSettings = onSnapshot(doc(db, 'settings', 'system'), (snap) => {
       if (snap.exists()) setSystemSettings(snap.data() as any);
-    });
+    }, (err) => handleFirestoreError(err, OperationType.GET, 'settings/system'));
 
     const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
        const userDocs = snapshot.docs;
@@ -224,7 +224,7 @@ export const AdminDashboard = () => {
        };
        fetchProfiles();
     }, (error) => {
-       console.error("Users Snapshot Error:", error);
+       handleFirestoreError(error, OperationType.LIST, 'users');
        setLoading(false);
     });
 
@@ -467,6 +467,22 @@ export const AdminDashboard = () => {
       alert("Secondary artifact upload failed.");
     } finally {
       setSecondaryUploading(false);
+    }
+  };
+
+  const nukeAllProducts = async () => {
+    if (!confirm("CRITICAL: Wipe all artifacts from the void? This cannot be undone.")) return;
+    setLoading(true);
+    try {
+      const snap = await getDocs(collection(db, 'products'));
+      const batch = snap.docs.map(d => deleteDoc(doc(db, 'products', d.id)));
+      await Promise.all(batch);
+      alert("VOID PURIFIED. All artifacts destroyed.");
+    } catch (err) {
+      console.error(err);
+      alert("PURIFICATION FAILED.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1004,6 +1020,7 @@ export const AdminDashboard = () => {
                         <h2 className="text-7xl font-display font-black tracking-tighter uppercase italic leading-[0.9]">The<br />Vault</h2>
                         <div className="flex gap-4 mt-8">
                            <button onClick={seedSystemProducts} className="px-6 py-2 bg-brand-red/10 border border-brand-red/20 rounded-xl text-[8px] font-black uppercase tracking-widest text-brand-red hover:bg-brand-red hover:text-white transition-all">SYSTEM SEED</button>
+                            <button onClick={nukeAllProducts} className="px-8 py-3 bg-brand-red text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all shadow-[0_0_30px_rgba(255,0,0,0.3)]">PERMANENTLY WIPE STORE</button>
                            <button onClick={updateAllPrices} className="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 transition-all">FIX PRICES (₹449)</button>
                         </div>
                     </div>

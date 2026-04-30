@@ -39,39 +39,33 @@ export default function App() {
     <Router>
       <AuthProvider>
         <ScannerProvider>
-          <AnimatePresence mode="wait">
-            {loading ? (
-              <LoadingScreen key="loader" />
-            ) : (
-              <div key="content" className="relative text-white selection:bg-brand-red selection:text-white">
-                <GothicBackground />
-                <Navbar />
-                <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center"><div className="w-12 h-12 border-4 border-brand-red border-t-transparent rounded-full animate-spin"></div></div>}>
-                  <Routes>
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/admin" element={<AdminDashboard />} />
-                    <Route path="/store" element={<StorePage />} />
-                    <Route path="/loyalty" element={<LoyaltyPage />} />
-                    <Route path="/ai" element={<Wh1rlAI />} />
-                    <Route path="/checkout" element={<CheckoutPage />} />
-                    <Route path="/gift-cards" element={<GiftCardPage />} />
-                    <Route path="/men" element={<StorePage gender="men" />} />
-                    <Route path="/women" element={<StorePage gender="women" />} />
-                    <Route path="/sale" element={<StorePage onSale={true} />} />
-                    <Route path="/cart" element={<CartPage />} />
-                    <Route path="/wishlist" element={<WishlistPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
-                    <Route path="/orders" element={<OrdersPage />} />
-                    <Route path="/product/:id" element={<ProductDetailPage />} />
-                    <Route path="/support" element={<SupportPage />} />
-                  </Routes>
-                </Suspense>
-                <ChatWidget />
-                <MusicProtocol />
-              </div>
-            )}
-          </AnimatePresence>
+          <div key="content" className="relative text-white selection:bg-brand-red selection:text-white">
+            <GothicBackground />
+            <Navbar />
+            <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center"><div className="w-12 h-12 border-4 border-brand-red border-t-transparent rounded-full animate-spin"></div></div>}>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/store" element={<StorePage />} />
+                <Route path="/loyalty" element={<LoyaltyPage />} />
+                <Route path="/ai" element={<Wh1rlAI />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/gift-cards" element={<GiftCardPage />} />
+                <Route path="/men" element={<StorePage gender="men" />} />
+                <Route path="/women" element={<StorePage gender="women" />} />
+                <Route path="/sale" element={<StorePage onSale={true} />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/wishlist" element={<WishlistPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/product/:id" element={<ProductDetailPage />} />
+                <Route path="/support" element={<SupportPage />} />
+              </Routes>
+            </Suspense>
+            <ChatWidget />
+            <MusicProtocol />
+          </div>
         </ScannerProvider>
       </AuthProvider>
     </Router>
