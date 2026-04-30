@@ -88,7 +88,7 @@ export const StorePage = ({ gender, onSale }: StorePageProps) => {
           {
             id: 'argentina-home-jersey',
             name: 'Argentina 2024 Home Jersey',
-            price: 449,
+            price: 459,
             stock: 50,
             category: 'National Team Jerseys',
             imageUrl: argentina,
