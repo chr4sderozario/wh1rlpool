@@ -519,8 +519,38 @@ export const AdminDashboard = () => {
           stock: 48,
           category: "Elite Club Artifacts",
           description: "Blaugrana identity. More than an artifact. A deep structural connection to football history.",
-          imageUrl: "https://images.unsplash.com/photo-1518000411333-e99c43a406b2?q=80&w=800",
+          imageUrl: "https://images.pexels.com/photos/23196306/pexels-photo-23196306.jpeg",
           isFeatured: true
+        },
+        {
+          name: "GERMANY 24/25 HOME UNIT",
+          price: 449,
+          costPrice: 180,
+          stock: 25,
+          category: "National Team Artifacts",
+          description: "Teutonic precision. Architectural white with the spectral fire of the German spirit.",
+          imageUrl: "https://images.pexels.com/photos/29390239/pexels-photo-29390239.jpeg",
+          isFeatured: false
+        },
+        {
+          name: "PORTUGAL 24/25 HOME UNIT",
+          price: 449,
+          costPrice: 180,
+          stock: 30,
+          category: "National Team Artifacts",
+          description: "Greatest of all time lineage. Deep red resonance for the navigators of the football void.",
+          imageUrl: "https://images.pexels.com/photos/26630669/pexels-photo-26630669.jpeg",
+          isFeatured: true
+        },
+        {
+          name: "ARSENAL 24/25 HOME UNIT",
+          price: 449,
+          costPrice: 190,
+          stock: 42,
+          category: "Elite Club Artifacts",
+          description: "The cannon protocol. Traditional red and white reimagined for the modern aesthetic movement.",
+          imageUrl: "https://images.pexels.com/photos/14984380/pexels-photo-14984380.jpeg",
+          isFeatured: false
         }
       ];
 

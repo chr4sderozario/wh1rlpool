@@ -82,8 +82,8 @@
       "stock": 42,
       "category": "Elite Club Artifacts",
       "description": "The cannon protocol. Traditional red and white reimagined for the modern aesthetic movement.",
-      "imageUrl": "https://images.unsplash.com/photo-1623864770284-8848f760f38b?q=80&w=800",
-      "images": ["https://images.unsplash.com/photo-1623864770284-8848f760f38b?q=80&w=800"],
+      "imageUrl": "https://images.pexels.com/photos/14984380/pexels-photo-14984380.jpeg",
+      "images": ["https://images.pexels.com/photos/14984380/pexels-photo-14984380.jpeg"],
       "club": "Arsenal",
       "isFeatured": false,
       "createdAt": "2024-04-30T10:05:00Z"
@@ -96,8 +96,8 @@
       "stock": 30,
       "category": "National Team Artifacts",
       "description": "Greatest of all time lineage. Deep red resonance for the navigators of the football void.",
-      "imageUrl": "https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800",
-      "images": ["https://images.unsplash.com/photo-1551958219-acbc608c6377?q=80&w=800"],
+      "imageUrl": "https://images.pexels.com/photos/26630669/pexels-photo-26630669.jpeg",
+      "images": ["https://images.pexels.com/photos/26630669/pexels-photo-26630669.jpeg"],
       "country": "Portugal",
       "isFeatured": true,
       "createdAt": "2024-04-30T10:06:00Z"
@@ -110,8 +110,8 @@
       "stock": 25,
       "category": "National Team Artifacts",
       "description": "Teutonic precision. Architectural white with the spectral fire of the German spirit.",
-      "imageUrl": "https://images.unsplash.com/photo-1550881126-7590ad256236?q=80&w=800",
-      "images": ["https://images.unsplash.com/photo-1550881126-7590ad256236?q=80&w=800"],
+      "imageUrl": "https://images.pexels.com/photos/29390239/pexels-photo-29390239.jpeg",
+      "images": ["https://images.pexels.com/photos/29390239/pexels-photo-29390239.jpeg"],
       "country": "Germany",
       "isFeatured": false,
       "createdAt": "2024-04-30T10:07:00Z"
@@ -124,8 +124,8 @@
       "stock": 48,
       "category": "Elite Club Artifacts",
       "description": "Blaugrana identity. More than an artifact. A deep structural connection to football history.",
-      "imageUrl": "https://images.unsplash.com/photo-1518000411333-e99c43a406b2?q=80&w=800",
-      "images": ["https://images.unsplash.com/photo-1518000411333-e99c43a406b2?q=80&w=800"],
+      "imageUrl": "https://images.pexels.com/photos/23196306/pexels-photo-23196306.jpeg",
+      "images": ["https://images.pexels.com/photos/23196306/pexels-photo-23196306.jpeg"],
       "club": "Barcelona",
       "isFeatured": true,
       "createdAt": "2024-04-30T10:08:00Z"
